@@ -268,7 +268,7 @@ void main()
     
     // Create font and text
     Font ftDroidSans = new Font();
-    ftDroidSans.init("atrium/fonts/droid/DroidSans.ttf", 14);
+    ftDroidSans.init("data/fonts/droid/DroidSans.ttf", 14);
 
     Text textInfo = new Text(ftDroidSans);
     textInfo.setPos(16, windowHeight-32);
@@ -306,16 +306,11 @@ void main()
     float cPhereRotZ = 0.0f;
    
     // Create character
-    MD5AnimatedMesh amesh = MD5AnimatedMesh("atrium/character/ch.md5mesh");
-    MD5Animation anim_idle = MD5Animation("atrium/character/ch.md5anim");
-    MD5Animation anim_walk = MD5Animation("atrium/character/ch-walk.md5anim");
-    MD5Animation anim_jump = MD5Animation("atrium/character/ch-jump.md5anim");
-    MD5Animation anim_fall = MD5Animation("atrium/character/ch-fall.md5anim");
-    //MD5AnimatedMesh amesh = MD5AnimatedMesh("data/models/lion-girl/lion-girl.md5mesh");
-    //MD5Animation anim_idle = MD5Animation("data/models/lion-girl/lion-girl-idle.md5anim");
-    //MD5Animation anim_walk = MD5Animation("data/models/lion-girl/lion-girl-walk.md5anim");
-    //MD5Animation anim3 = MD5Animation("data/models/lion-girl/lion-girl-jump.md5anim");
-    //MD5Animation anim_jump = MD5Animation("data/models/lion-girl/lion-girl-jump-up.md5anim");
+    MD5AnimatedMesh amesh = MD5AnimatedMesh("data/character/character.md5mesh");
+    MD5Animation anim_idle = MD5Animation("data/character/character-idle.md5anim");
+    MD5Animation anim_walk = MD5Animation("data/character/character-walk.md5anim");
+    MD5Animation anim_jump = MD5Animation("data/character/character-jump.md5anim");
+    MD5Animation anim_fall = MD5Animation("data/character/character-fall.md5anim");
 
     Empty lionPivot = new Empty(scene);
     lionPivot.bsphereRadius = 3.0f;
@@ -377,15 +372,15 @@ void main()
 
     Vector3f pushVector = Vector3f(0.0f, 0.0f, 0.0f);
 
-    auto shadowImg = loadPNG("atrium/fx/shadow.png");
+    auto shadowImg = loadPNG("data/fx/shadow.png");
     Texture shadowTex = new Texture(shadowImg);
     //ColorRGBAf shadowColor = ColorRGBAf(0.0f, 0.0f, 0.0f, 1.0f);
     float shadowAlpha = 1.0f;
 
-    auto glowImg = loadPNG("atrium/fx/glow.png");
+    auto glowImg = loadPNG("data/fx/glow.png");
     Texture glowTex = new Texture(glowImg);
 
-    DatObject level = new DatObject("atrium/arena/arena.dat");
+    DatObject level = new DatObject("data/arena/arena.dat");
 
     //writeln(level.spawnPosition);
     lionPivot.position = level.spawnPosition;
@@ -431,7 +426,7 @@ void main()
         glEndList();
     });
 */
-    DatObject collectibleSphere = new DatObject("atrium/items/gem.dat");
+    DatObject collectibleSphere = new DatObject("data/items/gem.dat");
     DatRenderer cSphere = new DatRenderer(collectibleSphere);
     collectibleSphere.materials[0].ambientColor = collectibleSphere.materials[0].diffuseColor;
     collectibleSphere.materials[0].diffuseColor.a = 0.9f;
@@ -440,7 +435,7 @@ void main()
     Billboard cSphereBBoard = new Billboard(5.0f, 5.0f, null);
     
     // Create materials and shaders
-    auto characterImg = loadPNG("atrium/character/tex.png");
+    auto characterImg = loadPNG("data/character/character-texture.png");
     Texture characterTex = new Texture(characterImg);
     
     Material mLion = new Material();
