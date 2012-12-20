@@ -1,4 +1,4 @@
-module photon.ui.appmanager;
+module photon.core.appmanager;
 
 private
 {

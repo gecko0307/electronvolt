@@ -4,6 +4,7 @@ public
 {
     import photon.core.drawable;
     import photon.core.modifier;
+    import photon.core.application;
 
     import photon.file.md5;
     import photon.file.obj;
@@ -36,7 +37,6 @@ public
     import photon.scene.tbcamera;
     import photon.scene.torus;
     
-    import photon.ui.appmanager;
     import photon.ui.font;
     import photon.ui.text;
     
