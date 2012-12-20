@@ -1,0 +1,27 @@
+<html lang="en"> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Basic Usage</title>
+</head> 
+<body> 
+<h1>Basic Usage</h1>
+<p>Copy the Cook executable ("cook" under Linux or "cook.exe" under Windows) to project root directory. If your project contains default main file ("main.d"), you simply run it:</p>
+<pre>
+  $ ./cook
+</pre>
+<p>Otherwise, you should specify the main file ("target" in our terminology):</p>
+<pre>
+  $ ./cook mainfile.d
+</pre>
+<p>You can omit the extension:</p>
+<pre>
+  $ ./cook mainfile
+</pre>
+<p>This is useful when your project contains more than one target. You can configure and build each of them individually.</p>
+<p>That is all! Cook will automatically call DMD to compile and link your modules. It will also create a cache file (usually with the same name as the target) to store all the metadata like module dependencies, modification times etc. Don't delete it unless you really need to do so: caching dramatically increases building speed. If you don't want Cook to read/write cache file, run it with "-nocache" parameter:</p>
+<pre>
+  $ ./cook mainfile -nocache
+</pre>
+<p>All parameters must go AFTER the target.</p>
+</body>
+</html>

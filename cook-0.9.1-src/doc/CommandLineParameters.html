@@ -1,0 +1,32 @@
+<html lang="en"> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Command Line Parameters</title>
+</head> 
+<body> 
+<h1>Command Line Parameters</h1>
+<pre>
+-help             Display information on usage
+-emulate          Don't write anything to disk
+-quiet            Don't print messages
+-rebuild          Force rebuilding all modules
+-nocache          Disable reading/writing module cache
+-lib              Build a static library instead of executable
+                  (currently works only under Windows)
+-release          Compile modules in release mode
+-noconsole        Under Windows, hide applocation console window
+-strip            Remove debug symbols from resulting binary using "strip" utility
+                  (currently works only under Linux)
+-exclude FILE...  Don't compile specified module(s)
+-o FILE           Compile to specified filename
+-clean            Remove temporary data (object files, cache, etc.)
+-cache FILE       Use specified cache file
+-rc FILE          Under Windows, compile and link specified resource file
+-C"..."           Pass specified option(s) to compiler
+-L"..."           Pass specified option(s) to linker
+-run              Run program after compilation (does't work in emulation mode)
+-f [FILE]         Read MAINMODULE and OPTIONS from file (default "params.cache")
+-s [FILE]         Save MAINMODULE and OPTIONS to file (default "params.cache")
+</pre>
+</body>
+</html>
