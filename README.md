@@ -1,7 +1,7 @@
 Atrium
 ======
-The goal of this project is to create a full-fledged 3D platform game, 
-entirely in D language (http://dlang.org).
+The goal of this project is to create a first-person shooter with 
+physics based puzzles, entirely in D language (http://dlang.org).
 
 Atrium uses OpenGL for rendering, thus (theoretically) supporting all 
 platforms that provide OpenGL API. Currently Atrium is well-tested on

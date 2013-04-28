@@ -1,6 +1,0 @@
--------------------- PhotonTools --------------------
-PhotonTools is a script for Blender 2.63+ that provides 
-full content creation pipeline for Atrium and Photon 
-Engine. It includes an exporter to *.map format and 
-extends global 'Add' menu with a few object types specific 
-to the engine.
