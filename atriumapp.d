@@ -65,7 +65,6 @@ private
 
     import atrium.all;
 
-    import obj;
     import utils;
     import dat;
 
