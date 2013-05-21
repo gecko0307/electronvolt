@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2013 Timur Gafarov 
 
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -26,44 +26,57 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module dlib.geometry.obb;
+module dlib.math.fft;
 
 private
 {
-    import dlib.math.vector;
-    import dlib.math.matrix3x3;
-    import dlib.math.matrix4x4;
+    import std.math;
+    import dlib.math.utils;
+    import dlib.math.complex;
 }
 
-struct OBB
+void fastFourierTransform(Complex!(float)[] data, bool forward)
 {
-    Vector3f extent;
-    Matrix4x4f transform;
+    assert(isPowerOfTwo(data.length));
     
-    this(Vector3f position, Vector3f size)
+    uint target = 0;
+    
+    for (uint pos = 0; pos < data.length; ++pos)
     {
-        transform = identityMatrix4x4f();
-        center = position;
-        extent = size;
+        if (target > pos)
+        {
+            Complex!(float) temp = data[target];
+            data[target] = data[pos];
+            data[pos] = temp;
+        }
+        uint mask = data.length;
+        while (target & (mask >>= 1))
+            target &= ~mask;
+        target |= mask;
     }
     
-    @property
-    {
-        Vector3f center()
-        {
-            return transform.translation;
-        }
-
-        Vector3f center(Vector3f v)
-        body
-        {
-            transform.translation = v;
-            return v;
-        }
-    }
+    float pi = forward? -PI : PI;
     
-    @property Matrix3x3f orient()
+    for (uint step = 1; step < data.length; step <<= 1)
     {
-        return matrix4x4to3x3(transform);
+        uint jump = step << 1;
+        float delta = pi / cast(float)step;
+        float sine = sin(delta * 0.5f);
+        Complex!(float) multiplier = Complex!(float)(-2.0f * sine * sine, sin(delta));
+        Complex!(float) factor = Complex!(float)(1.0f);
+        
+        for (uint group = 0; group < step; ++group)
+        {
+            for (uint pair = group; pair < data.length; pair += jump)
+            {
+                uint match = pair + step;
+                Complex!(float) product = factor * data[match];
+                data[match] = data[pair] - product;
+                data[pair] += product;
+            }
+            
+            factor = multiplier * factor + factor;
+        }
     }
 }
+

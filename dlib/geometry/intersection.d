@@ -45,7 +45,6 @@ struct Intersection
     Vector3f point;
     Vector3f normal;
     float penetrationDepth;
-    Vector3f contactB;
 }
 
 Intersection intrSphereVsSphere(ref Sphere sphere1, ref Sphere sphere2)
@@ -76,9 +75,9 @@ Intersection intrSphereVsPlane(ref Sphere sphere, ref Plane plane)
     
     if (q <= sphere.radius)
     {
-        res.penetrationDepth = sphere.radius - q; //-q
+        res.penetrationDepth = sphere.radius - q;
         res.normal = plane.normal;
-        res.point = sphere.center - plane.normal * sphere.radius; //(q + sphere.radius)
+        res.point = sphere.center - res.normal * sphere.radius;
         res.fact = true;
     }
     
@@ -101,7 +100,6 @@ private void measureSphereAndTriVert(
         result.penetrationDepth = penetrate;
         result.normal = diff * (1.0f / len);
         result.point = center - result.normal * radius;
-        result.contactB = tri.v[whichVert];
     }
 }
 
@@ -139,7 +137,7 @@ void measureSphereAndTriEdge(
             result.penetrationDepth = penetrate;
             result.normal = diff * (1.0f / len);
             result.point = center - result.normal * radius;
-            result.contactB = project;
+            //result.contactB = project;
         }
     }
 }
@@ -149,7 +147,6 @@ Intersection intrSphereVsTriangle(ref Sphere sphere, ref Triangle tri)
     Intersection result;
     result.point = Vector3f(0.0f, 0.0f, 0.0f);
     result.normal = Vector3f(0.0f, 0.0f, 0.0f);
-    result.contactB = Vector3f(0.0f, 0.0f, 0.0f);
     result.penetrationDepth = 1.0e5f;
     result.fact = false;
 
@@ -174,7 +171,7 @@ Intersection intrSphereVsTriangle(ref Sphere sphere, ref Triangle tri)
     {
         result.penetrationDepth = penetrated;
         result.point = sphere.center - tri.normal * factor * sphere.radius; //on the sphere
-        result.contactB = contactB;
+        //result.contactB = contactB;
         result.fact = true;
         result.normal = tri.normal * factor;
         return result;
@@ -207,179 +204,7 @@ Intersection intrSphereVsTriangle(ref Sphere sphere, ref Triangle tri)
     return result;
 }
 
-Intersection[8] intrOBBVsPlane(OBB b, Plane p)
-{
-    Intersection[8] intr;
-    //intr.fact = false;
-    //intr.penetrationDepth = 0.0;
-    //intr.normal = Vector3f(0.0f, 0.0f, 0.0f);
-    //intr.point = Vector3f(0.0f, 0.0f, 0.0f);
-    
-    //check for intersection
-                            
-    float r = b.extent[0] * abs(dot(p.normal, b.transform.right)) +
-              b.extent[1] * abs(dot(p.normal, b.transform.up)) +
-              b.extent[2] * abs(dot(p.normal, b.transform.forward));
-              
-    float dist = dot(p.normal, b.center) - r;
-    
-    if (dist > p.d)
-        return intr;
-
-	static Vector3f[8] mults = 
-    [
-        Vector3f(1.0f, 1.0f, 1.0f),
-        Vector3f(-1.0f, 1.0f, 1.0f),
-        Vector3f(1.0f, -1.0f, 1.0f),
-        Vector3f(-1.0f, -1.0f, 1.0f),
-	Vector3f(1.0f, 1.0f, -1.0f),
-        Vector3f(-1.0f, 1.0f, -1.0f),
-        Vector3f(1.0f, -1.0f, -1.0f),
-        Vector3f(-1.0f, -1.0f, -1.0f)
-    ];
-    
-    float maxPenetrationDepth = 0.0f;
-    
-    //intr.normal = p.normal;    
-    Vector3f mergedPoint = Vector3f(0.0f, 0.0f, 0.0f);
-    uint numContacts = 0;
-    
-    for (uint i = 0; i < 8; i++)
-    {
-        intr[i].normal = p.normal;
-    
-        Vector3f v = mults[i] * b.extent;
-        v = b.transform.transform(v);
-        
-        float vd = v.dot(p.normal);
-        
-        if (vd <= p.d + 0.05f)
-        {
-            intr[i].fact = true;
-            intr[i].point = v + p.normal * (vd - p.d);
-            intr[i].normal = p.normal;
-            intr[i].penetrationDepth = p.d - vd;
-/*
-            mergedPoint += v + p.normal * (vd - p.d); 
-
-            float penetrationDepth = p.d - vd;
-
-            if (penetrationDepth > maxPenetrationDepth)
-            {
-                maxPenetrationDepth = penetrationDepth;
- 
-                intr.penetrationDepth = penetrationDepth;               
-                //intr.point = v + p.normal * penetrationDepth; //(vd - p.d);
-                //intr.normal = p.normal;
-            }
-*/
-            numContacts++;
-        }
-    }
-    
-    foreach (ref i; intr)
-    {
-        if (i.fact)
-            i.penetrationDepth /= numContacts;
-    }
-
-    /*
-    if (numContacts > 0)
-    {
-        intr.point = mergedPoint / numContacts;
-        //intr.penetrationDepth /= numContacts;
-    }*/
-    
-    return intr;
-}
-
-Intersection intrOBBVsPlane2(OBB b, Plane p)
-{
-    Intersection intr;
-    intr.fact = false;
-    intr.penetrationDepth = 0.0;
-    intr.normal = Vector3f(0.0f, 0.0f, 0.0f);
-    intr.point = Vector3f(0.0f, 0.0f, 0.0f);
-    
-    //check for intersection
-                            
-    float r = b.extent[0] * abs(dot(p.normal, b.transform.right)) +
-              b.extent[1] * abs(dot(p.normal, b.transform.up)) +
-              b.extent[2] * abs(dot(p.normal, b.transform.forward));
-              
-    float dist = dot(p.normal, b.center) - r;
-    
-    if (dist > p.d)
-        return intr;
-
-	static Vector3f[8] mults = 
-    [
-        Vector3f(1.0f, 1.0f, 1.0f),
-        Vector3f(-1.0f, 1.0f, 1.0f),
-        Vector3f(1.0f, -1.0f, 1.0f),
-        Vector3f(-1.0f, -1.0f, 1.0f),
-	Vector3f(1.0f, 1.0f, -1.0f),
-        Vector3f(-1.0f, 1.0f, -1.0f),
-        Vector3f(1.0f, -1.0f, -1.0f),
-        Vector3f(-1.0f, -1.0f, -1.0f)
-    ];
-    
-    float maxPenetrationDepth = 0.0f;
-    
-    intr.normal = p.normal;    
-    Vector3f mergedPoint = Vector3f(0.0f, 0.0f, 0.0f);
-    uint numContacts = 0;
-    
-    for (uint i = 0; i < 8; i++)
-    {
-        //intr.fact = false;
-    
-        Vector3f v = mults[i] * b.extent;
-        v = b.transform.transform(v);
-        
-        float vd = v.dot(p.normal);
-        
-        if (vd <= p.d + 0.05f)
-		{
-            intr.fact = true;
-            //intr[i].point = v + p.normal * (vd - p.d);
-            //intr[i].normal = p.normal;
-            //intr.penetrationDepth = p.d - vd;
-
-            mergedPoint += v + p.normal * (vd - p.d); 
-
-            float penetrationDepth = p.d - vd;
-
-            if (penetrationDepth > maxPenetrationDepth)
-            {
-                maxPenetrationDepth = penetrationDepth;
- 
-                intr.penetrationDepth = penetrationDepth;               
-                //intr.point = v + p.normal * penetrationDepth; //(vd - p.d);
-                //intr.normal = p.normal;
-            }
- 
-            numContacts++;
-        }
-    }
-    
-    /*
-    foreach (ref i; intr)
-    {
-        if (i.fact)
-            i.penetrationDepth /= numContacts;
-    }*/
-    
-    if (numContacts > 0)
-    {
-        intr.point = mergedPoint / numContacts;
-        //intr.penetrationDepth /= numContacts;
-    }
-    
-    return intr;
-}
-
-Intersection intrSphereVsOBB(Sphere s, OBB b)
+Intersection intrSphereVsOBB(ref Sphere s, ref OBB b)
 {
     Intersection intr;
     intr.fact = false;

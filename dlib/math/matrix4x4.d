@@ -448,6 +448,11 @@ struct Matrix4x4(T)
         return m11 * ((m22 * m33) - (m23 * m32))
              + m12 * ((m23 * m31) - (m21 * m33))
              + m13 * ((m21 * m32) - (m22 * m31));
+    /*
+        return m11 * (m33 * m22 - m32 * m23)
+             - m21 * (m33 * m12 - m32 * m13)
+             + m31 * (m23 * m12 - m22 * m13);
+    */
     }
 
    /* 
@@ -475,7 +480,19 @@ struct Matrix4x4(T)
         res.m31 = ((m21 * m32) - (m22 * m31)) * oneOverDet;
         res.m32 = ((m12 * m31) - (m11 * m32)) * oneOverDet;
         res.m33 = ((m11 * m22) - (m12 * m21)) * oneOverDet;
-     
+/*
+        res.m11 =  (m33 * m22 - m32 * m23) * oneOverDet;
+        res.m12 = -(m33 * m12 - m32 * m13) * oneOverDet;
+        res.m13 =  (m23 * m12 - m22 * m13) * oneOverDet;
+        
+        res.m21 = -(m33 * m21 - m31 * m23) * oneOverDet;
+        res.m22 =  (m33 * m11 - m31 * m13) * oneOverDet;
+        res.m23 = -(m23 * m11 - m21 * m13) * oneOverDet;
+        
+        res.m31 =  (m32 * m21 - m31 * m22) * oneOverDet;
+        res.m32 = -(m32 * m11 - m31 * m12) * oneOverDet;
+        res.m33 =  (m22 * m11 - m21 * m12) * oneOverDet;
+*/       
         res.tx = -((tx * res.m11) + (ty * res.m21) + (tz * res.m31));
         res.ty = -((tx * res.m12) + (ty * res.m22) + (tz * res.m32));
         res.tz = -((tx * res.m13) + (ty * res.m23) + (tz * res.m33));
@@ -555,32 +572,6 @@ body
             assert(0);
     }
 
-    res.tx = res.ty = res.tz = 0.0;
-    return res;
-}
-
-/* 
- * Create a matrix to perform a rotation about specified axis
- */
-Matrix4x4!(T) rotationMatrix(T) (Vector!(T,3) rotaxis, T theta)
-body
-{
-    Matrix4x4!(T) res;
-    res.identity();
-
-    T s = sin(theta);
-    T c = cos(theta);
-    
-    T C = 1.0 - c;
-    
-    T x = rotaxis.x;
-    T y = rotaxis.y;
-    T z = rotaxis.z;
-    
-    res.m11 = x*x*C+c;   res.m21 = x*y*C-z*s; res.m31 = x*z*C+y*s;
-    res.m12 = y*x*C+z*s; res.m22 = y*y*C+c;   res.m32 = y*z*C-x*s;
-    res.m13 = z*x*C-y*s; res.m23 = z*y*C+x*s; res.m33 = z*z*C+c;
-    
     res.tx = res.ty = res.tz = 0.0;
     return res;
 }

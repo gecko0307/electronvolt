@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2013 Timur Gafarov 
 
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -26,44 +26,10 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module dlib.geometry.obb;
+module engine.core.drawable;
 
-private
+interface Drawable
 {
-    import dlib.math.vector;
-    import dlib.math.matrix3x3;
-    import dlib.math.matrix4x4;
-}
-
-struct OBB
-{
-    Vector3f extent;
-    Matrix4x4f transform;
-    
-    this(Vector3f position, Vector3f size)
-    {
-        transform = identityMatrix4x4f();
-        center = position;
-        extent = size;
-    }
-    
-    @property
-    {
-        Vector3f center()
-        {
-            return transform.translation;
-        }
-
-        Vector3f center(Vector3f v)
-        body
-        {
-            transform.translation = v;
-            return v;
-        }
-    }
-    
-    @property Matrix3x3f orient()
-    {
-        return matrix4x4to3x3(transform);
-    }
+    void draw(double delta);
+    void free();
 }

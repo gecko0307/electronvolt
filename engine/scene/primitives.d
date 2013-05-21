@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2013 Timur Gafarov 
 
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -26,44 +26,56 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module dlib.geometry.obb;
+module engine.scene.primitives;
 
 private
 {
+    import std.algorithm;
+    
+    import derelict.opengl.gl;
+    import derelict.opengl.glu;
+    
     import dlib.math.vector;
-    import dlib.math.matrix3x3;
-    import dlib.math.matrix4x4;
+    import dlib.math.utils;
+    import dlib.geometry.aabb;
+    import dlib.geometry.sphere;
+    
+    import engine.scene.scenenode;
 }
 
-struct OBB
+final class PrimSphere: SceneNode
 {
-    Vector3f extent;
-    Matrix4x4f transform;
-    
-    this(Vector3f position, Vector3f size)
-    {
-        transform = identityMatrix4x4f();
-        center = position;
-        extent = size;
-    }
-    
-    @property
-    {
-        Vector3f center()
-        {
-            return transform.translation;
-        }
+    GLUquadricObj *quadratic;
+    float radius;
+    int slices;
+    int stacks;
 
-        Vector3f center(Vector3f v)
-        body
-        {
-            transform.translation = v;
-            return v;
-        }
-    }
-    
-    @property Matrix3x3f orient()
+    this(float radius, int slices, int stacks, SceneNode par = null)
     {
-        return matrix4x4to3x3(transform);
+        super(par);
+
+        this.radius = radius;
+        this.slices = slices;
+        this.stacks = stacks;
+
+        quadratic = gluNewQuadric();
+        gluQuadricNormals(quadratic, GLU_SMOOTH);
+        gluQuadricTexture(quadratic, GL_TRUE);
+    }
+
+    override void render(double delta)
+    {
+        gluSphere(quadratic, radius, slices, stacks);
+    }
+
+    override void clean()
+    {
+        gluDeleteQuadric(quadratic);
+    }
+
+    override Sphere boundingSphere()
+    {
+        return Sphere(absolutePosition, radius);
     }
 }
+

@@ -824,7 +824,7 @@ body
 Quaternion!(T) identityQuaternion(T)()
 body
 {
-    return Quaternion!(T)(0.0, 0.0, 0.0, 1.0);
+    return Quaternion!(T)(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 /*

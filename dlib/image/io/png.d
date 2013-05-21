@@ -32,6 +32,7 @@ private
 {
     import std.stdio;
     import std.math;
+    import std.zlib;
 
     import dlib.math.utils;
 
@@ -79,9 +80,15 @@ struct PNGChunk
         uint length;
         ubyte[4] length_bytes;
     }
+    
     ubyte[4] type;
     ubyte[] data;
-    ubyte[4] CRC;
+
+    union
+    {
+        uint crc;
+        ubyte[4] crc_bytes;
+    }
 }
 
 struct PNGHeader
@@ -100,23 +107,6 @@ struct PNGHeader
         };
         ubyte[13] bytes;
     }
-}
-
-/*
- * performs the paeth PNG filter from pixels values:
- *   a = back
- *   b = up
- *   c = up and back
- */
-pure ubyte paeth(ubyte a, ubyte b, ubyte c)
-{
-    int p = a + b - c;
-    int pa = abs(p - a);
-    int pb = abs(p - b);
-    int pc = abs(p - c);
-    if (pa <= pb && pa <= pc) return a;
-    else if (pb <= pc) return b;
-    else return c;
 }
 
 SuperImage loadPNG(string filename)
@@ -143,12 +133,19 @@ SuperImage loadPNG(string filename)
         }
         version(PNGDebug) writefln("Chunk data.length = %s", chunk.data.length);
 
-        f.rawRead(chunk.CRC);
+        f.rawRead(chunk.crc_bytes);
+        chunk.crc = bigEndian(chunk.crc);
+        uint calculatedCRC = crc32(chunk.type ~ chunk.data);
+
         version(PNGDebug) 
         {
-            writefln("Chunk CRC = %s", chunk.CRC);
+            writefln("Chunk CRC = %s", chunk.crc);
+            writefln("Calculated CRC = %s", calculatedCRC);
             writeln("-------------------");
         }
+
+        //if (chunk.length)
+        assert(chunk.crc == calculatedCRC, "PNG Error: CRC check failed");
 
         return chunk;
     }
@@ -357,7 +354,86 @@ in
 }
 body
 {
-    assert (0, "Saving to PNG is not yet implemented");   
+    assert(img.bitDepth == 8, "PNG error: only 8-bit images are supported by encoder");
+
+    auto f = new File(filename, "w");
+
+    void writeChunk(ubyte[4] chunkType, ubyte[] chunkData)
+    {
+        PNGChunk hdrChunk;
+        hdrChunk.length = networkByteOrder(chunkData.length);
+        hdrChunk.type = chunkType;
+        hdrChunk.data = chunkData;
+        hdrChunk.crc = networkByteOrder(crc32(chunkType ~ hdrChunk.data));
+        f.rawWrite(hdrChunk.length_bytes);
+        f.rawWrite(hdrChunk.type);
+        if (chunkData.length)
+            f.rawWrite(hdrChunk.data);
+        f.rawWrite(hdrChunk.crc_bytes);
+    }
+
+    void writeHeader()
+    {
+        PNGHeader hdr;
+        hdr.width = networkByteOrder(img.width);
+        hdr.height = networkByteOrder(img.height);
+        hdr.bitDepth = 8;
+        if (img.channels == 4)
+            hdr.colorType = ColorType.RGBA;
+        else if (img.channels == 3)
+            hdr.colorType = ColorType.RGB;
+        else if (img.channels == 2)
+            hdr.colorType = ColorType.GreyscaleAlpha;
+        else if (img.channels == 1)
+            hdr.colorType = ColorType.Greyscale;
+        hdr.compressionMethod = 0;
+        hdr.filterMethod = 0;
+        hdr.interlaceMethod = 0;
+
+        writeChunk(IHDR, hdr.bytes);
+    }
+
+    f.rawWrite(PNGSignature);
+    writeHeader();
+
+    //TODO: filtering
+    ubyte[] raw = new ubyte[img.width * img.height * img.channels + img.height];
+    foreach(y; 0..img.height)
+    {
+        auto rowStart = (img.height - y - 1) * (img.width * img.channels + 1);
+        raw[rowStart] = 0; // No filter
+
+        foreach(x; 0..img.width)
+        {
+            auto dataIndex = (y * img.width + x) * img.channels;
+            auto rawIndex = rowStart + 1 + x * img.channels;
+
+            foreach(ch; 0..img.channels)
+                raw[rawIndex + ch] = img.data[dataIndex + ch];
+        }
+    }
+
+    writeChunk(IDAT, cast(ubyte[])compress(raw));
+    writeChunk(IEND, []);
+
+    f.close();
+}
+
+/*
+ * performs the paeth PNG filter from pixels values:
+ *   a = back
+ *   b = up
+ *   c = up and back
+ */
+pure ubyte paeth(ubyte a, ubyte b, ubyte c)
+{
+    int p = a + b - c;
+    int pa = abs(p - a);
+    int pb = abs(p - b);
+    int pc = abs(p - c);
+    if (pa <= pb && pa <= pc) return a;
+    else if (pb <= pc) return b;
+    else return c;
 }
 
 ubyte[] filter(SuperImage img, ubyte[] ibuffer)
@@ -419,6 +495,35 @@ ubyte[] filter(SuperImage img, ubyte[] ibuffer)
     }
 
     return buffer;
+}
+
+uint crc32(ubyte[] buf, uint inCrc = 0)
+{
+    uint[256] generateTable()
+    { 
+        uint[256] table;
+        uint crc;
+        for (int i = 0; i < 256; i++)
+        {
+            crc = i;
+            for (int j = 0; j < 8; j++)
+                crc = crc & 1 ? (crc >> 1) ^ 0xEDB88320UL : crc >> 1;
+            table[i] = crc;
+        }
+        return table;
+    }
+
+    static const uint[256] table = generateTable();
+
+    uint crc;
+    ubyte* byteBuf;
+
+    crc = inCrc ^ 0xFFFFFFFF;
+    byteBuf = buf.ptr;
+    for (uint i = 0; i < buf.length; i++)
+        crc = (crc >> 8) ^ table[(crc ^ byteBuf[i]) & 0xFF];
+
+    return (crc ^ 0xFFFFFFFF);
 }
 
 

@@ -1,0 +1,43 @@
+Installation
+============
+We use our own in-house building toolchain based on Cook,
+super-fast caching incremental build tool, created specially 
+for D projects. Please visit project page for details:
+http://code.google.com/p/cook-build-automation-tool. 
+
+Prerequisites
+============
+- Up-to-date D2 compiler. We recommend newest version of DMD or LDC;
+- Phobos standard library;
+- Cook build automation utility. We provide precompiled binaries
+  for Cook bundled with the project. You may also build
+  it from source by yourself (cook-0.9.2-src).
+
+DMD path
+============
+To compile Atrium with DMD, please change path to compiler 
+executable directory in default.conf file.
+Under Linux:
+
+ linux.compiler_dir: "/path/to/dmd2-2.060/linux";
+
+Under Windows:
+
+ windows.compiler_dir: "C:/path/to/dmd2/windows";
+
+Then cd to project root directory and run Cook.
+
+LDC path
+============
+To compile Atrium with LDC, please change path to compiler 
+executable directory in ldc-linux.conf file.
+
+ linux.compiler_dir: "/path/to/ldc2-0.10.0-linux-x86";
+
+Then cd to project root directory and do
+
+ $ ./cook -dc ldc-linux.conf
+
+N.B.: Is LDC Linux-only? Not sure, haven't tested on Windows yet... :(
+
+

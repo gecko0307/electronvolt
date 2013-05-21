@@ -1,0 +1,5 @@
+mNewGame "Новая игра"
+mResumeGame "Продолжить игру"
+mLoadGame "Загрузить игру"
+mOptions "Опции"
+mExit "Выход"

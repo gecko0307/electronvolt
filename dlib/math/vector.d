@@ -201,13 +201,13 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        if (t != 0)
+        //if (t != 0)
             //res.arrayof[] = arrayof[] / t;
             foreach(i; 0..size)
                 res.arrayof[i] = cast(T)(arrayof[i] / t);
-        else //res.arrayof[] = arrayof[];
-            foreach(i; 0..size)
-                res.arrayof[i] = arrayof[i];
+        //else //res.arrayof[] = arrayof[];
+        //    foreach(i; 0..size)
+        //        res.arrayof[i] = arrayof[i];
         return res;
     }
 
@@ -385,6 +385,8 @@ struct Vector(T, int size)
         return t;
     }
 
+    static if (isNumeric!(T))
+    {
    /*
     * Get vector length squared
     */
@@ -412,7 +414,7 @@ struct Vector(T, int size)
         }
         else
         {
-            int t = 0;
+            T t = 0;
             foreach (component; arrayof) 
                 t += component * component;
             return cast(T)sqrt(cast(float)t);
@@ -492,6 +494,7 @@ struct Vector(T, int size)
     {
         foreach (ref component; arrayof) 
             component.clamp(minv, maxv);
+    }
     }
 
    /*

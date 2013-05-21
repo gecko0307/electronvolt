@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2013 Timur Gafarov 
 
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -26,44 +26,49 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module dlib.geometry.obb;
+module dlib.geometry.bezier;
 
 private
 {
     import dlib.math.vector;
-    import dlib.math.matrix3x3;
-    import dlib.math.matrix4x4;
 }
 
-struct OBB
+T bezier(T) (T A, T B, T C, T D, T t)
 {
-    Vector3f extent;
-    Matrix4x4f transform;
-    
-    this(Vector3f position, Vector3f size)
-    {
-        transform = identityMatrix4x4f();
-        center = position;
-        extent = size;
-    }
-    
-    @property
-    {
-        Vector3f center()
-        {
-            return transform.translation;
-        }
+    T s = cast(T)1.0 - t;
+    T AB = A * s + B * t;
+    T BC = B * s + C * t;
+    T CD = C * s + D * t;
+    T ABC = AB * s + CD * t;
+    T BCD = BC * s + CD * t;
+    return ABC * s + BCD * t;
+}
 
-        Vector3f center(Vector3f v)
-        body
-        {
-            transform.translation = v;
-            return v;
-        }
-    }
-    
-    @property Matrix3x3f orient()
-    {
-        return matrix4x4to3x3(transform);
-    }
+Vector!(T,3) bezierCurveFunc3D(T)(
+    Vector!(T,3) a,
+    Vector!(T,3) b,
+    Vector!(T,3) c,
+    Vector!(T,3) d,
+    T t)
+{
+    return Vector!(T,3)
+    (
+        bezier(a.x, b.x, c.x, d.x, t),
+        bezier(a.y, b.y, c.y, d.y, t),
+        bezier(a.z, b.z, c.z, d.z, t)
+    );
+}
+
+Vector!(T,2) bezierCurveFunc2D(T)(
+    Vector!(T,2) a,
+    Vector!(T,2) b,
+    Vector!(T,2) c,
+    Vector!(T,2) d,
+    T t)
+{
+    return Vector!(T,2)
+    (
+        bezier(a.x, b.x, c.x, d.x, t),
+        bezier(a.y, b.y, c.y, d.y, t)
+    );
 }

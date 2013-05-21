@@ -101,8 +101,13 @@ bool isConsiderZero(T) (T f)
 }
 
 /*
- * Next powers of...
+ * Powers
  */
+bool isPowerOfTwo(T)(T x)
+{
+    return (x != 0) && ((x & (x - 1)) == 0);
+} 
+
 T nextPowerOfTwo(T) (T k) 
 {
     if (k == 0) 
@@ -160,6 +165,11 @@ version (BigEndian)
     {
         return value;
     }
+
+    uint networkByteOrder(uint value)
+    {
+        return value;
+    }
 }
 
 version (LittleEndian) 
@@ -170,6 +180,11 @@ version (LittleEndian)
             | (value & 0x0000FF00) << 8
             | (value & 0x00FF0000) >> 8
             |  value >> 24;
+    }
+
+    uint networkByteOrder(uint value)
+    {
+        return bigEndian(value);
     }
 }
 
