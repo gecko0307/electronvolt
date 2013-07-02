@@ -26,12 +26,13 @@ class GameLogicManager
     this(AppManager m)
     {
         appManager = m;
-        rooms["_exit_"] = new ExitRoom(this);
+        rooms["_exit_"] = new ExitRoom("_exit_", this);
         rooms["_current_room_"] = currentRoom;
 
         fontMain = new Font();
         fontMain.init("data/fonts/droid/DroidSans.ttf", mainFontHeight);
 
+        dictionary["mSandbox"] = "Sandbox";
         dictionary["mNewGame"] = "New game";
         dictionary["mResumeGame"] = "Resume game";
         dictionary["mLoadGame"] = "Load game";
@@ -137,11 +138,13 @@ class GameObject
 
 class GameRoom
 {
+    string name;
     GameLogicManager logic;
     GameObject[] objects;
 
-    this(GameLogicManager logi)
+    this(string roomName, GameLogicManager logi)
     {
+        name = roomName;
         logic = logi;
     }
 
@@ -187,9 +190,9 @@ class GameRoom
 
 class ExitRoom: GameRoom
 {
-    this(GameLogicManager logi)
+    this(string roomName, GameLogicManager logi)
     {
-        super(logi);
+        super(roomName, logi);
     }
 
     override void onLoad()

@@ -31,10 +31,10 @@ class PauseMenuObject: GameObject
 
         txt = new Text(logic.fontMain);
 
-        background = new Texture(loadPNG("data/ui/space.png"), false);
+        background = new Texture(loadPNG("data/ui/abstract.png"), false);
 
         addEntry(logic.dictionary["mExit"], "mainMenu", false, false);
-        addEntry(logic.dictionary["mResumeGame"], "level1", false, false);
+        addEntry(logic.dictionary["mResumeGame"], "sandbox", false, false); //logic.previousRoom.name
     }
 
     void addEntry(dstring text, string roomName, bool free = true, bool load = true)
@@ -86,7 +86,7 @@ class PauseMenuObject: GameObject
             }
             else
             {
-                glColor4f(1.0f, 0.5f, 0.0f, 0.6f);
+                glColor4f(1.0f, 0.5f, 0.0f, 0.9f);
             }
             drawRectangle(entry.x, entry.y, entry.w, entry.h);
 
@@ -149,9 +149,9 @@ class PauseMenuObject: GameObject
 
 class PauseMenuRoom: GameRoom
 {
-    this(GameLogicManager m)
+    this(string roomName, GameLogicManager m)
     {
-        super(m);
+        super(roomName, m);
     }
 
     override void onLoad()

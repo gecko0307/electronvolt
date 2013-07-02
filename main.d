@@ -6,7 +6,8 @@ import engine.core.application;
 import engine.logic;
 import engine.menu;
 import engine.pause;
-import engine.level;
+//import engine.level;
+import engine.sandbox;
 
 class AtriumApp: Application
 {
@@ -18,10 +19,11 @@ class AtriumApp: Application
 
         logic = new GameLogicManager(manager);
 
-        logic.rooms["mainMenu"] = new MainMenuRoom(logic);
-        logic.rooms["pauseMenu"] = new PauseMenuRoom(logic);
+        logic.rooms["mainMenu"] = new MainMenuRoom("mainMenu", logic);
+        logic.rooms["pauseMenu"] = new PauseMenuRoom("pauseMenu", logic);
         logic.rooms["pauseMenu"].load();
-        logic.rooms["level1"] = new LevelRoom("data/levels/area0/area0.dat", logic);
+        //logic.rooms["level1"] = new LevelRoom("level1", "data/levels/area0/area0.dat", logic);
+        logic.rooms["sandbox"] = new SandboxRoom("sandbox", logic);
 
         logic.goToRoom("mainMenu");
     }

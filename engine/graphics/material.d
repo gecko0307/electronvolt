@@ -66,7 +66,7 @@ class Material: Modifier
     {
         ambientColor = ColorRGBAf(0.2f, 0.2f, 0.2f, 1.0f);
         diffuseColor = ColorRGBAf(0.8f, 0.8f, 0.8f, 1.0f);
-        specularColor = ColorRGBAf(1.0f, 1.0f, 1.0f, 1.0f);
+        specularColor = ColorRGBAf(0.0f, 0.0f, 0.0f, 0.0f);
         emissionColor = ColorRGBAf(0.0f, 0.0f, 0.0f, 1.0f);
         shininess = 64.0f;
     }

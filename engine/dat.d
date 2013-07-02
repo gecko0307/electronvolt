@@ -372,8 +372,8 @@ class DatObject
                 {
                     Material matObj = new Material();
                     matObj.shadeless = cast(bool)mat.shadeless;
-                    matObj.diffuseColor = ColorRGBAf(Vector3f(mat.diffuseColor));
-                    matObj.specularColor = ColorRGBAf(Vector3f(mat.specularColor));
+                    //matObj.diffuseColor = ColorRGBAf(Vector3f(mat.diffuseColor));
+                    //matObj.specularColor = ColorRGBAf(Vector3f(mat.specularColor));
                     matObj.shininess = mat.specularHardness;
 
                     MaterialMetadata matMetaObj = new MaterialMetadata();
@@ -415,6 +415,16 @@ class DatObject
                                 writefln("Warning: unsupported file type (trying to load \'%s\')", texImgPath);
                         }
                     }
+
+                    if (matObj.textures[0] is null &&
+                        matObj.textures[1] !is null)
+                    {
+                        matObj.textures[0] = matObj.textures[1];
+                        matObj.texBlendMode[0] = TextureCombinerMode.Blend;
+                        matObj.shadeless = true;
+                    }
+                    else if (matObj.textures[0] !is null)
+                        matObj.shadeless = true;
                     
                     materials ~= matObj;
                     materialsMeta ~= matMetaObj;

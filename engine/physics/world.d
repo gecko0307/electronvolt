@@ -293,13 +293,13 @@ class PhysicsWorld
                 
                 float groundness = dot(gravityDirection, dirToContact);
                 
-                if (groundness > 0.5f)
+                if (groundness > 0.9f)
                 {
-                if (groundness > bestGroundness)
-                {
-                    rb.lastGroundContact = contacts[i];
-                    bestGroundness = groundness;
-                }
+                    if (groundness > bestGroundness)
+                    {
+                        rb.lastGroundContact = contacts[i];
+                        bestGroundness = groundness;
+                    }
                 }
             }
 

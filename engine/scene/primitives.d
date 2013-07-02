@@ -79,3 +79,73 @@ final class PrimSphere: SceneNode
     }
 }
 
+final class PrimBox: SceneNode
+{
+    Vector3f extents;
+    uint displayList;
+
+    this(Vector3f halfSize, SceneNode par = null)
+    {
+        super(par);
+
+        this.extents = halfSize;
+
+        displayList = glGenLists(1);
+        glNewList(displayList, GL_COMPILE);
+
+        Vector3f pmax = +extents;
+        Vector3f pmin = -extents;
+
+        glBegin(GL_QUADS);
+    
+            glNormal3f(0,0,1); glVertex3f(pmin.x,pmin.y,pmax.z);
+            glNormal3f(0,0,1); glVertex3f(pmax.x,pmin.y,pmax.z);
+            glNormal3f(0,0,1); glVertex3f(pmax.x,pmax.y,pmax.z);
+            glNormal3f(0,0,1); glVertex3f(pmin.x,pmax.y,pmax.z);
+
+            glNormal3f(1,0,0); glVertex3f(pmax.x,pmin.y,pmax.z);
+            glNormal3f(1,0,0); glVertex3f(pmax.x,pmin.y,pmin.z);
+            glNormal3f(1,0,0); glVertex3f(pmax.x,pmax.y,pmin.z);
+            glNormal3f(1,0,0); glVertex3f(pmax.x,pmax.y,pmax.z);
+
+            glNormal3f(0,1,0); glVertex3f(pmin.x,pmax.y,pmax.z);
+            glNormal3f(0,1,0); glVertex3f(pmax.x,pmax.y,pmax.z);
+            glNormal3f(0,1,0); glVertex3f(pmax.x,pmax.y,pmin.z);
+            glNormal3f(0,1,0); glVertex3f(pmin.x,pmax.y,pmin.z);
+
+            glNormal3f(0,0,-1); glVertex3f(pmin.x,pmin.y,pmin.z);
+            glNormal3f(0,0,-1); glVertex3f(pmin.x,pmax.y,pmin.z);
+            glNormal3f(0,0,-1); glVertex3f(pmax.x,pmax.y,pmin.z);
+            glNormal3f(0,0,-1); glVertex3f(pmax.x,pmin.y,pmin.z);
+
+            glNormal3f(0,-1,0); glVertex3f(pmin.x,pmin.y,pmin.z);
+            glNormal3f(0,-1,0); glVertex3f(pmax.x,pmin.y,pmin.z);
+            glNormal3f(0,-1,0); glVertex3f(pmax.x,pmin.y,pmax.z);
+            glNormal3f(0,-1,0); glVertex3f(pmin.x,pmin.y,pmax.z);
+
+            glNormal3f(-1,0,0); glVertex3f(pmin.x,pmin.y,pmin.z);
+            glNormal3f(-1,0,0); glVertex3f(pmin.x,pmin.y,pmax.z);
+            glNormal3f(-1,0,0); glVertex3f(pmin.x,pmax.y,pmax.z);
+            glNormal3f(-1,0,0); glVertex3f(pmin.x,pmax.y,pmin.z);
+        
+        glEnd();
+
+        glEndList();
+    }
+
+    override void render(double delta)
+    {
+        glCallList(displayList);
+    }
+
+    override void clean()
+    {
+        glDeleteLists(displayList, 1);
+    }
+
+    override Sphere boundingSphere()
+    {
+        return Sphere(absolutePosition, max(extents.x, extents.y, extents.z));
+    }
+}
+

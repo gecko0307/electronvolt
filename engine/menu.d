@@ -43,12 +43,13 @@ class MainMenuObject: GameObject
 
         txt = new Text(logic.fontMain);
 
-        background = new Texture(loadPNG("data/ui/space.png"), false);
+        background = new Texture(loadPNG("data/ui/abstract.png"), false);
 
         addEntry(logic.dictionary["mExit"], "_exit_");
-        addEntry(logic.dictionary["mOptions"], "_current_room_", false, false);
-        addEntry(logic.dictionary["mLoadGame"], "_current_room_", false, false);
-        addEntry(logic.dictionary["mNewGame"], "level1", false, true);
+        //addEntry(logic.dictionary["mOptions"], "_current_room_", false, false);
+        //addEntry(logic.dictionary["mLoadGame"], "_current_room_", false, false);
+        //addEntry(logic.dictionary["mNewGame"], "level1", false, true);
+        addEntry(logic.dictionary["mNewGame"], "sandbox", false, true);
     }
 
     uint addEntry(dstring text, string roomName, bool free = true, bool load = true)
@@ -61,7 +62,7 @@ class MainMenuObject: GameObject
         }
         else
         {
-            entries ~= Entry(text, roomName, free, load, 16, 16, 200, 32);
+            entries ~= Entry(text, roomName, free, load, 16, 16, 230, 32);
         }
         return entries.length-1;
     }
@@ -101,7 +102,7 @@ class MainMenuObject: GameObject
                 }
                 else
                 {
-                    glColor4f(1.0f, 0.5f, 0.0f, 0.6f);
+                    glColor4f(1.0f, 0.5f, 0.0f, 0.9f);
                 }
 
             glDisable(GL_TEXTURE_2D);
@@ -162,9 +163,9 @@ class MainMenuObject: GameObject
 
 class MainMenuRoom: GameRoom
 {
-    this(GameLogicManager m)
+    this(string roomName, GameLogicManager m)
     {
-        super(m);
+        super(roomName, m);
     }
 
     override void onLoad()

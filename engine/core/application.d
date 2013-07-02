@@ -109,7 +109,7 @@ class Application
         float aspectRatio = cast(float)videoWidth / cast(float)videoHeight;
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        gluPerspective(60, aspectRatio, 0.1, 800.0);
+        gluPerspective(60, aspectRatio, 0.01, 800.0);
         glMatrixMode(GL_MODELVIEW);
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -169,7 +169,7 @@ class Application
             onUpdate();
 
             SDL_GL_SwapBuffers();
-            //SDL_Delay(1);
+            SDL_Delay(1);
         }
 
         manager.unbindActionFromEvent(EventType.Resize, _priv_resizeActionId);

@@ -6,6 +6,7 @@ import std.conv;
 import derelict.sdl.sdl;
 import derelict.opengl.gl;
 
+import dlib.math.utils;
 import dlib.math.vector;
 import dlib.math.matrix4x4;
 import dlib.geometry.triangle;
@@ -162,9 +163,6 @@ class LevelObject: GameObject
     {
         if (manager.event_key == SDLK_ESCAPE)
         {
-            // TODO: pauseMenu
-            //(cast(MainMenuRoom)(logic.rooms["mainMenu"])).objects[0].resumeEntry.enabled = true;
-            //logic.gameIsPaused = true;
             logic.goToRoom("pauseMenu", false, false);
         }
     }
@@ -278,11 +276,13 @@ class LevelObject: GameObject
 
         // Player movement
         playerWalking = false; 
+        bool playerLanded = player.rigidBody.lastGroundContact.fact;
+
         if (manager.key_pressed['w'])
         {
             player.rigidBody.applyForce(-cameraPivot.absoluteMatrix.forward * 600.0f);
             //camSwingTime += 8.0f * manager.deltaTime;
-            if (player.rigidBody.lastGroundContact.fact)
+            if (playerLanded)
                 playerWalking = true;
         }
 
@@ -290,7 +290,7 @@ class LevelObject: GameObject
         {
             player.rigidBody.applyForce(cameraPivot.absoluteMatrix.forward * 600.0f);
             //camSwingTime += 8.0f * manager.deltaTime;
-            if (player.rigidBody.lastGroundContact.fact)
+            if (playerLanded)
                 playerWalking = true;
         }
 
@@ -298,7 +298,7 @@ class LevelObject: GameObject
         {
             player.rigidBody.applyForce(-cameraPivot.absoluteMatrix.right * 600.0f);
             //camSwingTime += 8.0f * manager.deltaTime;
-            if (player.rigidBody.lastGroundContact.fact)
+            if (playerLanded)
                 playerWalking = true;
         }
 
@@ -306,7 +306,7 @@ class LevelObject: GameObject
         {
             player.rigidBody.applyForce(cameraPivot.absoluteMatrix.right * 600.0f);
             //camSwingTime += 8.0f * manager.deltaTime;
-            if (player.rigidBody.lastGroundContact.fact)
+            if (playerLanded)
                 playerWalking = true;
         }
 
@@ -314,10 +314,11 @@ class LevelObject: GameObject
         {
             if (!jumped)
             {
-                if (player.rigidBody.lastGroundContact.fact)
+                if (playerLanded)
                 {
                     player.rigidBody.applyForce(player.localMatrix.up * 200.0f);
                     player.rigidBody.lastGroundContact.fact = false;
+                    playerLanded = false;
                     jumped = true;
                 }
             }
@@ -331,6 +332,7 @@ class LevelObject: GameObject
         world.clearContacts();
         world.process2(manager.deltaTime);
 
+        // Render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity();
 
@@ -474,9 +476,9 @@ class LevelRoom: GameRoom
 {
     string datfile;
 
-    this(string datFilename, GameLogicManager m)
+    this(string roomName, string datFilename, GameLogicManager m)
     {
-        super(m);
+        super(roomName, m);
         datfile = datFilename;
     }
 

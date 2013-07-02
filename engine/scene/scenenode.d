@@ -44,7 +44,7 @@ private
 
     import engine.graphics.material;
 
-    import engine.physics.rigidbody;
+    import engine.physics2.rigidbody;
 }
 
 class SceneNode: Drawable, Modifier
@@ -219,14 +219,15 @@ class SceneNode: Drawable, Modifier
         }
         else 
         {
-        if (rigidBody.dynamic)
+        if (rigidBody.type == BodyType.Dynamic)
         {
-            localMatrix = rigidBody.getTransformation();
+            localMatrix = rigidBody.geometry.transformation;
+
             if (rigidBody.disableRotation)
             {
-            localMatrix *= rotationMatrix(Axis.x, degtorad(rotation.x));
-            localMatrix *= rotationMatrix(Axis.y, degtorad(rotation.y));
-            localMatrix *= rotationMatrix(Axis.z, degtorad(rotation.z));
+                localMatrix *= rotationMatrix(Axis.x, degtorad(rotation.x));
+                localMatrix *= rotationMatrix(Axis.y, degtorad(rotation.y));
+                localMatrix *= rotationMatrix(Axis.z, degtorad(rotation.z));
             }
         }
         else
@@ -234,7 +235,6 @@ class SceneNode: Drawable, Modifier
             localMatrix = translationMatrix(position);
 
             rigidBody.position = position;
-            //rigidBody.linearVelocity = velocity;
 
             localMatrix *= rotationMatrix(Axis.x, degtorad(rotation.x));
             localMatrix *= rotationMatrix(Axis.y, degtorad(rotation.y));
