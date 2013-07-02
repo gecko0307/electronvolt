@@ -1,0 +1,99 @@
+body
+{
+    background-color: #262626;
+}
+
+.r1, .r2, .r3 
+{
+    display: block;
+    height: 1px;
+    background-color: #525252;
+}
+
+.r3 { margin: 0 3px; }
+.r2 { margin: 0 2px; }
+.r1 { margin: 0 1px; }
+
+.inner-box 
+{
+    background-color: #525252;
+    padding:1em;
+}
+
+.box
+{
+    color: #cbcbcb;
+    font-family: sans;
+}
+
+h1
+{
+    color: #ffa33f;
+    font-family: sans;
+}
+
+h2
+{
+    color: #cbcbcb;
+    font-family: sans;
+}
+
+h3
+{
+    color: #cbcbcb;
+    font-family: sans;
+}
+
+p
+{
+    color: #cbcbcb;
+    font-family: sans;
+}
+
+a
+{
+    color: #ffa33f;
+    font-family: sans;
+    text-decoration: none;
+}
+
+a:hover
+{
+    color: #ffffff;
+    font-family: sans;
+    text-decoration: underline;
+}
+
+table
+{
+    border: 0px; /* border="0" */
+    border-collapse: collapse; /* cellspacing="0" */
+}
+
+table td
+{
+    padding: 10px; /* cellpadding="0" */
+}
+
+.shadow 
+{
+    box-shadow: 3px 3px 4px #000;
+    -moz-box-shadow: 3px 3px 4px #000;
+    -webkit-box-shadow: 3px 3px 4px #000;
+    /* For IE 8 */
+    -ms-filter: "progid:DXImageTransform.Microsoft.Shadow(Strength=4, Direction=135, Color='#000000')";
+    /* For IE 5.5-7 */
+    filter: progid:DXImageTransform.Microsoft.Shadow(Strength=4, Direction=135, Color='#000000');
+}
+
+.dark
+{
+    color: #878787;
+    font-family: sans;
+}
+
+.shadowtext 
+{
+    font-family: sans;
+    /* text-shadow: black 1px 1px 2px, #000000 0 0 0.25em; */
+}
