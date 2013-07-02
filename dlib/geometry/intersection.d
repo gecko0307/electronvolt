@@ -137,7 +137,6 @@ void measureSphereAndTriEdge(
             result.penetrationDepth = penetrate;
             result.normal = diff * (1.0f / len);
             result.point = center - result.normal * radius;
-            //result.contactB = project;
         }
     }
 }
@@ -150,7 +149,6 @@ Intersection intrSphereVsTriangle(ref Sphere sphere, ref Triangle tri)
     result.penetrationDepth = 1.0e5f;
     result.fact = false;
 
-    //Plane triPlane = Plane(tri);
     float distFromPlane = tri.normal.dot(sphere.center) - tri.d;
 
     float factor = 1.0f;
@@ -171,7 +169,6 @@ Intersection intrSphereVsTriangle(ref Sphere sphere, ref Triangle tri)
     {
         result.penetrationDepth = penetrated;
         result.point = sphere.center - tri.normal * factor * sphere.radius; //on the sphere
-        //result.contactB = contactB;
         result.fact = true;
         result.normal = tri.normal * factor;
         return result;

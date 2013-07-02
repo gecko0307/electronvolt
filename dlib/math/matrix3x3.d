@@ -86,6 +86,22 @@ struct Matrix3x3(T)
     }
     
    /*
+    * Matrix3x3!(T) + Matrix3x3!(T)
+    */
+    Matrix3x3!(T) opAdd (Matrix3x3!(T) m)
+    body
+    {       
+        Matrix3x3!(T) res;
+        res.identity;
+
+        res.m11 = m11 + m.m11; res.m12 = m12 + m.m12; res.m13 = m13 + m.m13;
+        res.m21 = m21 + m.m21; res.m22 = m22 + m.m22; res.m23 = m23 + m.m23;
+        res.m31 = m31 + m.m31; res.m32 = m32 + m.m32; res.m33 = m33 + m.m33;
+
+        return res;
+    }
+    
+   /*
     * Matrix3x3!(T) * Matrix3x3!(T)
     */
     Matrix3x3!(T) opMul (Matrix3x3!(T) m)
@@ -131,9 +147,34 @@ struct Matrix3x3(T)
         res.m33 = (m13 * m.m31) + (m23 * m.m32) + (m33 * m.m33);
 		
         arrayof[] = res.arrayof[];
-        //this = res;
 
         return m;
+    }
+    
+   /*
+    * Matrix3x3!(T) += Matrix3x3!(T)
+    */
+    Matrix3x3!(T) opAddAssign (Matrix3x3!(T) m)
+    body
+    {
+        m11 += m.m11; m12 += m.m12; m13 += m.m13;
+        m21 += m.m21; m22 += m.m22; m23 += m.m23;
+        m31 += m.m31; m32 += m.m32; m33 += m.m33;
+
+        return this;
+    }
+    
+   /*
+    * Matrix3x3!(T) -= Matrix3x3!(T)
+    */
+    Matrix3x3!(T) opSubAssign (Matrix3x3!(T) m)
+    body
+    {
+        m11 -= m.m11; m12 -= m.m12; m13 -= m.m13;
+        m21 -= m.m21; m22 -= m.m22; m23 -= m.m23;
+        m31 -= m.m31; m32 -= m.m32; m33 -= m.m33;
+
+        return this;
     }
 
    /* 
@@ -176,7 +217,6 @@ struct Matrix3x3(T)
     body
     {
         return (arrayof[index1..index2] = t);
-        //return t;
     }
     
    /* 
@@ -214,7 +254,6 @@ struct Matrix3x3(T)
     body
     {
         return (arrayof[] = t);
-        //return this;
     }
     
    /*
@@ -300,7 +339,6 @@ struct Matrix3x3(T)
     body
     {
         T det = determinant;
-        //assert (fabs(det) > 0.0);
         
         T oneOverDet = 1.0 / det;
         

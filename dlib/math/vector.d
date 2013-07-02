@@ -35,8 +35,8 @@ private
     import std.range;
     import std.format;
     import std.traits;
+    import dlib.core.tuple;
 
-    import dlib.core.method;
     import dlib.math.utils;
     import dlib.math.matrix4x4;
 }
@@ -48,12 +48,7 @@ struct Vector(T, int size)
     public:
 
     this (T[] components...) 
-    {
-        //if (components.length >= size)
-        //    arrayof[] = components[0..size];
-        //else
-        //    arrayof[0..components.length] = components[];
-        
+    {        
         if (components.length >= size)
             foreach(i; 0..size)
                 arrayof[i] = components[i];       
@@ -64,15 +59,12 @@ struct Vector(T, int size)
 
     this (T[size] components) 
     {
-        //arrayof[] = components[];
         foreach(i; 0..size)
             arrayof[i] = components[i]; 
     }
 
     this (Vector v)
-    {
-        //arrayof[] = v.arrayof[0..size];
-            
+    {           
         if (v.arrayof.length >= size)
             foreach(i; 0..size)
                 arrayof[i] = v.arrayof[i];       
@@ -87,9 +79,10 @@ struct Vector(T, int size)
     Vector!(T,size) opUnary(string s) () if (s == "-")
     body
     {
-        //return Vector!(T,size)(invertArray(arrayof));
         Vector!(T,size) res;
-        foreach(i; 0..size)
+
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             res.arrayof[i] = -arrayof[i]; 
         return res;
     }
@@ -110,8 +103,8 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        //res.arrayof[] = arrayof[] + v.arrayof[];
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             res.arrayof[i] = cast(T)(arrayof[i] + v.arrayof[i]); 
         return res;
     }
@@ -123,8 +116,8 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        //res.arrayof[] = arrayof[] - v.arrayof[];
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             res.arrayof[i] = cast(T)(arrayof[i] - v.arrayof[i]); 
         return res;
     }
@@ -136,8 +129,8 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        //res.arrayof[] = arrayof[] * v.arrayof[];
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             res.arrayof[i] = cast(T)(arrayof[i] * v.arrayof[i]); 
         return res;
     }
@@ -149,8 +142,8 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        //res.arrayof[] = arrayof[] / v.arrayof[];
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             res.arrayof[i] = cast(T)(arrayof[i] / v.arrayof[i]); 
         return res;
     }
@@ -162,8 +155,8 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        //res.arrayof[] = arrayof[] + t;
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             res.arrayof[i] = cast(T)(arrayof[i] + t);
         return res;
     }
@@ -175,8 +168,8 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        //res.arrayof[] = arrayof[] - t;
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             res.arrayof[i] = cast(T)(arrayof[i] - t);
         return res;
     }
@@ -188,8 +181,8 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        //res.arrayof[] = arrayof[] * t;
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             res.arrayof[i] = cast(T)(arrayof[i] * t);
         return res;
     }
@@ -201,13 +194,9 @@ struct Vector(T, int size)
     body
     {
         Vector!(T,size) res;
-        //if (t != 0)
-            //res.arrayof[] = arrayof[] / t;
-            foreach(i; 0..size)
-                res.arrayof[i] = cast(T)(arrayof[i] / t);
-        //else //res.arrayof[] = arrayof[];
-        //    foreach(i; 0..size)
-        //        res.arrayof[i] = arrayof[i];
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
+            res.arrayof[i] = cast(T)(arrayof[i] / t);
         return res;
     }
 
@@ -217,8 +206,8 @@ struct Vector(T, int size)
     Vector!(T,size) opAddAssign (Vector!(T,size) v)
     body
     {
-        //arrayof[] += v.arrayof[];
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] += v.arrayof[i];
         return this;
     }
@@ -229,8 +218,8 @@ struct Vector(T, int size)
     Vector!(T,size) opSubAssign (Vector!(T,size) v)
     body
     {
-        //arrayof[] -= v.arrayof[];
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] -= v.arrayof[i];
         return this;
     }
@@ -241,8 +230,8 @@ struct Vector(T, int size)
     Vector!(T,size) opMulAssign (Vector!(T,size) v)
     body
     {
-        //arrayof[] *= v.arrayof[];
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] *= v.arrayof[i];
         return this;
     }
@@ -253,8 +242,8 @@ struct Vector(T, int size)
     Vector!(T,size) opDivAssign (Vector!(T,size) v)
     body
     {
-        //arrayof[] /= v.arrayof[];
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] /= v.arrayof[i];
         return this;
     }
@@ -265,8 +254,8 @@ struct Vector(T, int size)
     Vector!(T,size) opAddAssign (T t)
     body
     {
-        //arrayof[] += t;
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] += t;
         return this;
     }
@@ -277,8 +266,8 @@ struct Vector(T, int size)
     Vector!(T,size) opSubAssign (T t)
     body
     {
-        //arrayof[] -= t;
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] -= t;
         return this;
     }
@@ -289,8 +278,8 @@ struct Vector(T, int size)
     Vector!(T,size) opMulAssign (T t)
     body
     {
-        //arrayof[] *= t;
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] *= t;
         return this;
     }
@@ -301,8 +290,8 @@ struct Vector(T, int size)
     Vector!(T,size) opDivAssign (T t)
     body
     {
-        //arrayof[] /= t;
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] /= t;
         return this;
     }
@@ -380,121 +369,122 @@ struct Vector(T, int size)
     body
     {
         //arrayof[] = t;
-        foreach(i; 0..size)
+        //foreach(i; 0..size)
+        foreach(i; RangeTuple!(0, size))
             arrayof[i] = t;
         return t;
     }
 
     static if (isNumeric!(T))
     {
-   /*
-    * Get vector length squared
-    */
-    @property T lengthsqr()
-    body
-    {
-        T res = 0;
-        foreach (component; arrayof) 
-            res += component * component;
-        return res;
-    }
-
-   /*
-    * Get vector length
-    */
-    @property T length()
-    body
-    {
-        static if (isFloatingPoint!T)
+       /*
+        * Get vector length squared
+        */
+        @property T lengthsqr()
+        body
         {
-            T t = 0;
+            T res = 0;
             foreach (component; arrayof) 
-                t += component * component;
-            return sqrt(t);
-        }
-        else
-        {
-            T t = 0;
-            foreach (component; arrayof) 
-                t += component * component;
-            return cast(T)sqrt(cast(float)t);
-        }
-    }
-
-   /*
-    * Set vector length to 1
-    */
-    void normalize()
-    body
-    {
-        static if (isFloatingPoint!T)
-        {
-            T lensqr = lengthsqr();
-            if (lensqr > 0)
-            {
-                T coef = 1.0 / sqrt(lensqr);
-                foreach (ref component; arrayof) 
-                    component *= coef;
-            }
-        }
-        else
-        {
-            T lensqr = lengthsqr();
-            if (lensqr > 0)
-            {
-                float coef = 1.0 / sqrt(cast(float)lensqr);
-                foreach (ref component; arrayof) 
-                    component *= coef;
-            }
-        }
-    }
-
-   /*
-    * Return normalized copy
-    */
-    @property Vector!(T,size) normalized()
-    body
-    {
-        Vector!(T,size) res = this;
-        res.normalize();
-        return res;
-    }
-
-   /*
-    * Return true if all components are zero
-    */
-    @property bool isZero()
-    body
-    {
-        return (arrayof[] == [0]); //allIsZero(arrayof);
-    }
-
-   /*
-    * Transform 3D vector by a matrix
-    */
-    static if (size == 3 && isFloatingPoint!T)
-    {
-        void transform(Matrix4x4!(T) m)
-        {
-            m.transform(this);
+                res += component * component;
+            return res;
         }
 
        /*
-        * Return transformed copy
+        * Get vector length
         */
-        @property auto transformed(Matrix4x4!(T) m)
+        @property T length()
+        body
         {
-            auto res = this;
-            m.transform(res);
+            static if (isFloatingPoint!T)
+            {
+                T t = 0;
+                foreach (component; arrayof) 
+                    t += component * component;
+                return sqrt(t);
+            }
+            else
+            {
+                T t = 0;
+                foreach (component; arrayof) 
+                    t += component * component;
+                return cast(T)sqrt(cast(float)t);
+            }
+        }
+
+       /*
+        * Set vector length to 1
+        */
+        void normalize()
+        body
+        {
+            static if (isFloatingPoint!T)
+            {
+                T lensqr = lengthsqr();
+                if (lensqr > 0)
+                {
+                    T coef = 1.0 / sqrt(lensqr);
+                    foreach (ref component; arrayof) 
+                        component *= coef;
+                }
+            }
+            else
+            {
+                T lensqr = lengthsqr();
+                if (lensqr > 0)
+                {
+                    float coef = 1.0 / sqrt(cast(float)lensqr);
+                    foreach (ref component; arrayof) 
+                        component *= coef;
+                }
+            }
+        }
+
+       /*
+        * Return normalized copy
+        */
+        @property Vector!(T,size) normalized()
+        body
+        {
+            Vector!(T,size) res = this;
+            res.normalize();
             return res;
         }
-    }
 
-    void clamp(T minv, T maxv)
-    {
-        foreach (ref component; arrayof) 
-            component.clamp(minv, maxv);
-    }
+       /*
+        * Return true if all components are zero
+        */
+        @property bool isZero()
+        body
+        {
+            return (arrayof[] == [0]);
+        }
+
+       /*
+        * Transform 3D vector by a matrix
+        */
+        static if (size == 3 && isFloatingPoint!T)
+        {
+            void transform(Matrix4x4!(T) m)
+            {
+                m.transform(this);
+            }
+
+           /*
+            * Return transformed copy
+            */
+            @property auto transformed(Matrix4x4!(T) m)
+            {
+                auto res = this;
+                m.transform(res);
+                return res;
+            }
+        }
+
+        void clamp(T minv, T maxv)
+        {
+            foreach (ref component; arrayof) 
+                component.clamp(minv, maxv);
+        }
     }
 
    /*
@@ -597,7 +587,8 @@ T dot(T, int size) (Vector!(T,size) a, Vector!(T,size) b) if (size != 3)
 body
 {
     T d = 0;
-    foreach (i; 0..size) 
+    //foreach (i; 0..size)
+    foreach(i; RangeTuple!(0, size))
         d += a[i] * b[i];
     return d;
 }
@@ -621,10 +612,21 @@ body
 {
     return Vector!(T,size) 
     (
-        (a.y * b.z * c.w) - (a.y * b.w * c.z) + (a.z * b.w * c.y) - (a.z * b.y * c.w) + (a.w * b.y * c.z) - (a.w * b.z * c.y),
-        (a.z * b.w * c.x) - (a.z * b.x * c.w) + (a.w * b.x * c.z) - (a.w * b.z * c.x) + (a.x * b.z * c.w) - (a.x * b.w * c.z),
-        (a.w * b.x * c.y) - (a.w * b.y * c.x) + (a.x * b.y * c.w) - (a.x * b.w * c.y) + (a.y * b.w * c.x) - (a.y * b.x * c.w),
-        (a.x * b.y * c.z) - (a.x * b.z * c.y) + (a.y * b.z * c.x) - (a.y * b.x * c.z) + (a.z * b.x * c.y) - (a.z * b.y * c.x)
+        (a.y * b.z * c.w) - (a.y * b.w * c.z) 
+      + (a.z * b.w * c.y) - (a.z * b.y * c.w) 
+      + (a.w * b.y * c.z) - (a.w * b.z * c.y),
+      
+        (a.z * b.w * c.x) - (a.z * b.x * c.w) 
+      + (a.w * b.x * c.z) - (a.w * b.z * c.x) 
+      + (a.x * b.z * c.w) - (a.x * b.w * c.z),
+      
+        (a.w * b.x * c.y) - (a.w * b.y * c.x) 
+      + (a.x * b.y * c.w) - (a.x * b.w * c.y) 
+      + (a.y * b.w * c.x) - (a.y * b.x * c.w),
+      
+        (a.x * b.y * c.z) - (a.x * b.z * c.y) 
+      + (a.y * b.z * c.x) - (a.y * b.x * c.z) 
+      + (a.z * b.x * c.y) - (a.z * b.y * c.x)
     );
 }
 
@@ -742,68 +744,83 @@ Vector!(T,3) slerp(T) (Vector!(T,3) a, Vector!(T,3) b, T t)
 
 /*
  * Gradually decrease vector to zero length
- * TODO: generalized version?
  */
 Vector!(T,3) vectorDecreaseToZero(T) (Vector!(T,3) vector, T step)
 {
+/*
     if (vector.x > 0.0) vector.x -= step;
     if (vector.x < 0.0) vector.x += step;
     if (vector.y > 0.0) vector.y -= step;
     if (vector.y < 0.0) vector.y += step;
     if (vector.z > 0.0) vector.z -= step;
     if (vector.z < 0.0) vector.z += step;
+*/
+    foreach (ref component; vector.arrayof)
+    {
+        if (component > 0.0)
+            component -= step;
+        if (component < 0.0)
+            component += step;
+    }
     return vector;
+}
+
+/*
+ * Almost zero
+ */
+bool isAlmostZero(Vector3f v)
+{
+    return (isConsiderZero(v.x) &&
+            isConsiderZero(v.y) &&
+            isConsiderZero(v.z));
 }
 
 /*
  * Predefined vector types
  */
-//alias Vector!(int, 2) Vector2i;
-//alias Vector!(uint, 2) Vector2u;
+alias Vector!(int, 2) Vector2i;
+alias Vector!(uint, 2) Vector2u;
 alias Vector!(float, 2) Vector2f;
 alias Vector!(double, 2) Vector2d;
 
-//alias Vector!(int, 3) Vector3i;
-//alias Vector!(uint, 3) Vector3u;
+alias Vector!(int, 3) Vector3i;
+alias Vector!(uint, 3) Vector3u;
 alias Vector!(float, 3) Vector3f;
 alias Vector!(double, 3) Vector3d;
 
-//alias Vector!(int, 4) Vector4i;
-//alias Vector!(uint, 4) Vector4u;
+alias Vector!(int, 4) Vector4i;
+alias Vector!(uint, 4) Vector4u;
 alias Vector!(float, 4) Vector4f;
 alias Vector!(double, 4) Vector4d;
 
 /*
  * Short aliases
  */
-//alias Vector2i ivec2;
-//alias Vector2u uvec2;
+alias Vector2i ivec2;
+alias Vector2u uvec2;
 alias Vector2f vec2;
 alias Vector2d dvec2;
 
-//alias Vector3i ivec3;
-//alias Vector3u uvec3;
+alias Vector3i ivec3;
+alias Vector3u uvec3;
 alias Vector3f vec3;
 alias Vector3d dvec3;
 
-//alias Vector4i ivec4;
-//alias Vector4u uvec4;
+alias Vector4i ivec4;
+alias Vector4u uvec4;
 alias Vector4f vec4;
 alias Vector4d dvec4;
 
 /*
  * Axis vectors
  */
-struct AxisVector
+static struct AxisVector
 {
-    static
-    { 
-        Vector3f x;
-        Vector3f y;
-        Vector3f z;
-    }
+        Vector3f x = Vector3f(1.0f, 0.0f, 0.0f);
+        Vector3f y = Vector3f(0.0f, 1.0f, 0.0f);
+        Vector3f z = Vector3f(0.0f, 0.0f, 1.0f);
 }
-
+/*
 static this()
 body
 {
@@ -811,4 +828,13 @@ body
     AxisVector.y = Vector3f(0.0f, 1.0f, 0.0f);
     AxisVector.z = Vector3f(0.0f, 0.0f, 1.0f);    
 }
-
+*/
+/*
+// This doesn't work yet
+enum AxisVector: Vector3f
+{
+    x = Vector3f(1.0f, 0.0f, 0.0f),
+    y = Vector3f(0.0f, 1.0f, 0.0f),
+    z = Vector3f(0.0f, 0.0f, 1.0f)
+}
+*/

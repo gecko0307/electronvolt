@@ -653,7 +653,7 @@ Quaternion!(T) rotationBetween(T) (Vector!(T,3) from, Vector!(T,3) to)
     Quaternion!(T) result;     
     Vector!(T,3) H = (from + to).normalized; 
 
-    result.w = dot(from, H);     
+    result.w = dlib.math.vector.dot(from, H);     
     result.x = from.y*H.z - from.z*H.y;     
     result.y = from.z*H.x - from.x*H.z;     
     result.z = from.x*H.y - from.y*H.x;     

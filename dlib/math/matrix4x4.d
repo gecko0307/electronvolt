@@ -156,7 +156,6 @@ struct Matrix4x4(T)
     body
     {
         return (arrayof[index1..index2] = t);
-        //return t;
     }
 
    /* 
@@ -194,7 +193,6 @@ struct Matrix4x4(T)
     body
     {
         return (arrayof[] = t);
-        //return this;
     }
 
    /*
@@ -429,7 +427,7 @@ struct Matrix4x4(T)
     @property Matrix4x4!(T) transposed()
     body
     {
-        Matrix4x4!(T) res;// = Matrix4x4!(T)();
+        Matrix4x4!(T) res;
 
         res.m11 = m11; res.m21 = m12; res.m31 = m13; res.tx = h14;
         res.m12 = m21; res.m22 = m22; res.m32 = m23; res.ty = h24;
@@ -448,11 +446,6 @@ struct Matrix4x4(T)
         return m11 * ((m22 * m33) - (m23 * m32))
              + m12 * ((m23 * m31) - (m21 * m33))
              + m13 * ((m21 * m32) - (m22 * m31));
-    /*
-        return m11 * (m33 * m22 - m32 * m23)
-             - m21 * (m33 * m12 - m32 * m13)
-             + m31 * (m23 * m12 - m22 * m13);
-    */
     }
 
    /* 
@@ -480,19 +473,7 @@ struct Matrix4x4(T)
         res.m31 = ((m21 * m32) - (m22 * m31)) * oneOverDet;
         res.m32 = ((m12 * m31) - (m11 * m32)) * oneOverDet;
         res.m33 = ((m11 * m22) - (m12 * m21)) * oneOverDet;
-/*
-        res.m11 =  (m33 * m22 - m32 * m23) * oneOverDet;
-        res.m12 = -(m33 * m12 - m32 * m13) * oneOverDet;
-        res.m13 =  (m23 * m12 - m22 * m13) * oneOverDet;
-        
-        res.m21 = -(m33 * m21 - m31 * m23) * oneOverDet;
-        res.m22 =  (m33 * m11 - m31 * m13) * oneOverDet;
-        res.m23 = -(m23 * m11 - m21 * m13) * oneOverDet;
-        
-        res.m31 =  (m32 * m21 - m31 * m22) * oneOverDet;
-        res.m32 = -(m32 * m11 - m31 * m12) * oneOverDet;
-        res.m33 =  (m22 * m11 - m21 * m12) * oneOverDet;
-*/       
+      
         res.tx = -((tx * res.m11) + (ty * res.m21) + (tz * res.m31));
         res.ty = -((tx * res.m12) + (ty * res.m22) + (tz * res.m32));
         res.tz = -((tx * res.m13) + (ty * res.m23) + (tz * res.m33));
@@ -940,6 +921,39 @@ body
 }
 
 /*
+ * Setup a matrix that flattens geometry into a plane, 
+ * as if it were casting a shadow from a light
+ */
+Matrix4x4!(T) shadowMatrix(T) (Vector!(T,4) groundplane, Vector!(T,4) lightpos)
+{
+    T d = dot(groundplane, lightpos);
+
+    Matrix4x4f shadowMat;
+
+    shadowMat.m11 = d-lightpos.x * groundplane.x;
+    shadowMat.m21 =  -lightpos.x * groundplane.y;
+    shadowMat.m31 =  -lightpos.x * groundplane.z;
+    shadowMat.tx  =  -lightpos.x * groundplane.w;
+
+    shadowMat.m12 =  -lightpos.y * groundplane.x;
+    shadowMat.m22 = d-lightpos.y * groundplane.y;
+    shadowMat.m32 =  -lightpos.y * groundplane.z;
+    shadowMat.ty  =  -lightpos.y * groundplane.w;
+
+    shadowMat.m13 =  -lightpos.z * groundplane.x;
+    shadowMat.m23 =  -lightpos.z * groundplane.y;
+    shadowMat.m33 = d-lightpos.z * groundplane.z;
+    shadowMat.tz  =  -lightpos.z * groundplane.w;
+
+    shadowMat.h14 =  -lightpos.w * groundplane.x;
+    shadowMat.h24 =  -lightpos.w * groundplane.y;
+    shadowMat.h34 =  -lightpos.w * groundplane.z;
+    shadowMat.tw  = d-lightpos.w * groundplane.w;
+    
+    return shadowMat;
+}
+
+/*
  * Setup an orientation matrix using forward direction vector
  */
 Matrix4x4!(T) directionToMatrix(T) (Vector!(T,3) zdir)
@@ -960,7 +974,7 @@ Matrix4x4!(T) directionToMatrix(T) (Vector!(T,3) zdir)
         ydir = Vector!(T,3)(0.0, 1.0, 0.0);
     }
 
-    Matrix4x4!(T) m = identityMatrix!T();
+    Matrix4x4!(T) m = identityMatrix4x4!T();
     m.forward = zdir;
     m.right = xdir;
     m.up = ydir;
@@ -970,11 +984,29 @@ Matrix4x4!(T) directionToMatrix(T) (Vector!(T,3) zdir)
 
 Matrix4x4!(T) rotationBetweenVectors(T) (Vector!(T,3) source, Vector!(T,3) target)
 {
-    float d = dot(source, target);
-    float angle = acos(dot);
+    T d = dot(source, target);
     Vector!(T,3) c = cross(source, target);
     c.normalize();
-    return rotationMatrix(cross, angle);
+    return matrixFromAxisAngle(c, acos(d));
+}
+
+Matrix4x4!(T) matrixFromAxisAngle(T) (Vector!(T,3) axis, T angle)
+{
+    T c = cos(angle);
+    T s = sin(angle);
+    T t = 1.0 - c;
+
+    T x = axis.x;
+    T y = axis.y;
+    T z = axis.z;
+
+    Matrix4x4!(T) m = identityMatrix4x4!T();
+
+    m.m11 = t*x*x + c;   m.m12 = t*x*y - z*s; m.m13 = t*x*z + y*s;
+    m.m21 = t*x*y + z*s; m.m22 = t*y*y + c;   m.m23 = t*y*z - x*s;
+    m.m31 = t*x*z + y*s; m.m32 = t*y*z + x*s; m.m33 = t*z*z + c;
+
+    return m;
 }
 
 Matrix4x4!(T) matrix3x3to4x4(T) (Matrix3x3!(T) m)
@@ -1003,3 +1035,4 @@ alias Matrix4x4!(double) Matrix4x4d;
 
 alias identityMatrix4x4!(float) identityMatrix4x4f;
 alias identityMatrix4x4!(double) identityMatrix4x4d;
+

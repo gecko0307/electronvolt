@@ -96,8 +96,8 @@ T clamp(T) (T v, T minimal, T maximal)
  */
 bool isConsiderZero(T) (T f)
 {
-    enum ZERO = 1.0e-6;
-    return (abs(f) < ZERO);
+    //enum ZERO = 1.0e-6;
+    return (abs(f) < EPSILON);
 }
 
 /*
@@ -210,5 +210,18 @@ T fovXfromY(T) (T yfov, T aspectRatio)
     return radtodeg(xfov);
 }
 
+/*
+ * Misc functions
+ */
+ 
+int sign(T)(T x)
+{
+    return (x > 0) - (x < 0);
+}
 
-
+void swap(T)(T* a, T* b)
+{
+    T c = *a;
+    *a = *b;
+    *b = c;
+}
