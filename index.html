@@ -17,11 +17,16 @@
             <center>
               <h1 class="shadowtext">Atrium</h1>
 	        <p><i>FPS with physics based puzzles</i></p>
+                <p>
+                <canvas height="200" width="200" id="circle">HTML5 is not supported by your browser</canvas>
+                </p>
             </center>
           </div>
 
           <div>
-            <b class="r3"></b><b class="r1"></b><b class="r1"></b>
+            <b class="r3"></b>
+            <b class="r1"></b>
+            <b class="r1"></b>
               <div class="inner-box">
                 <table class="box" border="0" width="800">
                   <tr valign="top">
@@ -68,6 +73,7 @@
                   </tr>
                 </table>
               </div>
+
             <b class="r1"></b>
             <b class="r1"></b>
             <b class="r3"></b>
@@ -79,5 +85,110 @@
       </tr> 
     </table>
     </center>
+
+    <script>
+      var canvas = document.getElementById("circle");
+      var ctx = canvas.getContext('2d');
+
+var mouse =
+{
+    x: 0,
+    y: 0
+};
+
+    var mousePressed = false;
+    var rot = 0;
+
+function loop()
+{
+      ctx.clearRect(0,0,canvas.width, canvas.height);
+
+      var bgcol = "#262626"; //document.body.style.backgroundColor;
+      ctx.fillStyle = bgcol; //'#CC5422'; // set canvas background color
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+      var radius = canvas.width / 2 - 2;
+
+      ctx.save();
+
+      ctx.translate(centerX, centerY);
+/*
+      if (mousePressed)
+      {
+      var targetX = mouse.x - centerX;
+      var targetY = mouse.y - centerY;
+      rot = Math.atan2(targetY, targetX) - 90; //* 180 / Math.PI; //Math.atan2(targetY, targetX);// * 180 / Math.PI;
+      }
+*/
+
+      rot += 0.01;
+      ctx.rotate(rot);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, 2 * Math.PI, false);
+      var grad = ctx.createLinearGradient(0, 0, 0, 100);
+      grad.addColorStop(1, '#ffa33f');
+      grad.addColorStop(0, "#404040");
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = grad;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius-30, 0, 2 * Math.PI, false);
+      ctx.fillStyle = "#262626";
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#262626";
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius-60, 0, 2 * Math.PI, false);
+      var grad = ctx.createLinearGradient(0, 0, 0, 100);
+      grad.addColorStop(1, '#ffa33f');
+      grad.addColorStop(0, "#404040");
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = grad;
+      ctx.stroke();
+
+      ctx.restore();
+}
+
+window.addEventListener('load', function()
+{
+    setInterval(loop, 1000/60);
+    canvas.addEventListener('mousemove', function(evt)
+    {
+        var m = getMousePos(canvas, evt);
+        mouse.x = m.x;
+        mouse.y = m.y;
+    }, false);
+
+    canvas.addEventListener('mousedown', function(evt)
+    {
+        mousePressed = true;
+    }, false);
+
+    canvas.addEventListener('mouseup', function(evt)
+    {
+        mousePressed = false;
+    }, false);
+}, false);
+
+function getMousePos(canvas, evt)
+{
+    var rect = canvas.getBoundingClientRect();
+    var mouseX = evt.clientX - rect.left;
+    var mouseY = evt.clientY - rect.top;
+    return {
+        x: mouseX,
+        y: mouseY
+    };
+}
+    </script>
   </body>
 </html>
