@@ -74,18 +74,18 @@ class Application
         enum sharedLibSDL = "SDL.dll";
         enum sharedLibFT = "freetype.dll";
         enum sharedLibAL = "OpenAL32.dll";
-        enum sharedLibOgg = "libogg.dll";
-        enum sharedLibVorbis = "libvorbis.dll";
-        enum sharedLibVorbisFile = "libvorbisfile.dll";
+        //enum sharedLibOgg = "libogg.dll";
+        //enum sharedLibVorbis = "libvorbis.dll";
+        //enum sharedLibVorbisFile = "libvorbisfile.dll";
     }
     version(linux)
     {
         enum sharedLibSDL = "./libsdl.so";
         enum sharedLibFT = "./libfreetype.so";
         enum sharedLibAL = "./libopenal.so";
-        enum sharedLibOgg = "./libogg.so";
-        enum sharedLibVorbis = "./libvorbis.so";
-        enum sharedLibVorbisFile = "./libvorbisfile.so";
+        //enum sharedLibOgg = "./libogg.so";
+        //enum sharedLibVorbis = "./libvorbis.so";
+        //enum sharedLibVorbisFile = "./libvorbisfile.so";
     }
 
     public:
@@ -100,9 +100,9 @@ class Application
         DerelictSDL.load(sharedLibSDL);
         DerelictFT.load(sharedLibFT);
         DerelictAL.load(sharedLibAL);
-        DerelictOgg.load(sharedLibOgg);
-        DerelictVorbis.load(sharedLibVorbis);
-        DerelictVorbisFile.load(sharedLibVorbisFile);
+        DerelictOgg.load();
+        DerelictVorbis.load();
+        DerelictVorbisFile.load();
 
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0)
             throw new Exception("Failed to init SDL: " ~ to!string(SDL_GetError()));
