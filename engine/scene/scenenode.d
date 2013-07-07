@@ -41,10 +41,8 @@ private
     
     import engine.core.drawable;
     import engine.core.modifier;
-
     import engine.graphics.material;
-
-    import engine.physics2.rigidbody;
+    import engine.physics.rigidbody;
 }
 
 class SceneNode: Drawable, Modifier
@@ -78,7 +76,7 @@ class SceneNode: Drawable, Modifier
         scaling = Vector3f(1.0f, 1.0f, 1.0f);
         positionPrevious = position;
         
-        localMatrix = Matrix4x4f(); // identity
+        localMatrix = identityMatrix4x4f();
         localMatrixPtr = &localMatrix;
     }
     
@@ -219,31 +217,31 @@ class SceneNode: Drawable, Modifier
         }
         else 
         {
-        if (rigidBody.type == BodyType.Dynamic)
-        {
-            localMatrix = rigidBody.geometry.transformation;
-
-            if (rigidBody.disableRotation)
+            if (rigidBody.type == BodyType.Dynamic)
             {
+                localMatrix = rigidBody.geometry.transformation;
+
+                if (rigidBody.disableRotation)
+                {
+                    localMatrix *= rotationMatrix(Axis.x, degtorad(rotation.x));
+                    localMatrix *= rotationMatrix(Axis.y, degtorad(rotation.y));
+                    localMatrix *= rotationMatrix(Axis.z, degtorad(rotation.z));
+                }
+            }
+            else
+            {
+                localMatrix = translationMatrix(position);
+
+                rigidBody.position = position;
+
                 localMatrix *= rotationMatrix(Axis.x, degtorad(rotation.x));
                 localMatrix *= rotationMatrix(Axis.y, degtorad(rotation.y));
                 localMatrix *= rotationMatrix(Axis.z, degtorad(rotation.z));
+
+                localMatrix *= scaleMatrix(scaling);
+
+                positionPrevious = position;
             }
-        }
-        else
-        {
-            localMatrix = translationMatrix(position);
-
-            rigidBody.position = position;
-
-            localMatrix *= rotationMatrix(Axis.x, degtorad(rotation.x));
-            localMatrix *= rotationMatrix(Axis.y, degtorad(rotation.y));
-            localMatrix *= rotationMatrix(Axis.z, degtorad(rotation.z));
-
-            localMatrix *= scaleMatrix(scaling);
-
-            positionPrevious = position;
-        }
         }
 
         glPushMatrix();
@@ -270,10 +268,7 @@ class SceneNode: Drawable, Modifier
         foreach(m; modifiers)
             m.bind(delta);
 
-        //if (visible && (parent !is null && parent.visible))
-        //{
-            render(delta);           
-        //}
+        render(delta);
 
         foreach(m; modifiers)
             m.unbind();

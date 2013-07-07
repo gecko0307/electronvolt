@@ -76,7 +76,7 @@ class Text
     void render(T)(T str)
     {
         // We want a coordinate system where things coresponding to window pixels.
-        pushScreenCoordinateMatrix();
+        //pushScreenCoordinateMatrix();
 
         float h = m_font.getHeight() / 0.63f; //We make the height about 1.5* that of
 
@@ -98,7 +98,6 @@ class Text
         glMultMatrixf(modelview_matrix.ptr);
 
         // render a line of text
-        //m_font.render(m_lines[i], m_sizes[i]);
         m_font.render(str);
 
         glPopMatrix();
@@ -106,7 +105,7 @@ class Text
 
         glPopAttrib();
 
-        pop_projection_matrix();
+        //pop_projection_matrix();
     }
 
     void setPos(float x, float y) 

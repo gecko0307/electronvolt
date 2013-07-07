@@ -28,243 +28,149 @@ DEALINGS IN THE SOFTWARE.
 
 module engine.physics.world;
 
-private
-{
-    import std.algorithm;
-    import std.math;
-    import dlib.math.vector;
-    import dlib.math.matrix3x3;
-    import dlib.math.interpolation;
-    import dlib.geometry.triangle;
-    import dlib.geometry.intersection;
-    import engine.scene.bvh;
-    import engine.physics.constants;
-    import engine.physics.geometry;
-    import engine.physics.rigidbody;
-    import engine.physics.integrator;
-    import engine.physics.contact;
-    import engine.physics.solver;
-}
+import std.stdio;
 
-enum PhysicalEnvironment
-{
-    Earth
-}
+import dlib.math.vector;
+
+import dlib.geometry.triangle;
+import dlib.geometry.sphere;
+
+import engine.scene.bvh;
+
+import engine.physics.geometry;
+import engine.physics.rigidbody;
+import engine.physics.collision;
+import engine.physics.mpr;
+import engine.physics.contact;
+import engine.physics.solver;
 
 class PhysicsWorld
 {
-    RigidBody[] rigidBodies;
-    
-    Vector3f gravityVector;
-    float gravity;
-    float dampingFactor = 1.0f;
-    float penetrationSolverHardness = 1.0f;
-    float contactSolverHardness = 1.0f;
+    RigidBody[] bodies;
+    Vector3f gravity = Vector3f(0.0f, -9.81f, 0.0f);
+    enum double fixedDelta = 1.0 / 60.0;
 
-    uint solverIterations = 20;
-    
-    RigidBody gravityTarget = null;
-    
+    // temporary triangle object to deal with BVH data
     RigidBody tmpTri;
     GeomTriangle tmpTriGeom;
-    
     BVHNode bvhRoot = null;
     
-    Contact[] contacts;
-    uint contactsNum = 0;
-    
-    Vector3f gravityDirection = Vector3f(0.0f, -1.0f, 0.0f);
-
-    float fixedTimestepAccumulator = 0.0f;
-    float fixedTimestepAccumulatorRatio = 0.0f;
-    float FIXED_TIMESTEP = 1.0f / 60.0f;
-    
-    this(PhysicalEnvironment env = PhysicalEnvironment.Earth)
+    this()
     {
-        gravityVector = Vector3f(0.0f, -1.0f, 0.0f);
-        if (env == PhysicalEnvironment.Earth)
-        {
-            gravity = 1.0f; //Gravity.Earth;
-            gravityVector *= gravity;
-        }
-        
         tmpTri = new RigidBody();
-        tmpTri.dynamic = false;
-        tmpTri.mass = float.max;
-        tmpTri.invMass = 1.0f / tmpTri.mass;
-        tmpTri.inertiaMoment = 1.0f;
-        tmpTri.invInertiaMoment = 1.0f / tmpTri.inertiaMoment;
-        //tmpTri.inertiaTensor = identityMatrix3x3!float();
-        //tmpTri.invInertiaTensor = identityMatrix3x3!float();
-        Triangle tmpTriangle;
-        tmpTriGeom = new GeomTriangle(tmpTriangle);
+        tmpTri.type = BodyType.Static;
+        tmpTriGeom = new GeomTriangle(
+            Vector3f(-1.0f, 0.0f, -1.0f), 
+            Vector3f(+1.0f, 0.0f,  0.0f),
+            Vector3f(-1.0f, 0.0f, +1.0f));
         tmpTri.setGeometry(tmpTriGeom);
-        //tmpTri.dynamicFrictionCoef = 1.0f;
-        //tmpTri.staticFrictionCoef = 1.0f;
-
-        contacts = new Contact[100];
+        tmpTri.setMass(1000000.0f); // Virtually infinite mass
     }
-
-    void addContact(Contact newc)
+    
+    RigidBody addDynamicBody(Vector3f pos, float mass)
     {
-        if (!newc.fact)
+        auto b = new RigidBody(pos);
+        b.setMass(mass);
+        b.type = BodyType.Dynamic;
+        bodies ~= b;
+        return b;
+    }
+    
+    RigidBody addStaticBody(Vector3f pos)
+    {
+        auto b = new RigidBody(pos);
+        b.setMass(1000000.0f);
+        b.type = BodyType.Static;
+        bodies ~= b;
+        return b;
+    }
+    
+    void update(double delta)
+    {
+        simulationStep(fixedDelta);
+    }
+    
+    void simulationStep(double delta)
+    {       
+        if (bodies.length == 0)
             return;
+        
+        enum iterations = 10;
+        delta /= iterations;
 
-        foreach(ref c; contacts)
+        // Apply gravity to dynamic bodies
+        foreach(b; bodies)
+        if (b.type == BodyType.Dynamic)
         {
-            if (contactsAreSame(c, newc))
+            if (!b.disableGravity)
+                b.applyForce(b.mass * gravity);
+            b.onGround = false;
+        }
+        
+        for(uint iteration = 0; iteration < iterations; iteration++)
+        {
+            // Integrate velocities and positions
+            foreach(b; bodies)
             {
-                c.isec.fact = newc.isec.fact;
-                c.isec.point = newc.isec.point;
-                c.isec.penetrationDepth += newc.penetrationDepth;
-                if (c.life < 1.0f)
-                    c.life += 0.01f;
-                return;
+                b.integrate(delta);
+                b.updateGeomTransformation();
             }
-        }
 
-        int eci = firstEmptyContactIndex();
-        if (eci >= 0)
-            contacts[eci] = newc;
-    }
-
-    int firstEmptyContactIndex()
-    {
-        foreach(i, ref c; contacts)
-        {
-            if (!c.fact)
-                return i;
-        }
-
-        return -1;
-    }
-
-    bool contactsAreSame(ref Contact c1, ref Contact c2)
-    {
-        return ((c1.body1 == c2.body1) &&
-                (c1.body2 == c2.body2) &&
-                (abs((c2.point - c1.point).length) < 0.5f));
-    }
-
-    void clearContacts()
-    {
-        foreach(ref c; contacts)
-            if (c.penetrationDepth < 0.0001f)
-                c.fact = false;
-    }
-    
-    RigidBody addDynamicRigidBody(float mass)
-    {
-        RigidBody b = new RigidBody();
-        b.dynamic = true;
-        b.mass = mass;
-        b.invMass = 1.0f / mass;
-        b.inertiaMoment = mass;
-        b.invInertiaMoment = 1.0f / b.inertiaMoment;
-        //b.inertiaTensor = identityMatrix3x3!float();
-        //b.invInertiaTensor = identityMatrix3x3!float();
-        rigidBodies ~= b;
-        return b;
-    }
-    
-    RigidBody addStaticRigidBody(float mass = float.max)
-    {
-        RigidBody b = new RigidBody();
-        b.dynamic = false;
-        b.mass = mass;
-        b.invMass = 1.0f / mass;
-        b.inertiaMoment = mass;
-        b.invInertiaMoment = 1.0f / b.inertiaMoment;
-        //b.inertiaTensor = identityMatrix3x3!float();
-        //b.invInertiaTensor = identityMatrix3x3!float();
-        rigidBodies ~= b;
-        return b;
-    }
-    
-    void setGravityTarget(RigidBody b)
-    {
-        gravityTarget = b;
-    }
-    
-    bool bodyIsOnGround(RigidBody b)
-    {
-        foreach(ref c; contacts)
-        {
-            if (c.fact)
-            if ((c.body1 == b) ||
-                (c.body2 == b))
+            // Find and resolve collisions between bodies
+            for (int i = 0; i < bodies.length - 1; i++)   
+            for (int j = i + 1; j < bodies.length; j++)
             {
-                if (c.point.y < b.position.y)
-                    return true;
-            }
-        }
-        
-        return false;
-    }
-
-    void solverStep(uint iterations, double delta)
-    {
-        foreach(b; rigidBodies) 
-        {
-            if (b.dynamic)
-                Euler.integrateVelocities(b, delta);
-
-            b.updateGeometryTransformation();
-        }
-        
-        for (int i = 0; i < rigidBodies.length - 1; i++)   
-        for (int j = i + 1; j < rigidBodies.length; j++)
-        {
-            Contact c = detectContact(rigidBodies[i], rigidBodies[j]);
-            addContact(c);
-        }
-
-        foreach(ref c; contacts)
-        if (c.fact)
-        {
-            solvePenetration(c, penetrationSolverHardness);
-            solveContact(c, iterations, contactSolverHardness);
-            //c.fact = false;
-        }
-        
-        // FIXME:
-        // There is a problem when rolling spheres over a triangle mesh. 
-        // Instead of rolling straight the sphere will get influenced when hitting triangle edges. 
-        // Possible solutions:
-        // Strategy 1
-        // Reduce penetrationSolverHardness.
-        // Strategy 2
-        // Keep just the contact with deepest penetration and throw out all others.
-        // Strategy 3
-        // Merge all contacts that are within epsilon of each other. When merging the contacts, 
-        // average and re-normalize the normals, and average the penetration depth value. 
-        // In the case of spheres rolling over triangle meshes, the two contacts will be pretty 
-        // much coincident, so this will work fairly well.
-        
-        if (bvhRoot !is null)
-        foreach(rb; rigidBodies)
-        {
-            static Contact[5] contacts;
-            static Triangle[5] contactTris;
-            uint numContacts = 0;
-        
-            if (rb.dynamic)
-            {           
                 Contact c;
-                c.body1 = rb;
-                c.body2 = tmpTri;
-                c.isec.fact = false;
-                
-                if (rb.geometry.type == GeometryType.Sphere)
+                if (checkCollision(bodies[i], bodies[j], c))
                 {
-                    GeomSphere g1 = cast(GeomSphere)rb.geometry;
-                    bvhRoot.traverseBySphere(g1.sphere, (ref Triangle tri)
+                    solveContact(c, iterations);
+                    correctPositions(c);
+
+                    Vector3f dirToContact = (c.point - bodies[i].position).normalized;
+                    float groundness = dot(gravity.normalized, dirToContact);
+                    if (groundness > 0.7f)
+                        bodies[i].onGround = true;
+
+                    dirToContact = (c.point - bodies[j].position).normalized;
+                    groundness = dot(gravity.normalized, dirToContact);
+                    if (groundness > 0.7f)
+                        bodies[j].onGround = true;
+                }
+            }
+
+            // Find and resolve collisions between dynamic bodies 
+            // and the BVH world (static triangle mesh)
+            if (bvhRoot !is null)
+            foreach(rb; bodies)
+            {
+                // There may be more than one contact at a time
+                static Contact[5] contacts;
+                static Triangle[5] contactTris;
+                uint numContacts = 0;
+                
+                Sphere sphere;
+                
+                if (rb.type == BodyType.Dynamic)
+                {
+                    Contact c;
+                    c.body1 = rb;
+                    c.body2 = tmpTri;
+                    c.fact = false;
+
+                    sphere = rb.geometry.boundingSphere;
+
+                    bvhRoot.traverseBySphere(sphere, (ref Triangle tri)
                     {
-                        Intersection isec = intrSphereVsTriangle(g1.sphere, tri);
-                        if (isec.fact)
-                        {
-                            c.isec = isec;
-                            
+                        // Update temporary triangle to check collision
+                        tmpTriGeom.transformation.translation = tri.barycenter;
+                        tmpTriGeom.v[0] = tri.v[0] - tri.barycenter;
+                        tmpTriGeom.v[1] = tri.v[1] - tri.barycenter;
+                        tmpTriGeom.v[2] = tri.v[2] - tri.barycenter;
+
+                        bool collided = MPRCollisionTest(rb.geometry, tmpTriGeom, c);
+                
+                        if (collided)
+                        {                
                             if (numContacts < contacts.length)
                             {
                                 contacts[numContacts] = c;
@@ -274,120 +180,48 @@ class PhysicsWorld
                         }
                     });
                 }
-            }
-            
-            int deepestContactIdx = -1;
-            float maxDepth = 0.0f;
-            float bestGroundness = -1.0f;
-            foreach(i; 0..numContacts)
-            {
-                if (contacts[i].penetrationDepth > maxDepth)
-                {
-                    deepestContactIdx = i;
-                    maxDepth = contacts[i].penetrationDepth;
-                }
 
-                Vector3f dirToContact = 
-                    (contacts[i].point - 
-                     rb.position).normalized;
-                
-                float groundness = dot(gravityDirection, dirToContact);
-                
-                if (groundness > 0.9f)
+               /*
+                * NOTE:
+                * There is a problem when rolling bodies over a triangle mesh. Instead of rolling 
+                * straight it will get influenced when hitting triangle edges. 
+                * Current solution is to solve only the contact with deepest penetration and 
+                * throw out all others. Other possible approach is to merge all contacts that 
+                * are within epsilon of each other. When merging the contacts, average and 
+                * re-normalize the normals, and average the penetration depth value.
+                */
+
+                int deepestContactIdx = -1;
+                float maxPen = 0.0f;
+                float bestGroundness = -1.0f;
+                foreach(i; 0..numContacts)
                 {
-                    if (groundness > bestGroundness)
+                    if (contacts[i].penetration > maxPen)
                     {
-                        rb.lastGroundContact = contacts[i];
-                        bestGroundness = groundness;
+                        deepestContactIdx = i;
+                        maxPen = contacts[i].penetration;
                     }
-                }
-            }
+                    
+                    Vector3f dirToContact = (contacts[i].point - rb.position).normalized;
+                    float groundness = dot(gravity.normalized, dirToContact);
 
-            if (deepestContactIdx >= 0)
-            {
-                tmpTriGeom.tri = contactTris[deepestContactIdx];
-                tmpTri.position = tmpTriGeom.tri.barycenter;
-                
-                solvePenetration(contacts[deepestContactIdx], penetrationSolverHardness);
-                solveContact(contacts[deepestContactIdx], iterations, contactSolverHardness);
+                    if (groundness > 0.7f)
+                        rb.onGround = true;
+                }
+ 
+                if (deepestContactIdx >= 0)
+                {
+                    auto tri = contactTris[deepestContactIdx];
+                    tmpTri.position = tri.barycenter;
+
+                    correctPositions(contacts[deepestContactIdx]);
+                    solveContact(contacts[deepestContactIdx], iterations);
+                }
             }
         }
         
-        foreach(b; rigidBodies)
-        {
-            if (b.dynamic)
-            {
-                Euler.integratePositionAndOrientation(b, delta);
-            }
-        }
-    }
-    
-    void simulate(double delta)
-    {
-        foreach(b; rigidBodies) 
-        {
-            b.savePreviousState();
-            if (b.gravityEnabled)
-                b.applyForce(b.mass * b.gravityDirection * gravity);
-        }
-
-        foreach(i; 0..solverIterations)
-        {
-            solverStep(solverIterations, delta);
-        }
-
-        foreach(b; rigidBodies) 
-        {
+        foreach(b; bodies)
             b.resetForces();
-        }
     }
-
-    void process(double dt)
-    {
-        uint MAX_STEPS = 10;
-        fixedTimestepAccumulator += dt;
-        uint nSteps = cast(uint)floor(fixedTimestepAccumulator / FIXED_TIMESTEP);
- 
-        if (nSteps > 0)
-        {
-            fixedTimestepAccumulator -= nSteps * FIXED_TIMESTEP;
-        }
-        fixedTimestepAccumulatorRatio = fixedTimestepAccumulator / FIXED_TIMESTEP;
-        uint nStepsClamped = min2(nSteps, MAX_STEPS);
-
-        for (uint i = 0; i < nStepsClamped; ++i)
-        {
-            simulate(FIXED_TIMESTEP);
-        }
-
-        foreach(b; rigidBodies)
-        {
-            if (b.dynamic)
-            {
-                b.finalPosition = lerp(b.prevPosition, b.position, fixedTimestepAccumulatorRatio); 
-                b.finalOrientation = dlib.math.quaternion.slerp(b.prevOrientation, b.orientation, fixedTimestepAccumulatorRatio);
-            }
-        }
-    }
-
-    void process2(double dt)
-    {
-        simulate(1.0/60.0);
-
-        foreach(b; rigidBodies)
-        {
-            if (b.dynamic)
-            {
-                b.finalPosition = lerp(b.prevPosition, b.position, 1.0f); 
-                b.finalOrientation = dlib.math.quaternion.slerp(b.prevOrientation, b.orientation, 1.0f);
-            }
-        }
-    }
-}
-
-T min2(T) (T a, T b)
-{
-    if (a < b) return a;
-    else return b;
 }
 

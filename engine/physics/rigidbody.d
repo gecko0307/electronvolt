@@ -28,137 +28,125 @@ DEALINGS IN THE SOFTWARE.
 
 module engine.physics.rigidbody;
 
-private
+import std.math;
+
+import dlib.math.vector;
+import dlib.math.quaternion;
+import dlib.math.matrix4x4;
+import dlib.math.matrix3x3;
+
+import engine.physics.geometry;
+import engine.physics.contact;
+
+enum BodyType
 {
-    import std.math;
-    import dlib.math.vector;
-    import dlib.math.quaternion;
-    import dlib.math.matrix4x4;
-    import dlib.math.matrix3x3;
-    import engine.physics.geometry;
-    import engine.physics.contact;
+    Static,
+    Dynamic,
+    Kinematic
 }
 
 class RigidBody
 {
-    float mass = 0.0f;
-    float invMass = 0.0f;
+    BodyType type = BodyType.Dynamic;
+    
     Vector3f position;
     Vector3f linearVelocity;
-    Vector3f linearAcceleration;
 
-    float inertiaMoment = 0.0f;
-    float invInertiaMoment = 0.0f;
     Quaternionf orientation;
     Vector3f angularVelocity;
-    Vector3f angularAcceleration;
 
-    Vector3f prevPosition;
-    Quaternionf prevOrientation;
+    float mass = 1.0f;
+    float inertiaMoment = 1.0f;
+    
+    float invMass = 1.0f;
+    float invInertiaMoment = 1.0f;
+    
+    float dampingFactor = 0.999f;
 
-    Vector3f finalPosition;
-    Quaternionf finalOrientation;
+    Vector3f forceAccumulator;
+    Vector3f torqueAccumulator;
+
+    Geometry geometry;
+    
+    bool disableRotation = false;
+    bool disableGravity = false;
     
     Vector3f gravityDirection;
     Contact lastGroundContact;
+
+    bool onGround = false;
     
-    float bounceFactor = 0.8f;
-    float staticFrictionCoef = 0.5f;
-    float dynamicFrictionCoef = 0.5f;
-    float dampingFactor = 0.99f;
-
-    Vector3f forceAccumulator = Vector3f(0.0f, 0.0f, 0.0f);
-    Vector3f torqueAccumulator = Vector3f(0.0f, 0.0f, 0.0f);
-
-    Geometry geometry = null;
-    bool dynamic = false;
-    bool disableRotation = false;
-    bool gravityEnabled = true;
-
-    void savePreviousState()
+    this(Vector3f pos = Vector3f(0.0f, 0.0f, 0.0f))
     {
-        prevPosition = position;
-        prevOrientation = orientation;
-    }
-
-    this()
-    {
-        position = Vector3f(0.0f, 0.0f, 0.0f);
+        position = pos;
         linearVelocity = Vector3f(0.0f, 0.0f, 0.0f);
-        linearAcceleration = Vector3f(0.0f, 0.0f, 0.0f);
-    
+
         orientation = Quaternionf(0.0f, 0.0f, 0.0f, 1.0f);
-        prevOrientation = Quaternionf(0.0f, 0.0f, 0.0f, 1.0f);
-        finalOrientation = Quaternionf(0.0f, 0.0f, 0.0f, 1.0f);
-        
         angularVelocity = Vector3f(0.0f, 0.0f, 0.0f);
-        angularAcceleration = Vector3f(0.0f, 0.0f, 0.0f);
-        
-        prevPosition = Vector3f(0.0f, 0.0f, 0.0f);
-        finalPosition = Vector3f(0.0f, 0.0f, 0.0f);
-        
-        gravityDirection = Vector3f(0.0f, -1.0f, 0.0f);
-    }
 
-    this(Geometry geom, bool dyn = true)
-    {
-        geometry = geom;
-        dynamic = dyn;
-        
-        this();
-
-        inertiaMoment = geometry.inertiaMoment(mass);
-        invInertiaMoment = 1.0f / inertiaMoment;
+        forceAccumulator = Vector3f(0.0f, 0.0f, 0.0f);
+        torqueAccumulator = Vector3f(0.0f, 0.0f, 0.0f);
     }
     
     void setGeometry(Geometry geom)
     {
         geometry = geom;
-        inertiaMoment = geometry.inertiaMoment(mass);
-        
-        if (inertiaMoment > 0.0f)
-            invInertiaMoment = 1.0f / inertiaMoment;
-        else
-            invInertiaMoment = 1.0;
+        setMass(mass);
     }
-
+    
     void setMass(float m)
     {
-        mass = m;
-        invMass = 1.0f / m;
+        mass = m;       
+        invMass = 1.0f / mass;
+        
         if (geometry !is null)
         {
             inertiaMoment = geometry.inertiaMoment(mass);
-            
-            if (inertiaMoment > 0.0f)
-                invInertiaMoment = 1.0f / inertiaMoment;
-            else
-                invInertiaMoment = 1.0;
+            invInertiaMoment = 1.0f / inertiaMoment;
         }
     }
     
-    void updateGeometryTransformation()
+    void integrate(double delta)
+    {
+        if (type == BodyType.Dynamic)
+        {
+            Vector3f acceleration;
+
+            acceleration = forceAccumulator * invMass;
+            linearVelocity += acceleration * delta;
+
+            acceleration = torqueAccumulator * invInertiaMoment;
+            angularVelocity += acceleration * delta;
+            
+            linearVelocity *= dampingFactor;
+            angularVelocity *= dampingFactor;
+            //linearVelocity *= pow(dampingFactor, delta);
+            //angularVelocity *= pow(dampingFactor, delta);
+            
+            position += linearVelocity * delta;
+            
+            orientation += 0.5f * Quaternionf(angularVelocity, 0.0f) * orientation * delta;
+            orientation.normalize();
+        }
+    }
+       
+    void updateGeomTransformation()
     {
         if (geometry !is null)
         {
-            geometry.setCenter(position);
+            if (disableRotation)
+                geometry.setTransformation(position, Quaternionf(0.0f, 0.0f, 0.0f, 1.0f));
+            else
+                geometry.setTransformation(position, orientation);
         }
     }
-
+    
     void resetForces()
     {
         forceAccumulator = Vector3f(0.0f, 0.0f, 0.0f);
         torqueAccumulator = Vector3f(0.0f, 0.0f, 0.0f);
     }
-
-    Matrix4x4f getTransformation()
-    {
-        if (disableRotation)
-            return translationMatrix(finalPosition);
-        else
-            return translationMatrix(finalPosition) * finalOrientation.toMatrix();
-    }
-
+    
     void applyForce(Vector3f force)
     {
         forceAccumulator += force;
@@ -169,8 +157,15 @@ class RigidBody
         if (!disableRotation)
             torqueAccumulator += torque;
     }
-
+    
     void applyForceAtPoint(Vector3f force, Vector3f point)
+    {
+        forceAccumulator += force;
+        if (!disableRotation)
+            torqueAccumulator += cross(point - position, force);
+    }
+    
+    void applyForceAtLocalPoint(Vector3f force, Vector3f point)
     {
         forceAccumulator += force;
         if (!disableRotation)
@@ -186,6 +181,28 @@ class RigidBody
     {
         if (!disableRotation)
             angularVelocity += angularImpulse * invInertiaMoment;
+    }
+    
+    void applyImpulseAtPoint(Vector3f impulse, Vector3f point)
+    {
+        linearVelocity += impulse * invMass;
+        
+        if (!disableRotation)
+        {
+            Vector3f angularImpulse = cross(point - position, impulse);
+            angularVelocity += angularImpulse * invInertiaMoment;
+        }
+    }
+    
+    void applyImpulseAtLocalPoint(Vector3f impulse, Vector3f point)
+    {
+        linearVelocity += impulse * invMass;
+        
+        if (!disableRotation)
+        {
+            Vector3f angularImpulse = cross(point, impulse);
+            angularVelocity += angularImpulse * invInertiaMoment;
+        }
     }
 }
 

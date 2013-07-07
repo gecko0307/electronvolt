@@ -40,3 +40,4 @@ interface Shader: Modifier
     void unbind();
     void free();
 }
+

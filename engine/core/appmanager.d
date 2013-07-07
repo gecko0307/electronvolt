@@ -234,27 +234,27 @@ final class AppManager
         
         if (SDL_WasInit(SDL_INIT_JOYSTICK))
         {
-        bool joysticksDetected = SDL_NumJoysticks() > 0;
-        if (joysticksDetected)
-        {
-            writefln("Number of joysticks: %s", SDL_NumJoysticks());
-            foreach(i; 0..SDL_NumJoysticks())
+            bool joysticksDetected = SDL_NumJoysticks() > 0;
+            if (joysticksDetected)
             {
-                Joystick joystick;
-                joystick.id = i;
-                joystick.name = to!string(SDL_JoystickName(0));
-                writefln("Joystick %s: %s", joystick.id, joystick.name);
-                joystick.sdl_joystick = SDL_JoystickOpen(joystick.id);
-                if (joystick.sdl_joystick is null)
+                writefln("Number of joysticks: %s", SDL_NumJoysticks());
+                foreach(i; 0..SDL_NumJoysticks())
                 {
-                    writefln("Failed to open joystick %s", joystick.id);
-                }
-                else
-                {
-                    joysticks[joystick.id] = joystick;
+                    Joystick joystick;
+                    joystick.id = i;
+                    joystick.name = to!string(SDL_JoystickName(0));
+                    writefln("Joystick %s: %s", joystick.id, joystick.name);
+                    joystick.sdl_joystick = SDL_JoystickOpen(joystick.id);
+                    if (joystick.sdl_joystick is null)
+                    {
+                        writefln("Failed to open joystick %s", joystick.id);
+                    }
+                    else
+                    {
+                        joysticks[joystick.id] = joystick;
+                    }
                 }
             }
-        }
         }
     }
     
@@ -467,15 +467,16 @@ final class AppManager
         if (FPSTickCounter >= 1000) // 1 sec interval
         {
             fps = FPSCounter;
-            //fps_string = to!string(fps);
             FPSCounter = 0;
             FPSTickCounter = 0;
-			averageDelta = 1.0 / cast(double)(fps);
-	    }
+            averageDelta = 1.0 / cast(double)(fps);
+        }
 
         beenReset = false;
+
         if (doubleClickCounterEnabled) 
             doubleClickCounter++;
+
         if (doubleClickCounter > 50)
         { 
             doubleClickCounterEnabled = false;
@@ -557,8 +558,8 @@ final class AppManager
                     if (event.active.state & SDL_APPACTIVE)
                     {
                         //If the application is no longer active
-                        //if (event.active.gain == 0)
-                        //    GC.collect();
+                        if (event.active.gain == 0)
+                            GC.collect();
                     }
                     break;
 

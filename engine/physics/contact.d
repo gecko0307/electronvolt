@@ -28,84 +28,22 @@ DEALINGS IN THE SOFTWARE.
 
 module engine.physics.contact;
 
-private
-{
-    import std.stdio;
-    import dlib.math.vector;
-    import dlib.geometry.aabb;
-    import dlib.geometry.obb;
-    import dlib.geometry.sphere;
-    import dlib.geometry.plane;
-    import dlib.geometry.triangle;
-    import dlib.geometry.intersection;
-
-    import engine.physics.rigidbody;
-    import engine.physics.geometry;
-}
+import dlib.math.vector;
+import engine.physics.rigidbody;
 
 struct Contact
 {
     RigidBody body1;
     RigidBody body2;
-    Intersection isec;
-    alias isec this;
-    float life = 0.0f;
-}
-
-Contact detectContact(RigidBody body1, RigidBody body2)
-{
-    Contact c;
-    c.body1 = body1;
-    c.body2 = body2;
-    c.isec.fact = false;
-    c.isec.point = Vector3f(0.0f, 0.0f, 0.0f);
-    c.isec.normal = Vector3f(0.0f, 0.0f, 0.0f);
-    //c.isec.contactB = Vector3f(0.0f, 0.0f, 0.0f);
-    c.isec.penetrationDepth = 1.0e5f;
     
-    if (body1.geometry.type == GeometryType.Sphere)
-    {
-        GeomSphere g1 = cast(GeomSphere)body1.geometry;
+    bool fact;
 
-        if (body2.geometry.type == GeometryType.Sphere)
-        {
-            GeomSphere g2 = cast(GeomSphere)body2.geometry;
-            c.isec = intrSphereVsSphere(g1.sphere, g2.sphere);
-        }
-        else if (body2.geometry.type == GeometryType.Plane)
-        {
-            GeomPlane g2 = cast(GeomPlane)body2.geometry;
-            c.isec = intrSphereVsPlane(g1.sphere, g2.plane);
-        }
-        else if (body2.geometry.type == GeometryType.Triangle)
-        {
-            GeomTriangle g2 = cast(GeomTriangle)body2.geometry;
-            c.isec = intrSphereVsTriangle(g1.sphere, g2.tri);
-        }
-    }
-    else if (body1.geometry.type == GeometryType.Plane)
-    {
-        GeomPlane g1 = cast(GeomPlane)body1.geometry;
-        
-        if (body2.geometry.type == GeometryType.Sphere)
-        {
-            GeomSphere g2 = cast(GeomSphere)body2.geometry;
-            c.isec = intrSphereVsPlane(g2.sphere, g1.plane);
-            c.isec.normal = -c.isec.normal;
-        }
-    }
-    else if (body1.geometry.type == GeometryType.Triangle)
-    {
-        GeomTriangle g1 = cast(GeomTriangle)body1.geometry;
-
-        if (body2.geometry.type == GeometryType.Sphere)
-        {
-            GeomSphere g2 = cast(GeomSphere)body2.geometry;
-            c.isec = intrSphereVsTriangle(g2.sphere, g1.tri);
-            c.isec.normal = -c.isec.normal;
-        }
-    }
-
-    return c;
+    Vector3f point;
+    Vector3f normal;
+    float penetration;
+    
+    // TODO: move these to RigidBody
+    float friction = 0.8f;
+    float restitution = 0.5f;
 }
 

@@ -41,6 +41,12 @@ private
     import derelict.opengl.glu;
     import derelict.opengl.glext;
     import derelict.freetype.ft;
+    import derelict.openal.al;
+    import derelict.ogg.ogg;
+    import derelict.ogg.vorbis;
+    import derelict.ogg.vorbisfile;
+    
+    import engine.multimedia.oggplayer;
 }
 
 public
@@ -58,16 +64,28 @@ class Application
 
     uint videoWidth, videoHeight;
     AppManager manager;
+    bool soundEnabled = true;
+    
+    ALCdevice* device;
+    ALCcontext* context;
 
     version(Windows)
     {
         enum sharedLibSDL = "SDL.dll";
         enum sharedLibFT = "freetype.dll";
+        enum sharedLibAL = "OpenAL32.dll";
+        enum sharedLibOgg = "libogg.dll";
+        enum sharedLibVorbis = "libvorbis.dll";
+        enum sharedLibVorbisFile = "libvorbisfile.dll";
     }
     version(linux)
     {
         enum sharedLibSDL = "./libsdl.so";
         enum sharedLibFT = "./libfreetype.so";
+        enum sharedLibAL = "./libopenal.so";
+        enum sharedLibOgg = "./libogg.so";
+        enum sharedLibVorbis = "./libvorbis.so";
+        enum sharedLibVorbisFile = "./libvorbisfile.so";
     }
 
     public:
@@ -81,6 +99,10 @@ class Application
         DerelictGLU.load();
         DerelictSDL.load(sharedLibSDL);
         DerelictFT.load(sharedLibFT);
+        DerelictAL.load(sharedLibAL);
+        DerelictOgg.load(sharedLibOgg);
+        DerelictVorbis.load(sharedLibVorbis);
+        DerelictVorbisFile.load(sharedLibVorbisFile);
 
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0)
             throw new Exception("Failed to init SDL: " ~ to!string(SDL_GetError()));
@@ -127,6 +149,18 @@ class Application
 
         int _priv_quitActionId = manager.bindActionToEvent(EventType.Quit, &onQuit);
         int _priv_resizeActionId = manager.bindActionToEvent(EventType.Resize, &onResize);
+        
+        if (soundEnabled)
+        {
+            ALCchar* defaultDevice = cast(ALCchar*)alcGetString(null, 
+                ALC_DEFAULT_DEVICE_SPECIFIER);
+            device = alcOpenDevice(defaultDevice);
+            assert(device !is null, "Failed to open audio device");
+            writefln("OpenAL device: %s", to!string(defaultDevice));
+            context = alcCreateContext(device, null);
+            alcMakeContextCurrent(context);
+            alcProcessContext(context);
+        }
     }
 
     private:
@@ -176,6 +210,16 @@ class Application
         manager.unbindActionFromEvent(EventType.Quit, _priv_quitActionId);
     
         manager.free();
+        
+        auto ovplayer = OVPlayer();
+        ovplayer.stop();
+        
+        if (soundEnabled)
+        {
+            alcMakeContextCurrent(null);
+            alcDestroyContext(context);
+            alcCloseDevice(device);
+        }
 
         SDL_Quit();
     }

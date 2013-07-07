@@ -95,7 +95,7 @@ final class Font
 
         if (char_index == 0)
         {
-            //char wasn't found in font file
+            //TODO: character wasn't found in font file, do something
         }
     
         if (FT_Load_Glyph( m_face, char_index, FT_LOAD_DEFAULT ))

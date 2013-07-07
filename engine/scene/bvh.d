@@ -32,9 +32,12 @@ private
 {
     import std.array;
     import std.math;
+
     import dlib.core.compound;
+
     import dlib.math.utils;
     import dlib.math.vector;
+
     import dlib.geometry.aabb;
     import dlib.geometry.sphere;
     import dlib.geometry.triangle;
@@ -42,9 +45,11 @@ private
     import dlib.geometry.ray;
 }
 
-/* 
- * Returns the axis that has the largest length
+/*
+ * Bounding Volume Hierarchy implementation
  */
+
+// Returns the axis that has the largest length
 Axis boxGetMainAxis(AABB box)
 {
     float xl = box.size.x;
@@ -186,7 +191,6 @@ enum Heuristic
 {
     HMA, // Half Main Axis
     SAH, // Surface Area Heuristic
-    // TODO:
     //ESC  // Early Split Clipping
 }
 
@@ -318,3 +322,4 @@ final class BVHTree
         return 2.0f * (width * height + width * depth + height * depth);
     }
 }
+

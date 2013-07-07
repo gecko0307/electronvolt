@@ -28,168 +28,145 @@ DEALINGS IN THE SOFTWARE.
 
 module engine.physics.solver;
 
-private
-{
-    import dlib.math.vector;
-    import dlib.math.quaternion;
-    import dlib.math.utils;
-    import engine.physics.rigidbody;
-    import engine.physics.contact;
-}
+import std.math;
+import std.algorithm;
 
-void solvePenetration(ref Contact c, float hardness)
-{
-    if (c.body1.dynamic && c.body2.dynamic)
-    {
-        Vector3f b1trans = c.normal * c.penetrationDepth * 0.5f;
-        c.body1.position += b1trans * hardness;
-        
-        Vector3f b2trans = (-c.normal) * c.penetrationDepth * 0.5f;
-        c.body2.position += b2trans * hardness;
-    }
-    else if (c.body1.dynamic)
-    {
-        Vector3f b1trans = c.normal * c.penetrationDepth;
-        c.body1.position += b1trans * hardness;
-    }
-    else if (c.body2.dynamic)
-    {
-        Vector3f b2trans = (-c.normal) * c.penetrationDepth;
-        c.body2.position += b2trans * hardness;
-    }
+import dlib.math.vector;
+import dlib.math.utils;
 
-    c.penetrationDepth -= c.penetrationDepth * hardness;
-}
+import engine.physics.rigidbody;
+import engine.physics.contact;
 
-void solveContact(Contact c, uint iterations, float hardness)
+void solveContact(Contact c, uint iterations)
 {
-    Vector3f n1 = c.normal;
-    Vector3f w1 = c.normal.cross(c.point - c.body1.position);
-    Vector3f n2 = -c.normal;
-    Vector3f w2 = (-c.normal).cross(c.point - c.body2.position);
+    RigidBody body1 = c.body1;
+    RigidBody body2 = c.body2;
     
-    float bounceFactor = (c.body1.bounceFactor + c.body2.bounceFactor) * 0.5f;
+    Vector3f r1 = c.point - body1.position;
+    Vector3f r2 = c.point - body2.position;
     
-    float lambda = normalLambda(c, n1, w1, n2, w2, bounceFactor);
+    Vector3f relativeVelocity = Vector3f(0.0f, 0.0f, 0.0f);
+
+    relativeVelocity += body1.linearVelocity + cross(body1.angularVelocity, r1);
+    relativeVelocity -= body2.linearVelocity + cross(body2.angularVelocity, r2);
     
-    if (lambda <= 0.0f)
+    float velocityProjection = dot(relativeVelocity, c.normal);
+    
+    // Check if the bodies are already moving apart
+    if (velocityProjection > 0.0f)
         return;
     
-    lambda *= hardness;
-    lambda /= iterations;
-
-    if (c.body1.dynamic)
-    {
-        Vector3f normalImpulse = c.normal * lambda;       
-        c.body1.applyImpulse(normalImpulse);        
-        //c.body1.applyAngularImpulse(cross(c.point - c.body1.position, normalImpulse) * 0.2f);
-
-        Vector3f r1 = c.point - c.body1.position;
-        Vector3f colPointVelRelNew = c.body1.linearVelocity + c.body1.angularVelocity.cross(r1);
-
-        Vector3f tangentVel = colPointVelRelNew - (c.normal * colPointVelRelNew.dot(c.normal));
-        float tangentSpeed = tangentVel.length;
-
-        Vector3f tVec = -tangentVel * (1.0f / tangentSpeed);
-        Vector3f r1CrossColTangent = r1.cross(tVec);
-
-        //r1CrossColTangent = c.body1.invInertiaTensor.transform(r1CrossColTangent);
-        r1CrossColTangent = r1CrossColTangent * c.body1.invInertiaMoment;
+    // Calculate normal impulse
+    Vector3f n1 = c.normal;
+    Vector3f w1 = c.normal.cross(r1);
+    Vector3f n2 = -c.normal;
+    Vector3f w2 = -(c.normal.cross(r2));
     
-        float denominator = (1.0f / c.body1.mass) + tVec.dot(r1CrossColTangent * r1);
+    float bounce = 0.4f; //c.restitution
+    float a = velocityProjection; // * (1 + bounce);
 
-        if (denominator > EPSILON)
-        {
-            float impulseToReverse = tangentSpeed / denominator;
-            float impulseFromNormalImpulse = normalImpulse.length * c.body1.staticFrictionCoef;
-     
-            //float frictionImpulse = (impulseToReverse < impulseFromNormalImpulse)? 
-            //    impulseToReverse : (normalImpulse.length * c.body1.dynamicFrictionCoef);
-            
-            float frictionImpulse;  
-            if (impulseToReverse < impulseFromNormalImpulse)
-			    frictionImpulse = impulseToReverse;
-            else
-                frictionImpulse = normalImpulse.length * c.body1.dynamicFrictionCoef;
-            
-            tVec *= frictionImpulse;
+    a *= iterations;
+ 
+    float b = n1.dot(n1) * body1.invMass
+            + w1.dot(w1) * body1.invInertiaMoment
+            + n2.dot(n2) * body2.invMass 
+            + w2.dot(w2) * body2.invInertiaMoment;
+    
+    float impulse = (-a / b);
+    
+    if (impulse < 0.05f)
+        return;
 
-            c.body1.applyImpulse(tVec);
-            
-            Vector3f angImp = r1.cross(tVec);
-            c.body1.applyAngularImpulse(angImp);
-        }
+    float normalImpulse = impulse;
+
+    // TODO: don't hardcode these
+    float hardness = 0.9f;
+    float staticFriction = 0.9f;
+    float dynamicFriction = 0.9f;
+
+    // Calculate tangent (friction) impulse
+    Vector3f tangent = Vector3f(0.0f, 0.0f, 0.0f);
+    float tangentSpeed = 0.0f;
+
+    if (velocityProjection != 0.0f)
+    {
+        Vector3f VonN = relativeVelocity - dot(relativeVelocity, c.normal) * c.normal;
+        tangentSpeed = VonN.length;
+        if (tangentSpeed > 0)
+            tangent = -VonN * (1.0f / tangentSpeed);
     }
 
-    if (c.body2.dynamic)
+    if (tangentSpeed != 0.0f)
     {
-        Vector3f normalImpulse = -c.normal * lambda;       
-        c.body2.applyImpulse(normalImpulse);
-        //c.body2.applyAngularImpulse(cross(c.point - c.body2.position, normalImpulse) * 0.2f);
+        float denom = body1.invMass + body2.invMass;
+        
+        denom += dot(cross(body1.invInertiaMoment * cross(r1, tangent), r1), tangent);
+        denom += dot(cross(body2.invInertiaMoment * cross(r2, tangent), r2), tangent);
+        
+        float desiredImpulse = tangentSpeed / denom;
+        
+        float impulseToReverse = desiredImpulse;
+        float impulseFromNormalImpulse = impulse * staticFriction;
+        
+        float frictionImpulse; 
+        if (impulseToReverse < impulseFromNormalImpulse)
+             frictionImpulse = impulseToReverse;
+        else
+             frictionImpulse = impulse * dynamicFriction;
 
-        Vector3f r1 = c.point - c.body2.position;
-        Vector3f colPointVelRelNew = c.body2.linearVelocity + c.body2.angularVelocity.cross(r1);
+        tangent *= frictionImpulse;
+    }
 
-        Vector3f tangentVel = colPointVelRelNew - (-c.normal * colPointVelRelNew.dot(-c.normal));
-        float tangentSpeed = tangentVel.length;
-
-        Vector3f tVec = -tangentVel * (1.0f / tangentSpeed);
-        Vector3f r1CrossColTangent = r1.cross(tVec);
-
-        //r1CrossColTangent = c.body2.invInertiaTensor.transform(r1CrossColTangent);
-        r1CrossColTangent = r1CrossColTangent * c.body2.invInertiaMoment;
+    // Apply impulse to bodies
+    Vector3f impulseVec = impulse * c.normal + tangent;
+    impulseVec /= iterations;
     
-        float denominator = (1.0f / c.body2.mass) + tVec.dot(r1CrossColTangent * r1);
+    if (body1.type == BodyType.Dynamic) 
+        body1.applyImpulseAtPoint(+impulseVec, c.point);
+    if (body2.type == BodyType.Dynamic) 
+        body2.applyImpulseAtPoint(-impulseVec, c.point);
+}
 
-        if (denominator > EPSILON)
-        {
-            float impulseToReverse = tangentSpeed / denominator;
-            float impulseFromNormalImpulse = normalImpulse.length * c.body2.staticFrictionCoef;
+void correctPositions(Contact c)
+{
+    RigidBody body1 = c.body1;
+    RigidBody body2 = c.body2;
 
-            //float frictionImpulse = (impulseToReverse < impulseFromNormalImpulse)? 
-            //    impulseToReverse : (normalImpulse.length * c.body2.dynamicFrictionCoef);
-            
-            float frictionImpulse;  
-            if (impulseToReverse < impulseFromNormalImpulse)
-			    frictionImpulse = impulseToReverse;
-            else
-                frictionImpulse = normalImpulse.length * c.body2.dynamicFrictionCoef;
-            
-            tVec *= frictionImpulse;
+    float hardness = 1.0f; //0.95f;
 
-            c.body2.applyImpulse(tVec);
-           
-            Vector3f angImp = r1.cross(tVec);
-            c.body2.applyAngularImpulse(angImp);
-        }
+    if (c.body1.type == BodyType.Dynamic && 
+        c.body2.type == BodyType.Dynamic)
+    {
+        Vector3f b1trans = c.normal * c.penetration * 0.5f;
+        c.body1.position += b1trans * hardness;
+        
+        Vector3f b2trans = (-c.normal) * c.penetration * 0.5f;
+        c.body2.position += b2trans * hardness;
+    }
+    else if (c.body1.type == BodyType.Dynamic)
+    {
+        Vector3f b1trans = c.normal * c.penetration;
+        c.body1.position += b1trans * hardness;
+    }
+    else if (c.body2.type == BodyType.Dynamic)
+    {
+        Vector3f b2trans = (-c.normal) * c.penetration;
+        c.body2.position += b2trans * hardness;
     }
 }
 
-float normalLambda(
-    Contact c,
-    Vector3f n1, 
-    Vector3f w1,
-    Vector3f n2,
-    Vector3f w2,
-    float bounceFactor)
+// Alternative position correction
+void correctPositions2(Contact c)
 {
-    float velocityProjection =
-          n1.dot(c.body1.linearVelocity)
-        + w1.dot(c.body1.angularVelocity)
-        + n2.dot(c.body2.linearVelocity)
-        + w2.dot(c.body2.angularVelocity);
-        
-    if (velocityProjection > 0.0f)
-        return -1.0f;
-              
-    float a = velocityProjection// - c.penetrationDepth
-            + velocityProjection * bounceFactor;
-              
-    float b = n1.dot(n1) * c.body1.invMass 
-            + w1.dot(w1) * c.body1.invInertiaMoment
-            + n2.dot(n2) * c.body2.invMass  
-            + w2.dot(w2) * c.body2.invInertiaMoment;
-            
-    return (-a / b);
+    RigidBody body1 = c.body1;
+    RigidBody body2 = c.body2;
+
+    float invMass = body1.invMass + body2.invMass;
+    Vector3f movePerIMass = c.normal * (c.penetration / invMass);
+    
+    if (body1.type == BodyType.Dynamic) 
+        body1.position += movePerIMass * body1.invMass;
+    if (body2.type == BodyType.Dynamic) 
+        body2.position -= movePerIMass * body2.invMass;
 }
 

@@ -41,7 +41,7 @@ private
     import dlib.math.quaternion;
 
     import engine.core.modifier;
-    //import engine.scene.scenenode;
+    import engine.scene.scenenode;
 }
 
 final class TrackballCamera: Modifier
@@ -83,7 +83,7 @@ final class TrackballCamera: Modifier
 
     public bool movingToTarget = false;
 
-    //SceneNode targetObject = null;
+    SceneNode targetObject = null;
 
     public:
 
@@ -99,8 +99,8 @@ final class TrackballCamera: Modifier
 
     void bind(double delta)
     {
-        //if (targetObject) 
-        //    center = -targetObject.position;
+        if (targetObject) 
+            center = -targetObject.position;
 
         if (current_zoom < target_zoom)
         {
@@ -203,13 +203,13 @@ final class TrackballCamera: Modifier
         current_translate = center;
         target_translate = -pos;
     }
-/*
+
     void setTargetObject(SceneNode obj)
     {
         targetObject = obj;
         center = -targetObject.position;
     }
-*/
+
     void translateTarget(Vector3f pos)
     {
         center += pos;
