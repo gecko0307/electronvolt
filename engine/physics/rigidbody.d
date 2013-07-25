@@ -204,5 +204,10 @@ class RigidBody
             angularVelocity += angularImpulse * invInertiaMoment;
         }
     }
+    
+    bool isStatic()
+    {
+        return (type == BodyType.Static);
+    }
 }
 

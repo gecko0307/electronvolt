@@ -32,10 +32,12 @@ import std.math;
 import std.stdio;
 import std.conv;
 import std.algorithm;
+import std.file;
 
 import derelict.sdl.sdl;
 import derelict.opengl.gl;
 import derelict.opengl.glu;
+import derelict.opengl.glext;
 import derelict.openal.al;
 
 import dlib.math.vector;
@@ -45,6 +47,8 @@ import dlib.math.utils;
 
 import dlib.geometry.triangle;
 import dlib.geometry.ray;
+import dlib.geometry.sphere;
+import dlib.geometry.trimesh;
 
 import dlib.image.color;
 import dlib.image.io.png;
@@ -55,6 +59,7 @@ import engine.ui.text;
 import engine.core.drawable;
 import engine.graphics.material;
 import engine.graphics.texture;
+import engine.graphics.glslshader;
 
 import engine.scene.scenenode;
 import engine.scene.tbcamera;
@@ -64,10 +69,12 @@ import engine.scene.bvh;
 import engine.physics.geometry;
 import engine.physics.rigidbody;
 import engine.physics.world;
+import engine.physics.constraint;
 
 import engine.glgeom;
 import engine.dat;
 import engine.fgroup;
+import engine.mesh;
 
 import engine.multimedia.oggplayer;
 
@@ -145,11 +152,15 @@ class SandboxObject: GameObject
     
     OVPlayer ovplayer;
 
+    bool soundEnabled = false;
+
     T addGeom(T)(T geom)
     {
         matObj ~= geom;
         return geom;
     }
+    
+    BallConstraint joint;
     
     this(GameLogicManager m)
     {
@@ -198,22 +209,74 @@ class SandboxObject: GameObject
 
         gravityGunPivot = new SceneNode(scene);
         gravityGun = new Weapon("data/weapons/gravitygun/gravitygun.dat", gravityGunPivot);
+
+        Material mWall = new Material();
+        mWall.ambientColor = ColorRGBAf(0.2f, 0.2f, 0.4f, 1.0f);
+        mWall.diffuseColor = ColorRGBAf(0.9f, 0.9f, 0.9f, 1.0f);
+        mWall.specularColor = ColorRGBAf(1.0f, 1.0f, 1.0f, 1.0f);
+        mWall.shininess = 2.0f;
+        mWall.textures[0] = new Texture(loadPNG("data/objects/diffuse.png"));
+        
+        writefln("GL_ARB_shading_language_100: %s", 
+            DerelictGL.isExtensionSupported("GL_ARB_shading_language_100"));
+        
+        if (DerelictGL.isExtensionSupported("GL_ARB_shading_language_100"))
+        {
+            mWall.textures[1] = new Texture(loadPNG("data/objects/grill-normal.png"));
+            mWall.shader = new GLSLShader(
+                readText("data/shaders/bump.vp.glsl"), 
+                readText("data/shaders/bump.fp.glsl"));
+        }
+        
+        string[] loadedExtensions = DerelictGL.loadedExtensionNames;
+       
+        //auto f = File("opengl_extensions.txt", "w");
+        //foreach(e; loadedExtensions)
+        //    f.writeln(e);
+        //f.close();
+        
+        //string[] notLoaded = DerelictGL.notLoadedExtensionNames; 
+
+        DatObject boxData = new DatObject("data/objects/box.dat");
+        TriMesh boxMesh = datToTriMesh(boxData);
+        uint boxList = triMeshToDisplayList(boxMesh);
         
         foreach(orb; levelData.orbs)
         {
             RigidBody rb = world.addDynamicBody(orb.position, 1000.0f);
             rb.setGeometry(new GeomBox(Vector3f(0.5f, 0.5f, 0.5f)));
-            PrimBox prim = new PrimBox(Vector3f(0.5f, 0.5f, 0.5f), scene);
+            //PrimBox prim = new PrimBox(Vector3f(0.5f, 0.5f, 0.5f), scene);
+            MeshEntity prim = new MeshEntity(boxList, scene);
             prim.rigidBody = rb;
+
+            prim.modifiers ~= mWall;
         }
-        
+
+        RigidBody jcube1 = world.addDynamicBody(levelData.spawnPosition + Vector3f(2.0f, 1.5f, 1.0f), 1000.0f);
+        jcube1.setGeometry(new GeomBox(Vector3f(0.5f, 0.5f, 0.5f)));
+        MeshEntity jcube1Prim = new MeshEntity(boxList, scene);
+        jcube1Prim.rigidBody = jcube1;
+        RigidBody jcube2 = world.addDynamicBody(levelData.spawnPosition + Vector3f(-2.0f, 1.5f, 1.0f), 1000.0f);
+        jcube2.setGeometry(new GeomBox(Vector3f(0.5f, 0.5f, 0.5f)));
+        MeshEntity jcube2Prim = new MeshEntity(boxList, scene);
+        jcube2Prim.rigidBody = jcube2;
+     
+        joint = new BallConstraint(
+            jcube1, 
+            jcube2, 
+            Vector3f(-0.75f, 0.0f, 0.0f),
+            Vector3f(+0.75f, 0.0f, 0.0f));
+
         world.bvhRoot = levelBVH.root;
 
         crosshair = new Texture(loadPNG("data/weapons/crosshair.png"), false);
         
-        ovplayer = OVPlayer();
-        ovplayer.loadTracks("data/audio");
-        ovplayer.playTrack(0);
+        if (soundEnabled)
+        {
+            ovplayer = OVPlayer();
+            ovplayer.loadTracks("data/audio");
+            ovplayer.playTrack(0);
+        }
 
         SDL_WarpMouse(cast(ushort)manager.window_width/2, 
                       cast(ushort)manager.window_height/2);
@@ -302,32 +365,34 @@ class SandboxObject: GameObject
                 abs(dot(player.rigidBody.linearVelocity.normalized, 
                         world.gravity.normalized)));
             
-        playerWalking = false; 
+        playerWalking = false;
+        
+        float walkForce = 5000.0f * 75.0f * manager.deltaTime;
 
         if (manager.key_pressed['w'])
         {
-            player.rigidBody.applyForce(-cameraPivot.absoluteMatrix.forward * 5000.0f);
+            player.rigidBody.applyForce(-cameraPivot.absoluteMatrix.forward * walkForce);
             if (player.rigidBody.onGround)
                 playerWalking = true;
         }
 
         if (manager.key_pressed['s'])
         {
-            player.rigidBody.applyForce(cameraPivot.absoluteMatrix.forward * 5000.0f);
+            player.rigidBody.applyForce(cameraPivot.absoluteMatrix.forward * walkForce);
             if (player.rigidBody.onGround)
                 playerWalking = true;
         }
 
         if (manager.key_pressed['a'])
         {
-            player.rigidBody.applyForce(-cameraPivot.absoluteMatrix.right * 5000.0f);
+            player.rigidBody.applyForce(-cameraPivot.absoluteMatrix.right * walkForce);
             if (player.rigidBody.onGround)
                 playerWalking = true;
         }
 
         if (manager.key_pressed['d'])
         {
-            player.rigidBody.applyForce(cameraPivot.absoluteMatrix.right * 5000.0f);
+            player.rigidBody.applyForce(cameraPivot.absoluteMatrix.right * walkForce);
             if (player.rigidBody.onGround)
                 playerWalking = true;
         }
@@ -338,7 +403,7 @@ class SandboxObject: GameObject
             {
                 if (player.rigidBody.onGround)
                 {
-                    player.rigidBody.applyForce(-world.gravity.normalized * 35000.0f);
+                    player.rigidBody.applyForce(-world.gravity.normalized * walkForce * 7.0f);
                     player.rigidBody.onGround = false;
                     jumped = true;
                 }
@@ -357,8 +422,9 @@ class SandboxObject: GameObject
         // Shoot
         shootWithGravityRay(600.0f);
 
-        // Update physics                   
+        // Update physics                
         world.update(manager.deltaTime);
+        joint.solve(1.0/60.0);
         
         Vector3f listenerPos = player.rigidBody.position;
         Vector3f listenerVel = player.rigidBody.linearVelocity;
@@ -414,6 +480,19 @@ class SandboxObject: GameObject
         }
         
         scene.draw(manager.deltaTime);
+
+        glDisable(GL_LIGHTING);
+        Vector3f a1Pos = joint.body1.geometry.transformation.transform(joint.localAnchor1);
+        Vector3f a2Pos = joint.body2.geometry.transformation.transform(joint.localAnchor2);
+        glPointSize(5.0f);
+        glBegin(GL_POINTS);
+            glColor3f(1.0f, 0.0f, 0.0f);
+            glVertex3fv(a1Pos.arrayof.ptr);
+            glColor3f(0.0f, 1.0f, 0.0f);
+            glVertex3fv(a2Pos.arrayof.ptr);
+        glEnd();
+        glPointSize(1.0f);
+        glEnable(GL_LIGHTING);
 
         glPopMatrix();
         

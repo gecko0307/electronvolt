@@ -87,6 +87,16 @@ class PhysicsWorld
     
     void update(double delta)
     {
+        // Apply gravity to dynamic bodies
+        Vector3f dtgrav = gravity * 100.0f * delta;
+        foreach(b; bodies)
+        if (b.type == BodyType.Dynamic)
+        {
+            if (!b.disableGravity)
+                b.applyForce(b.mass * dtgrav);
+            b.onGround = false;
+        }
+        
         simulationStep(fixedDelta);
     }
     
@@ -97,15 +107,6 @@ class PhysicsWorld
         
         enum iterations = 10;
         delta /= iterations;
-
-        // Apply gravity to dynamic bodies
-        foreach(b; bodies)
-        if (b.type == BodyType.Dynamic)
-        {
-            if (!b.disableGravity)
-                b.applyForce(b.mass * gravity);
-            b.onGround = false;
-        }
         
         for(uint iteration = 0; iteration < iterations; iteration++)
         {
