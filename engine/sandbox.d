@@ -252,21 +252,41 @@ class SandboxObject: GameObject
             prim.modifiers ~= mWall;
         }
 
-        RigidBody jcube1 = world.addDynamicBody(levelData.spawnPosition + Vector3f(2.0f, 1.5f, 1.0f), 1000.0f);
+        Material mWCube = new Material();
+        mWCube.ambientColor = ColorRGBAf(0.2f, 0.2f, 0.2f, 1.0f);
+        mWCube.diffuseColor = ColorRGBAf(0.9f, 0.9f, 0.9f, 1.0f);
+        mWCube.specularColor = ColorRGBAf(0.0f, 0.0f, 0.0f, 0.0f);
+        mWCube.shininess = 2.0f;
+
+        RigidBody jcube1 = world.addDynamicBody(levelData.spawnPosition + Vector3f(2.0f, 1.5f, 1.0f), 100.0f);
         jcube1.setGeometry(new GeomBox(Vector3f(0.5f, 0.5f, 0.5f)));
-        MeshEntity jcube1Prim = new MeshEntity(boxList, scene);
+        PrimBox jcube1Prim = new PrimBox(Vector3f(0.5f, 0.5f, 0.5f), scene);
         jcube1Prim.rigidBody = jcube1;
-        RigidBody jcube2 = world.addDynamicBody(levelData.spawnPosition + Vector3f(-2.0f, 1.5f, 1.0f), 1000.0f);
+        jcube1Prim.modifiers ~= mWCube;
+        RigidBody jcube2 = world.addDynamicBody(levelData.spawnPosition + Vector3f(-2.0f, 1.5f, 1.0f), 50.0f);
         jcube2.setGeometry(new GeomBox(Vector3f(0.5f, 0.5f, 0.5f)));
-        MeshEntity jcube2Prim = new MeshEntity(boxList, scene);
+        PrimBox jcube2Prim = new PrimBox(Vector3f(0.5f, 0.5f, 0.5f), scene);
         jcube2Prim.rigidBody = jcube2;
-     
+        jcube2Prim.modifiers ~= mWCube;
+
         joint = new BallConstraint(
             jcube1, 
             jcube2, 
-            Vector3f(-0.75f, 0.0f, 0.0f),
-            Vector3f(+0.75f, 0.0f, 0.0f));
+            Vector3f(-1.0f, 0.0f, 0.0f),
+            Vector3f(+0.5f, 0.0f, 0.0f));
 
+/*
+        joint = new SliderConstraint(
+            jcube1, 
+            jcube2, 
+            Vector3f(-1.5f, 0.0f, 0.0f),
+            Vector3f(0.0f, 0.0f, 0.0f));
+*/
+/*
+        joint = new FixedAngleConstraint(
+            jcube1, 
+            jcube2);
+*/
         world.bvhRoot = levelBVH.root;
 
         crosshair = new Texture(loadPNG("data/weapons/crosshair.png"), false);
@@ -480,7 +500,7 @@ class SandboxObject: GameObject
         }
         
         scene.draw(manager.deltaTime);
-
+/*
         glDisable(GL_LIGHTING);
         Vector3f a1Pos = joint.body1.geometry.transformation.transform(joint.localAnchor1);
         Vector3f a2Pos = joint.body2.geometry.transformation.transform(joint.localAnchor2);
@@ -493,7 +513,7 @@ class SandboxObject: GameObject
         glEnd();
         glPointSize(1.0f);
         glEnable(GL_LIGHTING);
-
+*/
         glPopMatrix();
         
         // 2D mode
@@ -538,7 +558,7 @@ class SandboxObject: GameObject
     void shootWithGravityRay(float energy)
     {
         Vector3f forwardVec = camera.absoluteMatrix.forward;
-        Vector3f camPos = camera.absoluteMatrix.translation - forwardVec * 2.0f;
+        Vector3f camPos = camera.absoluteMatrix.translation - forwardVec * 4.0f;
         Vector3f objPos = camPos;
 
             Ray shootRay = Ray(
