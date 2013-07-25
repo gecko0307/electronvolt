@@ -64,7 +64,7 @@ class Application
 
     uint videoWidth, videoHeight;
     AppManager manager;
-    bool soundEnabled = true;
+    bool soundEnabled = false;
     
     ALCdevice* device;
     ALCcontext* context;
@@ -211,11 +211,11 @@ class Application
     
         manager.free();
         
-        auto ovplayer = OVPlayer();
-        ovplayer.stop();
-        
         if (soundEnabled)
         {
+            auto ovplayer = OVPlayer();
+            ovplayer.stop();
+
             alcMakeContextCurrent(null);
             alcDestroyContext(context);
             alcCloseDevice(device);
