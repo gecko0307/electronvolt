@@ -54,6 +54,7 @@ module dlib.functional.combinators;
  Y combinator is commonly use to allow anonymous recursion without assuming your host 
  language supports it. 
 +++/
+
 auto Y(R, P...) (R delegate(P) delegate(R delegate(P)) lambda)
 {
     struct RFunc {R delegate(P) delegate(RFunc) f;}

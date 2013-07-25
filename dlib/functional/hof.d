@@ -98,8 +98,3 @@ T delegate(S) compose(T, U, S)(T delegate(U) f, U delegate(S) g)
 {
     return (S s) => f(g(s));
 }
-
-
-
-
-

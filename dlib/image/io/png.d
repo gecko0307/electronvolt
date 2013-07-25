@@ -26,7 +26,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module dlib.image.png;
+module dlib.image.io.png;
 
 private
 {
@@ -40,7 +40,7 @@ private
     import dlib.image.io.zstream;
 }
 
-// uncomment this to see debug messages
+// uncomment this to see debug messages:
 //version = PNGDebug;
 
 static const ubyte[8] PNGSignature = [137, 80, 78, 71, 13, 10, 26, 10];
@@ -153,7 +153,7 @@ SuperImage loadPNG(string filename)
     PNGHeader readHeader(ref PNGChunk chunk)
     {
         PNGHeader hdr;
-        hdr.bytes = chunk.data;
+        hdr.bytes[] = chunk.data[];
         hdr.width = bigEndian(hdr.width);
         hdr.height = bigEndian(hdr.height);
         version(PNGDebug)
@@ -525,5 +525,3 @@ uint crc32(ubyte[] buf, uint inCrc = 0)
 
     return (crc ^ 0xFFFFFFFF);
 }
-
-

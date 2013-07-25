@@ -79,4 +79,3 @@ void fastFourierTransform(Complex!(float)[] data, bool forward)
         }
     }
 }
-

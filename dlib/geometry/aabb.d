@@ -185,4 +185,3 @@ AABB boxFromMinMaxPoints(Vector3f mi, Vector3f ma)
     box.size.z = abs(box.size.z);
     return box;
 }
-

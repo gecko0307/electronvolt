@@ -43,6 +43,8 @@ SuperImage edgeDetect(SuperImage src, int radius1, int radius2, float amount, bo
     auto blurred2 = boxBlur(src, radius2, radius2);
     auto mask = subtract(blurred1, blurred2, 1.0f);
     auto highcon = contrast(mask, amount, ContrastMethod.AverageImage);
-    if (inv) return invert(highcon);
-    else return highcon;
+    if (inv)
+        return invert(highcon);
+    else
+        return highcon;
 }

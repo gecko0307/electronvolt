@@ -545,16 +545,16 @@ struct Vector(T, int size)
             {
                 case 'w', 'a', 'q': 
                     if (size < 4) return false;
-                    break;
+                    else break;
                 case 'z', 'b', 'p': 
                     if (size < 3) return false;
-                    break;
+                    else break;
                 case 'y', 'g', 't': 
                     if (size < 2) return false;
-                    break;
+                    else break;
                 case 'x', 'r', 's': 
                     if (size < 1) return false;
-                    break;
+                    else break;
                 default:
                     return false;
             }
@@ -747,14 +747,6 @@ Vector!(T,3) slerp(T) (Vector!(T,3) a, Vector!(T,3) b, T t)
  */
 Vector!(T,3) vectorDecreaseToZero(T) (Vector!(T,3) vector, T step)
 {
-/*
-    if (vector.x > 0.0) vector.x -= step;
-    if (vector.x < 0.0) vector.x += step;
-    if (vector.y > 0.0) vector.y -= step;
-    if (vector.y < 0.0) vector.y += step;
-    if (vector.z > 0.0) vector.z -= step;
-    if (vector.z < 0.0) vector.z += step;
-*/
     foreach (ref component; vector.arrayof)
     {
         if (component > 0.0)
@@ -816,21 +808,13 @@ alias Vector4d dvec4;
  */
 static struct AxisVector
 {
-        Vector3f x = Vector3f(1.0f, 0.0f, 0.0f);
-        Vector3f y = Vector3f(0.0f, 1.0f, 0.0f);
-        Vector3f z = Vector3f(0.0f, 0.0f, 1.0f);
+    Vector3f x = Vector3f(1.0f, 0.0f, 0.0f);
+    Vector3f y = Vector3f(0.0f, 1.0f, 0.0f);
+    Vector3f z = Vector3f(0.0f, 0.0f, 1.0f);
 }
+
+// For some reason, this doesn't work:
 /*
-static this()
-body
-{
-    AxisVector.x = Vector3f(1.0f, 0.0f, 0.0f);
-    AxisVector.y = Vector3f(0.0f, 1.0f, 0.0f);
-    AxisVector.z = Vector3f(0.0f, 0.0f, 1.0f);    
-}
-*/
-/*
-// This doesn't work yet
 enum AxisVector: Vector3f
 {
     x = Vector3f(1.0f, 0.0f, 0.0f),

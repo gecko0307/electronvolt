@@ -146,4 +146,3 @@ struct Ray
         return true;
     }
 }
-

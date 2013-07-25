@@ -1035,4 +1035,3 @@ alias Matrix4x4!(double) Matrix4x4d;
 
 alias identityMatrix4x4!(float) identityMatrix4x4f;
 alias identityMatrix4x4!(double) identityMatrix4x4d;
-

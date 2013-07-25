@@ -397,5 +397,3 @@ body
  */
 alias Matrix2x2!(float) Matrix2x2f;
 alias Matrix2x2!(double) Matrix2x2d;
-
-

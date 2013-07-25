@@ -175,4 +175,3 @@ struct Matrix(T, size_t rows, size_t columns)
 
     T[rows][columns] arrayof;
 }
-

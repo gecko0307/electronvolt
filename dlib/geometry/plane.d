@@ -224,4 +224,3 @@ struct Plane
         return -(normal * d);
     }
 }
-

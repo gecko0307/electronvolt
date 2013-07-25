@@ -51,4 +51,3 @@ body
     foreach(i, v; r) r[i] = i;
     return r;
 }
-

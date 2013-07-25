@@ -73,8 +73,3 @@ bool forN(size_t n, T) (in T[] val, bool delegate(T) func)
         if (func(v)) count++;
     return (count >= n);
 }
-
-
-
-
-

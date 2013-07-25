@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2011-2013 Timur Gafarov 
+Copyright (c) 2013 Timur Gafarov 
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -26,55 +26,17 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module dlib.image.filters.boxblur;
+module dlib.geometry.hermite;
 
-private
+V hermiteCurve(T, V)(V p1, V t1, V p2, V t2, T s)
 {
-    import dlib.image.color;
-    import dlib.image.image;
+    T a = s * s;
+    T b = a * s;
+
+    T h1 = cast(T)( 2.0) * b - cast(T)(3.0) * a + cast(T)(1.0); 
+    T h2 = cast(T)(-2.0) * b + cast(T)(3.0) * a;
+    T h3 = b - cast(T)(2.0) * a + s;
+    T h4 = b - a;
+    
+    return p1 * h1 + p2 * h2 + t1 * h3 + t2 * h4;
 }
-
-private SuperImage boxBlurHorizontal(SuperImage src, int radius) 
-body
-{
-    auto dest = src.dup;
-    foreach (y; 0..src.height) 
-    foreach (x; 0..src.width)
-    {
-        Color4f total = Color4f(0.0f, 0.0f, 0.0f, 1.0f);
-        for (int kx = -radius; kx <= radius; ++kx)
-             total += Color4f(src[x + kx, y], src.bitDepth);
-        total /= (radius * 2.0f + 1.0f);
-        dest[x, y] = total.convert(src.bitDepth);
-    }
-    return dest;
-}
-
-private SuperImage boxBlurVertical(SuperImage src, int radius) 
-body
-{
-    auto dest = src.dup;
-    foreach (y; 0..src.height) 
-    foreach (x; 0..src.width)
-    {
-        Color4f total = Color4f(0.0f, 0.0f, 0.0f, 1.0f);
-        for (int ky = -radius; ky <= radius; ++ky)
-             total += Color4f(src[x, y + ky], src.bitDepth);
-        total /= (radius * 2.0f + 1.0f);
-        dest[x, y] = total.convert(src.bitDepth);
-    }
-    return dest;
-}
-
-SuperImage boxBlur(SuperImage src, int hradius, int vradius)
-body
-{
-    auto output = src.dup;
-    auto temp = src.dup;
-
-    temp = src.boxBlurHorizontal(hradius);
-    output = temp.boxBlurVertical(vradius);
-
-    return output;
-}
-
