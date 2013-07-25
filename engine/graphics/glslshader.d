@@ -78,11 +78,11 @@ final class GLSLShader: Shader
 
             glGetInfoLogARB(shaderVert, 999, &infobufferlen, infobuffer.ptr);
             if (infobuffer[0] != 0)
-                writefln("vp@shader.glsl.modifier: %s\n",infobuffer);
+                writefln("vp@shader.glsl.modifier: %s\n", infobuffer);
 
             glGetInfoLogARB(shaderFrag, 999, &infobufferlen, infobuffer.ptr);
             if (infobuffer[0] != 0)
-                writefln("fp@shader.glsl.modifier:%s\n",infobuffer);
+                writefln("fp@shader.glsl.modifier: %s\n", infobuffer);
         }
     }
 
@@ -96,14 +96,14 @@ final class GLSLShader: Shader
         if (_supported)
         {
             glUseProgramObjectARB(shaderProg);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("gl_Texture0")), 0);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("gl_Texture1")), 1);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("gl_Texture2")), 2);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("gl_Texture3")), 3);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("gl_Texture4")), 4);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("gl_Texture5")), 5);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("gl_Texture6")), 6);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("gl_Texture7")), 7);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("atrium_Texture0")), 0);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("atrium_Texture1")), 1);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("atrium_Texture2")), 2);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("atrium_Texture3")), 3);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("atrium_Texture4")), 4);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("atrium_Texture5")), 5);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("atrium_Texture6")), 6);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("atrium_Texture7")), 7);
         }
     }
 
