@@ -98,35 +98,35 @@ final class PrimBox: SceneNode
 
         glBegin(GL_QUADS);
     
-            glNormal3f(0,0,1); glVertex3f(pmin.x,pmin.y,pmax.z);
-            glNormal3f(0,0,1); glVertex3f(pmax.x,pmin.y,pmax.z);
-            glNormal3f(0,0,1); glVertex3f(pmax.x,pmax.y,pmax.z);
-            glNormal3f(0,0,1); glVertex3f(pmin.x,pmax.y,pmax.z);
+            glColor3f(0,-1,0); glTexCoord2f(0,0); glNormal3f(0,0,1); glVertex3f(pmin.x,pmin.y,pmax.z);
+            glColor3f(0,-1,0); glTexCoord2f(1,0); glNormal3f(0,0,1); glVertex3f(pmax.x,pmin.y,pmax.z);
+            glColor3f(0,-1,0); glTexCoord2f(1,1); glNormal3f(0,0,1); glVertex3f(pmax.x,pmax.y,pmax.z);
+            glColor3f(0,-1,0); glTexCoord2f(0,1); glNormal3f(0,0,1); glVertex3f(pmin.x,pmax.y,pmax.z);
 
-            glNormal3f(1,0,0); glVertex3f(pmax.x,pmin.y,pmax.z);
-            glNormal3f(1,0,0); glVertex3f(pmax.x,pmin.y,pmin.z);
-            glNormal3f(1,0,0); glVertex3f(pmax.x,pmax.y,pmin.z);
-            glNormal3f(1,0,0); glVertex3f(pmax.x,pmax.y,pmax.z);
+            glColor3f(0,0,-1); glTexCoord2f(0,1); glNormal3f(1,0,0); glVertex3f(pmax.x,pmin.y,pmax.z);
+            glColor3f(0,0,-1); glTexCoord2f(0,0); glNormal3f(1,0,0); glVertex3f(pmax.x,pmin.y,pmin.z);
+            glColor3f(0,0,-1); glTexCoord2f(1,0); glNormal3f(1,0,0); glVertex3f(pmax.x,pmax.y,pmin.z);
+            glColor3f(0,0,-1); glTexCoord2f(1,1); glNormal3f(1,0,0); glVertex3f(pmax.x,pmax.y,pmax.z);
 
-            glNormal3f(0,1,0); glVertex3f(pmin.x,pmax.y,pmax.z);
-            glNormal3f(0,1,0); glVertex3f(pmax.x,pmax.y,pmax.z);
-            glNormal3f(0,1,0); glVertex3f(pmax.x,pmax.y,pmin.z);
-            glNormal3f(0,1,0); glVertex3f(pmin.x,pmax.y,pmin.z);
+            glColor3f(-1,0,0); glTexCoord2f(0,1); glNormal3f(0,1,0); glVertex3f(pmin.x,pmax.y,pmax.z);
+            glColor3f(-1,0,0); glTexCoord2f(1,1); glNormal3f(0,1,0); glVertex3f(pmax.x,pmax.y,pmax.z);
+            glColor3f(-1,0,0); glTexCoord2f(1,0); glNormal3f(0,1,0); glVertex3f(pmax.x,pmax.y,pmin.z);
+            glColor3f(-1,0,0); glTexCoord2f(0,0); glNormal3f(0,1,0); glVertex3f(pmin.x,pmax.y,pmin.z);
 
-            glNormal3f(0,0,-1); glVertex3f(pmin.x,pmin.y,pmin.z);
-            glNormal3f(0,0,-1); glVertex3f(pmin.x,pmax.y,pmin.z);
-            glNormal3f(0,0,-1); glVertex3f(pmax.x,pmax.y,pmin.z);
-            glNormal3f(0,0,-1); glVertex3f(pmax.x,pmin.y,pmin.z);
+            glColor3f(0,1,0); glTexCoord2f(0,0); glNormal3f(0,0,-1); glVertex3f(pmin.x,pmin.y,pmin.z);
+            glColor3f(0,1,0); glTexCoord2f(0,1); glNormal3f(0,0,-1); glVertex3f(pmin.x,pmax.y,pmin.z);
+            glColor3f(0,1,0); glTexCoord2f(1,1); glNormal3f(0,0,-1); glVertex3f(pmax.x,pmax.y,pmin.z);
+            glColor3f(0,1,0); glTexCoord2f(1,0); glNormal3f(0,0,-1); glVertex3f(pmax.x,pmin.y,pmin.z);
 
-            glNormal3f(0,-1,0); glVertex3f(pmin.x,pmin.y,pmin.z);
-            glNormal3f(0,-1,0); glVertex3f(pmax.x,pmin.y,pmin.z);
-            glNormal3f(0,-1,0); glVertex3f(pmax.x,pmin.y,pmax.z);
-            glNormal3f(0,-1,0); glVertex3f(pmin.x,pmin.y,pmax.z);
+            glColor3f(1,0,0); glTexCoord2f(0,0); glNormal3f(0,-1,0); glVertex3f(pmin.x,pmin.y,pmin.z);
+            glColor3f(1,0,0); glTexCoord2f(1,0); glNormal3f(0,-1,0); glVertex3f(pmax.x,pmin.y,pmin.z);
+            glColor3f(1,0,0); glTexCoord2f(1,1); glNormal3f(0,-1,0); glVertex3f(pmax.x,pmin.y,pmax.z);
+            glColor3f(1,0,0); glTexCoord2f(0,1); glNormal3f(0,-1,0); glVertex3f(pmin.x,pmin.y,pmax.z);
 
-            glNormal3f(-1,0,0); glVertex3f(pmin.x,pmin.y,pmin.z);
-            glNormal3f(-1,0,0); glVertex3f(pmin.x,pmin.y,pmax.z);
-            glNormal3f(-1,0,0); glVertex3f(pmin.x,pmax.y,pmax.z);
-            glNormal3f(-1,0,0); glVertex3f(pmin.x,pmax.y,pmin.z);
+            glColor3f(0,0,1); glTexCoord2f(0,0); glNormal3f(-1,0,0); glVertex3f(pmin.x,pmin.y,pmin.z);
+            glColor3f(0,0,1); glTexCoord2f(0,1); glNormal3f(-1,0,0); glVertex3f(pmin.x,pmin.y,pmax.z);
+            glColor3f(0,0,1); glTexCoord2f(1,1); glNormal3f(-1,0,0); glVertex3f(pmin.x,pmax.y,pmax.z);
+            glColor3f(0,0,1); glTexCoord2f(1,0); glNormal3f(-1,0,0); glVertex3f(pmin.x,pmax.y,pmin.z);
         
         glEnd();
 
