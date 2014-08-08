@@ -1,23 +1,27 @@
-body
-{
-    background-color: #262626;
+html
+{ 
+    background: url(images/background-dark2.jpg) no-repeat center center fixed; 
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
 }
-
-.r1, .r2, .r3 
-{
-    display: block;
-    height: 1px;
-    background-color: #525252;
-}
-
-.r3 { margin: 0 3px; }
-.r2 { margin: 0 2px; }
-.r1 { margin: 0 1px; }
 
 .inner-box 
 {
-    background-color: #525252;
+    background-color:rgba(255,255,255,0.2);
     padding:1em;
+    border: solid 1px #6f6f6f;
+    -moz-border-radius: 10px;
+    border-radius: 10px;
+}
+
+.inner-box:hover
+{ 
+    outline: none;
+    border-color: #9ecaed;
+    box-shadow: 0 0 10px #9ecaed;
+    background-color:rgba(158,202,237,0.2);
 }
 
 .box
@@ -28,19 +32,19 @@ body
 
 h1
 {
-    color: #ffa33f;
+    color: #9ecaed;
     font-family: sans;
 }
 
 h2
 {
-    color: #cbcbcb;
+    color: #9ecaed;
     font-family: sans;
 }
 
 h3
 {
-    color: #cbcbcb;
+    color: #9ecaed;
     font-family: sans;
 }
 
@@ -48,11 +52,12 @@ p
 {
     color: #cbcbcb;
     font-family: sans;
+    text-shadow: 1px 1px 1px #222222;
 }
 
 a
 {
-    color: #ffa33f;
+    color: #9ecaed;
     font-family: sans;
     text-decoration: none;
 }
@@ -92,8 +97,15 @@ table td
     font-family: sans;
 }
 
-.shadowtext 
+.glowing 
 {
     font-family: sans;
-    /* text-shadow: black 1px 1px 2px, #000000 0 0 0.25em; */
+    -webkit-stroke-width: 5.3px;
+    -webkit-stroke-color: #FFFFFF;
+    -webkit-fill-color: #FFFFFF;
+    text-shadow: 1px 0px 20px #9ecaed;
+    -webkit-transition: width 0.3s; /*Safari & Chrome*/
+    transition: width 0.3s;
+    -moz-transition: width 0.3s; /* Firefox 4 */
+    -o-transition: width 0.3s; /* Opera */
 }

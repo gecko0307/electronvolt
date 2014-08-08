@@ -1,9 +1,11 @@
 <html lang="ru">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <meta name="Keywords" content="atrium,game,fps,physics,puzzles,3d,opengl,windows,linux,free,opensource"/>    <meta name="Description" content="First person shooter with physics based puzzles"/>
+    <meta name="Keywords" content="atrium,game,fps,physics,puzzles,3d,opengl,windows,linux,free,opensource"/>    <meta name="Description" content="First person game with physics based puzzles"/>
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon"/>
+
     <title>Atrium</title>
+
     <link rel="stylesheet" href="style.css" Type="text/css"/>
   </head>
 
@@ -15,180 +17,138 @@
 
           <div>
             <center>
-              <h1 class="shadowtext">Atrium</h1>
-	        <p><i>FPS with physics based puzzles</i></p>
-                <p>
-                <canvas height="200" width="200" id="circle">HTML5 is not supported by your browser</canvas>
-                </p>
+              <h1 class="glowing">Atrium</h1>
+	      <h3 class="glowing"><b>First person action game with physics based puzzles</b></h2>
             </center>
           </div>
 
-          <div>
-            <b class="r3"></b>
-            <b class="r1"></b>
-            <b class="r1"></b>
+            <div class="inner-box">
+              <table class="box" border="0" width="800">
+                <tr valign="top">
+                  <td align="justify">
+                   <p>
+                     The goal of this project is to create a first person shooter game with 
+                     physics based puzzles, entirely in <a href="http://dlang.org" target="_blank" class="glowing">D language</a>.
+                   </p>
+                   <p>
+                     Atrium will use OpenGL for rendering, thus (theoretically) supporting all 
+                     platforms that provide OpenGL API. Our target platforms are
+                     Windows (Windows XP and above, 32-bit) and Linux (x86, Ubuntu 8.10 and above).
+                     The game will be free (as in freedom) and will be built upon exclusively FLOSS components.
+                   </p>
+                   <p>
+                     This site is still under construction, stay tuned!
+                   </p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+          <br/>
+
+            <div class="inner-box">
+              <table class="box" border="0" width="800">
+                <tr valign="top">
+                  <td align="center" width="25%">
+                    <p>
+                    <a href="images/dmech.jpg" target="_blank">
+                      <img class="shadow" src="images/thumbs/dmech.jpg"/>
+                    </a>
+                    </p>
+                  </td>
+                  <td align="justify">
+		    <p>
+                       Our first milestone is to create one full-fledged game level as a gameplay demonstration.
+                       This will mainly serve as a showcase for our physics engine <b>dmech</b>.
+                    </p>
+		    <p>
+                       dmech stands for "D mechanics": it is a real-time 3D physics engine written in D language, 
+                       capable of simulating rigid body dynamics. It features iterative SI solver, high-performance collision detection,
+                       all basic geometry shapes and body constraints, arbitrary static trimeshes and ray cast support.
+                    </p>
+		    <p>
+                       dmech is already usable in game projects (although some functionality is a subject to change). 
+                       You may check it out on GitHub:
+                       <br/>
+                       <a href="https://github.com/gecko0307/dmech" target="_blank" class="glowing">
+                         https://github.com/gecko0307/dmech
+                       </a>
+                    </p>
+		    <p>
+                       Other technologies that we use:
+                    </p>
+                    <ul>
+                      <li>OpenGL, SDL, FreeType, OpenAL, Ogg/Vorbis</li>
+                      <li><a href="https://github.com/gecko0307/dgl" target="_blank" class="glowing">DGL</a> as a graphics engine</li> 
+                      <li><a href="https://github.com/gecko0307/dlib" target="_blank" class="glowing">dlib</a> as an utility library</li>
+                      <li><a href="https://github.com/gecko0307/cook2" target="_blank" class="glowing">Cook2</a> to automate the building process</li>
+                      <li>Probably our own GTK-based level editor</li>
+                    </ul>
+                   </td>
+                  </tr>
+                </table>
+              </div>
+
+          <br/>
+
               <div class="inner-box">
                 <table class="box" border="0" width="800">
                   <tr valign="top">
                     <td align="center" width="25%">
                       <p>
-                      <a href="images/atrium-area1.jpg" target="_blank">
-                        <img class="shadow" src="images/thumbs/atrium-area1.jpg"/>
-                      </a>
-                      </p>
-                      <p>
-                      <a href="images/atrium-screen.jpg" target="_blank">
-                        <img class="shadow" src="images/thumbs/atrium-screen.jpg"/>
+                      <a href="images/atrium-bumpmapping.jpg" target="_blank">
+                        <img class="shadow" src="images/thumbs/atrium-bumpmapping.jpg"/>
                       </a>
                       </p>
                     </td>
                     <td align="justify">
 		      <p>
-                         The goal of this project is to create a first-person shooter with 
-                         physics based puzzles, entirely in <a href="http://dlang.org" target="_blank">D language</a>.
+                         Wanna see something in action? Here's our old playable tech demo: walk around and pull the boxes with the gravity gun!
                       </p>
 		      <p>
-                         Atrium uses OpenGL for rendering, thus (theoretically) supporting all 
-                         platforms that provide OpenGL API. Currently Atrium is well-tested on
-                         Windows (Windows XP and above, 32-bit) and Linux (x86, Ubuntu 8.10).
-                      </p>
-		      <p>
-                         Check out the source code on GitHub:
-                         <br/>
-                         <a href="https://github.com/gecko0307/atrium" target="_blank">
-                           https://github.com/gecko0307/atrium
+                         <a href="https://www.dropbox.com/s/456l1i9z1r3syl5/atrium-testbuild5-win32.zip" target="_blank" class="glowing">
+                           Download for Windows 32-bit
                          </a>
-                      </p>
-		      <p>
-                         Follow the development blog (in Russian): 
                          <br/>
-                         <a href="http://dlanggamedev.blogspot.ru" target="_blank">
-                           http://dlanggamedev.blogspot.ru
+                         <a href="https://www.dropbox.com/s/cfs7daiqhui0jqh/atrium-testbuild4-linux-x86.tar.gz" target="_blank" class="glowing">
+                           Download for Linux x86
                          </a>
-                      </p>
-		      <p>
-                         This site is under construction, please be patient!
+                         <br/>
+                         <a href="https://github.com/gecko0307/atrium" target="_blank" class="glowing">
+                           Get the source code
+                         </a>
                       </p>
                     </td>
                   </tr>
                 </table>
               </div>
 
-            <b class="r1"></b>
-            <b class="r1"></b>
-            <b class="r3"></b>
-          </div>
+          <br/>
 
-          <p class="dark" align="center">Copyright © 2013 <a href="http://gecko0307.github.io/">Timur Gafarov</a>. Available under CC-BY.</p>
+            <div class="inner-box">
+              <table class="box" border="0" width="800">
+                <tr valign="top">
+                  <td align="justify">
+		   <center><p>
+                       Follow the development blog (in Russian): 
+                       <br/>
+                       <a href="http://dlanggamedev.blogspot.ru" target="_blank" class="glowing">
+                         http://dlanggamedev.blogspot.ru
+                       </a>
+                   </p></center>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+          <p class="dark" align="center">Copyright © 2013-2014 
+          <a href="http://gecko0307.github.io/" class="glowing">Timur Gafarov</a>. 
+          Available under CC-BY.</p>
 
         </td>
       </tr> 
     </table>
     </center>
 
-    <script>
-      var canvas = document.getElementById("circle");
-      var ctx = canvas.getContext('2d');
-
-var mouse =
-{
-    x: 0,
-    y: 0
-};
-
-    var mousePressed = false;
-    var rot = 0;
-
-function loop()
-{
-      ctx.clearRect(0,0,canvas.width, canvas.height);
-
-      var bgcol = "#262626"; //document.body.style.backgroundColor;
-      ctx.fillStyle = bgcol; //'#CC5422'; // set canvas background color
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      var centerX = canvas.width / 2;
-      var centerY = canvas.height / 2;
-      var radius = canvas.width / 2 - 2;
-
-      ctx.save();
-
-      ctx.translate(centerX, centerY);
-/*
-      if (mousePressed)
-      {
-      var targetX = mouse.x - centerX;
-      var targetY = mouse.y - centerY;
-      rot = Math.atan2(targetY, targetX) - 90; //* 180 / Math.PI; //Math.atan2(targetY, targetX);// * 180 / Math.PI;
-      }
-*/
-
-      rot += 0.01;
-      ctx.rotate(rot);
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, 2 * Math.PI, false);
-      var grad = ctx.createLinearGradient(0, 0, 0, 100);
-      grad.addColorStop(1, '#ffa33f');
-      grad.addColorStop(0, "#404040");
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = grad;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius-30, 0, 2 * Math.PI, false);
-      ctx.fillStyle = "#262626";
-      ctx.fill();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#262626";
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius-60, 0, 2 * Math.PI, false);
-      var grad = ctx.createLinearGradient(0, 0, 0, 100);
-      grad.addColorStop(1, '#ffa33f');
-      grad.addColorStop(0, "#404040");
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = grad;
-      ctx.stroke();
-
-      ctx.restore();
-}
-
-window.addEventListener('load', function()
-{
-    setInterval(loop, 1000/60);
-    canvas.addEventListener('mousemove', function(evt)
-    {
-        var m = getMousePos(canvas, evt);
-        mouse.x = m.x;
-        mouse.y = m.y;
-    }, false);
-
-    canvas.addEventListener('mousedown', function(evt)
-    {
-        mousePressed = true;
-    }, false);
-
-    canvas.addEventListener('mouseup', function(evt)
-    {
-        mousePressed = false;
-    }, false);
-}, false);
-
-function getMousePos(canvas, evt)
-{
-    var rect = canvas.getBoundingClientRect();
-    var mouseX = evt.clientX - rect.left;
-    var mouseY = evt.clientY - rect.top;
-    return {
-        x: mouseX,
-        y: mouseY
-    };
-}
-    </script>
   </body>
 </html>
