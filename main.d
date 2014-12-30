@@ -1,42 +1,36 @@
-module main;
+﻿module main;
 
 import derelict.sdl.sdl;
 import derelict.opengl.gl;
-import engine.core.application;
-import engine.logic;
-import engine.menu;
-import engine.pause;
-//import engine.level;
-import engine.sandbox;
+import derelict.opengl.glu;
+import derelict.freetype.ft;
 
-class AtriumApp: Application
+import dgl.ui.i18n;
+import atrium.app;
+
+void loadLibraries()
 {
-    GameLogicManager logic;
-
-    this(uint w, uint h, string caption)
+    version(Windows)
     {
-        super(w, h, caption);
-
-        logic = new GameLogicManager(manager);
-
-        logic.rooms["mainMenu"] = new MainMenuRoom("mainMenu", logic);
-        logic.rooms["pauseMenu"] = new PauseMenuRoom("pauseMenu", logic);
-        logic.rooms["pauseMenu"].load();
-        //logic.rooms["level1"] = new LevelRoom("level1", "data/levels/area0/area0.dat", logic);
-        logic.rooms["sandbox"] = new SandboxRoom("sandbox", logic);
-
-        logic.goToRoom("mainMenu");
+        enum sharedLibSDL = "SDL.dll";
+        enum sharedLibFT = "freetype.dll";
+    }
+    version(linux)
+    {
+        enum sharedLibSDL = "./libsdl.so";
+        enum sharedLibFT = "./libfreetype.so";
     }
 
-    override void onUpdate()
-    {
-        logic.update();
-    }
+    DerelictGL.load();
+    DerelictGLU.load();
+    DerelictSDL.load(sharedLibSDL);
+    DerelictFT.load(sharedLibFT);
 }
 
 void main()
 {
-    AtriumApp app = new AtriumApp(800, 600, "Atrium");
+    loadLibraries();
+    Locale.readLang("locale");
+    auto app = new GameApp();
     app.run();
 }
-
