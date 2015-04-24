@@ -7,11 +7,10 @@ https://github.com/gecko0307/cook2
 
 Prerequisites
 =============
-- Up-to-date D2 compiler. We recommend newest version of DMD or LDC;
-- Phobos standard library;
-- Git;
+- Up-to-date DMD compiler
+- Git
 - Cook2 build automation utility.
 
 Building
 ========
-cd to project directory and run `cook`
+cd to project directory and run `cook atrium`

@@ -1,0 +1,137 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/projects/derelict/!svn/ver/525/branches/Derelict2/DerelictSDL/derelict/sdl/macinit
+END
+selectors.d
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/selectors.d
+END
+NSApplication.d
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSApplication.d
+END
+NSAutoreleasePool.d
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSAutoreleasePool.d
+END
+NSMenu.d
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSMenu.d
+END
+string.d
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/string.d
+END
+DerelictSDLMacLoader.d
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/DerelictSDLMacLoader.d
+END
+NSDictionary.d
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSDictionary.d
+END
+NSString.d
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/projects/derelict/!svn/ver/525/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSString.d
+END
+NSObject.d
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSObject.d
+END
+NSZone.d
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSZone.d
+END
+CoreFoundation.d
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/CoreFoundation.d
+END
+NSArray.d
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSArray.d
+END
+NSEnumerator.d
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSEnumerator.d
+END
+NSEvent.d
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSEvent.d
+END
+runtime.d
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/runtime.d
+END
+NSMenuItem.d
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSMenuItem.d
+END
+MacTypes.d
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/MacTypes.d
+END
+NSNotification.d
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSNotification.d
+END
+SDLMain.d
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/SDLMain.d
+END
+NSProcessInfo.d
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSProcessInfo.d
+END
+NSGeometry.d
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/NSGeometry.d
+END
+ID.d
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/projects/derelict/!svn/ver/515/branches/Derelict2/DerelictSDL/derelict/sdl/macinit/ID.d
+END
