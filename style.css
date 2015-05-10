@@ -1,6 +1,6 @@
 html
 { 
-    background: url(images/background-dark2.jpg) no-repeat center center fixed; 
+    background: url(images/background-screen.jpg) no-repeat center center fixed; 
     -webkit-background-size: cover;
     -moz-background-size: cover;
     -o-background-size: cover;
@@ -19,9 +19,9 @@ html
 .inner-box:hover
 { 
     outline: none;
-    border-color: #9ecaed;
-    box-shadow: 0 0 10px #9ecaed;
-    background-color:rgba(158,202,237,0.2);
+    border-color: #FF9900;
+    box-shadow: 0 0 10px #FF9900;
+    background-color:rgba(255,102,0,0.2);
 }
 
 .box
@@ -32,19 +32,19 @@ html
 
 h1
 {
-    color: #9ecaed;
+    color: #FF9900;
     font-family: sans;
 }
 
 h2
 {
-    color: #9ecaed;
+    color: #FF9900;
     font-family: sans;
 }
 
 h3
 {
-    color: #9ecaed;
+    color: #FF9900;
     font-family: sans;
 }
 
@@ -57,7 +57,7 @@ p
 
 a
 {
-    color: #9ecaed;
+    color: #FF9900;
     font-family: sans;
     text-decoration: none;
 }
@@ -103,7 +103,7 @@ table td
     -webkit-stroke-width: 5.3px;
     -webkit-stroke-color: #FFFFFF;
     -webkit-fill-color: #FFFFFF;
-    text-shadow: 1px 0px 20px #9ecaed;
+    text-shadow: 1px 0px 20px #FF9900;
     -webkit-transition: width 0.3s; /*Safari & Chrome*/
     transition: width 0.3s;
     -moz-transition: width 0.3s; /* Firefox 4 */

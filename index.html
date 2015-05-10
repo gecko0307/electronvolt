@@ -18,7 +18,7 @@
           <div>
             <center>
               <h1 class="glowing">Atrium</h1>
-	      <h3 class="glowing"><b>First person action game with physics based puzzles</b></h2>
+	          <h3 class="glowing"><b>First person action game with physics based puzzles</b></h3>
             </center>
           </div>
 
@@ -31,10 +31,10 @@
                      physics based puzzles, entirely in <a href="http://dlang.org" target="_blank" class="glowing">D language</a>.
                    </p>
                    <p>
-                     Atrium will use OpenGL for rendering, thus (theoretically) supporting all 
-                     platforms that provide OpenGL API. Our target platforms are
-                     Windows (Windows XP and above, 32-bit) and Linux (x86, Ubuntu 8.10 and above).
-                     The game will be free (as in freedom) and will be built upon exclusively FLOSS components.
+                     Atrium will provide high level of interactivity, featuring fully dynamic world with everything being controlled by 
+                     the physics engine. You will be able to walk on any surface and push any object, use special devices to affect 
+                     gravity and other physical behaviours of the environment. The gameplay will be peaceful and non-violent: 
+                     explore the world, solve the puzzles and unleash the mysteries.
                    </p>
                    <p>
                      This site is still under construction, stay tuned!
@@ -43,6 +43,64 @@
                 </tr>
               </table>
             </div>
+            
+          <br/>
+          
+               <div class="inner-box">
+                <table class="box" border="0" width="800">
+                  <tr valign="top">
+                    <td align="center" width="25%">
+                      <p>
+                      <a href="images/001.jpg" target="_blank">
+                        <img class="shadow" src="images/thumbs/001.jpg"/>
+                      </a>
+                      </p>
+                    </td>
+                    <td align="center" width="25%">
+                      <p>
+                      <a href="images/002.jpg" target="_blank">
+                        <img class="shadow" src="images/thumbs/002.jpg"/>
+                      </a>
+                      </p>
+                    </td>
+                    <td align="center" width="25%">
+                      <p>
+                      <a href="images/003.jpg" target="_blank">
+                        <img class="shadow" src="images/thumbs/003.jpg"/>
+                      </a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+          <br/>
+          
+              <div class="inner-box">
+                <table class="box" border="0" width="800">
+                  <tr valign="top">
+                    <td align="justify">
+		            <p>
+                         Wanna see something in action? Here's an early gameplay demo with unfinished 1'st level. Walk around, pull the boxes with the gravity gun and try to
+                         collect all the pink tokens.
+                    </p>
+		            <p>
+                         <a href="https://www.dropbox.com/s/g6gd4mq3otftlbc/atrium-demo-win32.zip?dl=0" target="_blank" class="glowing">
+                           Download for Windows 32-bit
+                         </a>
+                         <br/>
+                         <a href="https://www.dropbox.com/s/1kj9luenvsfs7fa/atrium-demo-linux-x86.tar.gz?dl=0" target="_blank" class="glowing">
+                           Download for Linux x86
+                         </a>
+                         <br/>
+                         <a href="https://github.com/gecko0307/atrium" target="_blank" class="glowing">
+                           Get the source code
+                         </a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </div>
 
           <br/>
 
@@ -58,8 +116,7 @@
                   </td>
                   <td align="justify">
 		    <p>
-                       Our first milestone is to create one full-fledged game level as a gameplay demonstration.
-                       This will mainly serve as a showcase for our physics engine <b>dmech</b>.
+                       Atrium uses our own physics engine written from scratch - <b>dmech</b>.
                     </p>
 		    <p>
                        dmech stands for "D mechanics": it is a real-time 3D physics engine written in D language, 
@@ -82,43 +139,9 @@
                       <li><a href="https://github.com/gecko0307/dgl" target="_blank" class="glowing">DGL</a> as a graphics engine</li> 
                       <li><a href="https://github.com/gecko0307/dlib" target="_blank" class="glowing">dlib</a> as an utility library</li>
                       <li><a href="https://github.com/gecko0307/cook2" target="_blank" class="glowing">Cook2</a> to automate the building process</li>
-                      <li>Probably our own GTK-based level editor</li>
+                      <li><a href="http://blender.org" target="_blank" class="glowing">Blender</a> as an asset creation tool</li>
                     </ul>
                    </td>
-                  </tr>
-                </table>
-              </div>
-
-          <br/>
-
-              <div class="inner-box">
-                <table class="box" border="0" width="800">
-                  <tr valign="top">
-                    <td align="center" width="25%">
-                      <p>
-                      <a href="images/atrium-bumpmapping.jpg" target="_blank">
-                        <img class="shadow" src="images/thumbs/atrium-bumpmapping.jpg"/>
-                      </a>
-                      </p>
-                    </td>
-                    <td align="justify">
-		      <p>
-                         Wanna see something in action? Here's our old playable tech demo: walk around and pull the boxes with the gravity gun!
-                      </p>
-		      <p>
-                         <a href="https://www.dropbox.com/s/456l1i9z1r3syl5/atrium-testbuild5-win32.zip" target="_blank" class="glowing">
-                           Download for Windows 32-bit
-                         </a>
-                         <br/>
-                         <a href="https://www.dropbox.com/s/cfs7daiqhui0jqh/atrium-testbuild4-linux-x86.tar.gz" target="_blank" class="glowing">
-                           Download for Linux x86
-                         </a>
-                         <br/>
-                         <a href="https://github.com/gecko0307/atrium" target="_blank" class="glowing">
-                           Get the source code
-                         </a>
-                      </p>
-                    </td>
                   </tr>
                 </table>
               </div>
@@ -129,11 +152,18 @@
               <table class="box" border="0" width="800">
                 <tr valign="top">
                   <td align="justify">
-		   <center><p>
+		          <center><p>
                        Follow the development blog (in Russian): 
                        <br/>
                        <a href="http://dlanggamedev.blogspot.ru" target="_blank" class="glowing">
                          http://dlanggamedev.blogspot.ru
+                       </a>
+                   </p>
+                   <p>
+                       Also visit project page on GameJolt:
+                       <br/>
+                       <a href="http://gamejolt.com/games/action/atrium/46185" target="_blank" class="glowing">
+                         http://gamejolt.com/games/action/atrium/46185
                        </a>
                    </p></center>
                   </td>
@@ -141,9 +171,7 @@
               </table>
             </div>
 
-          <p class="dark" align="center">Copyright © 2013-2014 
-          <a href="http://gecko0307.github.io/" class="glowing">Timur Gafarov</a>. 
-          Available under CC-BY.</p>
+          <p class="dark" align="center">Copyright © 2013-2015 Timur Gafarov.</p>
 
         </td>
       </tr> 
