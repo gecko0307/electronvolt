@@ -165,6 +165,10 @@ def writeEntity(f, obj, entityId, meshes, materials):
         dml = {
             "color": vecToStr([col.r, col.g, col.b, 1.0])
         }
+    else:
+        dml = {
+            "visible": str(int(not obj.hide_render))
+        }
 
     dmlStr = encodeDML(dml)
     dmlASCII = dmlStr.encode('ascii')
