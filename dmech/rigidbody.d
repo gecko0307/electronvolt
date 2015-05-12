@@ -41,6 +41,11 @@ import dlib.math.utils;
 import dmech.shape;
 import dmech.contact;
 
+interface CollisionDispatcher
+{
+    void onNewContact(RigidBody rb, Contact c);
+}
+
 class RigidBody: ManuallyAllocatable
 {
     Vector3f position;
@@ -83,15 +88,13 @@ class RigidBody: ManuallyAllocatable
     bool useOwnGravity = false;
     Vector3f gravity = Vector3f(0, 0, 0);
 
-    // TODO: make this GC-free
-    alias void delegate(RigidBody, Contact) contactFunc;
-    contactFunc[] onNewContact;
+    DynamicArray!CollisionDispatcher collisionDispatchers;
 
     void contactEvent(Contact c)
     {
-        foreach(f; onNewContact)
+        foreach(d; collisionDispatchers.data)
         {
-            f(this, c);
+            d.onNewContact(this, c);
         }
     }
 
@@ -329,6 +332,7 @@ class RigidBody: ManuallyAllocatable
     void free()
     {
         shapes.free();
+        collisionDispatchers.free();
         Delete(this);
     }
     

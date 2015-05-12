@@ -72,7 +72,9 @@ class EventManager
 {
     enum maxNumEvents = 50;
     Event[maxNumEvents] eventStack;
+    Event[maxNumEvents] userEventStack;
     uint numEvents;
+    uint numUserEvents;
     
     bool running = true;
     
@@ -114,11 +116,22 @@ class EventManager
             writeln("Warning: event stack overflow");
     }
     
+    void addUserEvent(Event e)
+    {
+        if (numUserEvents < maxNumEvents)
+        {
+            userEventStack[numUserEvents] = e;
+            numUserEvents++;
+        }
+        else
+            writeln("Warning: user event stack overflow");
+    }
+    
     void generateUserEvent(int code)
     {
         Event e = Event(EventType.UserEvent);
         e.userCode = code;
-        addEvent(e);
+        addUserEvent(e);
     }
     
     void update()
@@ -128,6 +141,14 @@ class EventManager
         
         if (SDL_WasInit(SDL_INIT_JOYSTICK))
             SDL_JoystickUpdate();
+            
+        for (uint i = 0; i < numUserEvents; i++)
+        {
+            Event e = userEventStack[i];
+            addEvent(e);
+        }
+        
+        numUserEvents = 0;
 
         SDL_Event event;
 
@@ -212,7 +233,6 @@ class EventManager
                     writefln("Window resized to %s : %s", event.resize.w, event.resize.h);
                     windowWidth = event.resize.w;
                     windowHeight = event.resize.h;
-                    //writefln("Window resized to %s : %s", windowWidth, windowHeight);
                     e = Event(EventType.Resize);
                     e.width = windowWidth;
                     e.height = windowHeight;
@@ -335,50 +355,62 @@ abstract class EventListener: ManuallyAllocatable
         for (uint i = 0; i < eventManager.numEvents; i++)
         {
             Event* e = &eventManager.eventStack[i];
-            switch(e.type)
-            {
-                case EventType.KeyDown:
-                    onKeyDown(e.key);
-                    break;
-                case EventType.KeyUp:
-                    onKeyUp(e.key);
-                    break;
-                case EventType.TextInput:
-                    onTextInput(e.unicode);
-                    break;
-                case EventType.MouseButtonDown:
-                    onMouseButtonDown(e.button);
-                    break;
-                case EventType.MouseButtonUp:
-                    onMouseButtonUp(e.button);
-                    break;
-                case EventType.JoystickButtonDown:
-                    onJoystickButtonDown(e.joystickButton);
-                    break;
-                case EventType.JoystickButtonUp:
-                    onJoystickButtonDown(e.joystickButton);
-                    break;
-                case EventType.JoystickAxisMotion:
-                    onJoystickAxisMotion(e.joystickAxis, e.joystickAxisValue);
-                    break;
-                case EventType.Resize:
-                    onResize(e.width, e.height);
-                    break;
-                case EventType.FocusLoss:
-                    onFocusLoss();
-                    break;
-                case EventType.FocusGain:
-                    onFocusGain();
-                    break;
-                case EventType.Quit:
-                    onQuit();
-                    break;
-                case EventType.UserEvent:
-                    onUserEvent(e.userCode);
-                    break;
-                default:
-                    break;
-            }
+            processEvent(e);
+        }
+        /*
+        for (uint i = 0; i < eventManager.numUserEvents; i++)
+        {
+            Event* e = &eventManager.userEventStack[i];
+            processEvent(e);
+        }
+        */
+    }
+    
+    void processEvent(Event* e)
+    {
+        switch(e.type)
+        {
+            case EventType.KeyDown:
+                onKeyDown(e.key);
+                break;
+            case EventType.KeyUp:
+                onKeyUp(e.key);
+                break;
+            case EventType.TextInput:
+                onTextInput(e.unicode);
+                break;
+            case EventType.MouseButtonDown:
+                onMouseButtonDown(e.button);
+                break;
+            case EventType.MouseButtonUp:
+                onMouseButtonUp(e.button);
+                break;
+            case EventType.JoystickButtonDown:
+                onJoystickButtonDown(e.joystickButton);
+                break;
+            case EventType.JoystickButtonUp:
+                onJoystickButtonDown(e.joystickButton);
+                break;
+            case EventType.JoystickAxisMotion:
+                onJoystickAxisMotion(e.joystickAxis, e.joystickAxisValue);
+                break;
+            case EventType.Resize:
+                onResize(e.width, e.height);
+                break;
+            case EventType.FocusLoss:
+                onFocusLoss();
+                break;
+            case EventType.FocusGain:
+                onFocusGain();
+                break;
+            case EventType.Quit:
+                onQuit();
+                break;
+            case EventType.UserEvent:
+                onUserEvent(e.userCode);
+                break;
+            default:
+                break;
         }
     }
 
@@ -400,9 +432,6 @@ abstract class EventListener: ManuallyAllocatable
     mixin ManualModeImpl;
 }
 
-/*
- * Causes GC allocation
- */
 import std.conv;
 
 class TextListener: EventListener

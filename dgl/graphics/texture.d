@@ -126,7 +126,6 @@ class Texture: Modifier
         if (glIsTexture(tex)) 
             glBindTexture(GL_TEXTURE_2D, tex);
         //else throw new Exception("Texture error");
-
         glMatrixMode(GL_TEXTURE);
         glPushMatrix();
         glLoadIdentity();

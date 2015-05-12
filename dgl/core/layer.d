@@ -115,6 +115,7 @@ class Layer: EventListener, Drawable
     
     override void onResize(int width, int height)
     {
+        writefln("Layer received resize event: %s x %s", width, height);
         aspectRatio = cast(float)width / cast(float)height;
     }
 }

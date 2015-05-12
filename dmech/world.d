@@ -545,6 +545,11 @@ class PhysicsWorld: ManuallyAllocatable
         foreach(b; staticBodies.data)
             b.free();
         staticBodies.free();
+		
+		// TODO:
+        foreach(c; constraints.data)
+            c.free();
+        constraints.free();
           
         shapeComponents.free();
 

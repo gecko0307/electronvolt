@@ -30,6 +30,7 @@ module dgl.graphics.glslshader;
 
 import std.stdio;
 import std.string;
+import std.conv;
 import dlib.core.memory; 
 import derelict.opengl.gl;
 import derelict.opengl.glext;
@@ -41,6 +42,8 @@ final class GLSLShader: Shader
     GLenum shaderFrag;
     GLenum shaderProg;
     bool _supported;
+	
+	char*[8] texStrings;
 
     this(string vertexProgram, string fragmentProgram)
     {
@@ -74,11 +77,20 @@ final class GLSLShader: Shader
 
             glGetInfoLogARB(shaderVert, 999, &infobufferlen, infobuffer.ptr);
             if (infobuffer[0] != 0)
-                writefln("vp@shader.glsl.modifier: %s\n",infobuffer);
+                writefln("GLSL: error in vertex shader:\n%s\n", infobuffer.ptr.to!string);
 
             glGetInfoLogARB(shaderFrag, 999, &infobufferlen, infobuffer.ptr);
             if (infobuffer[0] != 0)
-                writefln("fp@shader.glsl.modifier:%s\n",infobuffer);
+                writefln("GLSL: error in fragment shader:\n%s\n", infobuffer.ptr.to!string);
+				
+            texStrings[0] = cast(char*)toStringz("dgl_Texture0");
+			texStrings[1] = cast(char*)toStringz("dgl_Texture1");
+			texStrings[2] = cast(char*)toStringz("dgl_Texture2");
+			texStrings[3] = cast(char*)toStringz("dgl_Texture3");
+			texStrings[4] = cast(char*)toStringz("dgl_Texture4");
+			texStrings[5] = cast(char*)toStringz("dgl_Texture5");
+			texStrings[6] = cast(char*)toStringz("dgl_Texture6");
+			texStrings[7] = cast(char*)toStringz("dgl_Texture7");
         }
     }
 
@@ -92,14 +104,15 @@ final class GLSLShader: Shader
         if (_supported)
         {
             glUseProgramObjectARB(shaderProg);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("dgl_Texture0")), 0);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("dgl_Texture1")), 1);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("dgl_Texture2")), 2);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("dgl_Texture3")), 3);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("dgl_Texture4")), 4);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("dgl_Texture5")), 5);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("dgl_Texture6")), 6);
-            glUniform1iARB(glGetUniformLocationARB(shaderProg, toStringz("dgl_Texture7")), 7);
+
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[0]), 0);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[1]), 1);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[2]), 2);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[3]), 3);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[4]), 4);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[5]), 5);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[6]), 6);
+            glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[7]), 7);
         }
     }
 
@@ -113,7 +126,7 @@ final class GLSLShader: Shader
 
     void free()
     {
-        glUseProgramObjectARB(0);
+        unbind();
         //glDeleteShaderARB(shaderVert);
         //glDeleteShaderARB(shaderFrag);
         //glDeleteProgramARB(shaderProg);

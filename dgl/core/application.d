@@ -77,7 +77,7 @@ class Application: EventListener
         environment["SDL_VIDEO_WINDOW_POS"] = "";
         environment["SDL_VIDEO_CENTERED"] = "1";
         
-        auto screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL | SDL_RESIZABLE);
+        auto screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL); // | SDL_FULLSCREEN
         if (screen is null)
             throw new Exception("Failed to set video mode: " ~ to!string(SDL_GetError()));
             
@@ -114,7 +114,7 @@ class Application: EventListener
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glLoadIdentity();
             
-            onUpdate();           
+            onUpdate();
             onRedraw();
             
             SDL_GL_SwapBuffers();
@@ -147,10 +147,10 @@ class Application: EventListener
     
     override void onResize(int width, int height)
     {
-        writefln("Application resized to %s, %s", eventManager.windowWidth, eventManager.windowHeight);
-        SDL_Surface* screen = SDL_SetVideoMode(eventManager.windowWidth, 
-                                               eventManager.windowHeight, 
-                                               0, SDL_OPENGL | SDL_RESIZABLE);
+        writefln("Application resized to %s, %s", width, height);
+        SDL_Surface* screen = SDL_SetVideoMode(width, 
+                                               height, 
+                                               0, SDL_OPENGL);
         if (screen is null)
             throw new Exception("failed to set video mode: " ~ to!string(SDL_GetError()));
     }

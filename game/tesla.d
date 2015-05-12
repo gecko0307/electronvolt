@@ -14,6 +14,7 @@ import dlib.geometry.aabb;
 import dgl.graphics.object3d;
 import dgl.graphics.texture;
 import dgl.graphics.light;
+import dgl.graphics.billboard;
 
 import game.weapon;
 
@@ -100,18 +101,22 @@ class TeslaEffect: Object3D
         glMultMatrixf(transformation.arrayof.ptr);       
         // Draw lightning
         glLineWidth(width);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE);
         glBegin(GL_LINE_STRIP);
         foreach(i, ref p; points)
         {
-            glColor4f(color.r, color.g, color.b, (points.length - cast(float)i)/points.length);
+		    float a = 1.0f;
+			if (i > 15)
+			    a = (points.length - cast(float)i)/points.length;
+            glColor4f(color.r, color.g, color.b, a);
             glVertex3fv(p.arrayof.ptr);
         }
         glEnd();
+	    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glLineWidth(1.0f);
         glPopMatrix();
 
         // Draw glow
-/*
         glPushMatrix();
         glDepthMask(GL_FALSE);
         glowTex.bind(dt);
@@ -119,35 +124,18 @@ class TeslaEffect: Object3D
         float size = uniform(0.18f, 0.2f);
         Vector3f pt = Vector3f(0,0,0) * transformation;
         glColor4f(color.r, color.g, color.b, color.a);
-        drawBillboard(pt, size);
+        drawBillboard(weapon.camera.transformation, pt, size);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glowTex.unbind();
         glDepthMask(GL_TRUE);
         glPopMatrix();
-*/
+		
         glEnable(GL_LIGHTING);
     }
     
     override Vector3f getPosition()
     {
         return transformation.translation;
-    }
-    
-    void drawBillboard(Vector3f position, float scale)
-    {
-        Vector3f up = weapon.camera.transformation.up;
-        Vector3f right = weapon.camera.transformation.right;
-        Vector3f a = position - ((right + up) * scale);
-        Vector3f b = position + ((right - up) * scale);
-        Vector3f c = position + ((right + up) * scale);
-        Vector3f d = position - ((right - up) * scale);
-        
-        glBegin(GL_QUADS);
-        glTexCoord2i(0, 0); glVertex3fv(a.arrayof.ptr);
-        glTexCoord2i(1, 0); glVertex3fv(b.arrayof.ptr);
-        glTexCoord2i(1, 1); glVertex3fv(c.arrayof.ptr);
-        glTexCoord2i(0, 1); glVertex3fv(d.arrayof.ptr);
-        glEnd();
     }
 
     override AABB getAABB()

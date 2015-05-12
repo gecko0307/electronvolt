@@ -22,7 +22,7 @@ import dmech.raycast;
  * CharacterController is intended for
  * generic action game character movement.
  */
-class CharacterController: ManuallyAllocatable
+class CharacterController: ManuallyAllocatable, CollisionDispatcher
 {
     PhysicsWorld world;
     RigidBody rbody;
@@ -34,9 +34,8 @@ class CharacterController: ManuallyAllocatable
     float speed = 0.0f;
     float maxVelocityChange = 0.75f;
     float artificalGravity = 50.0f;
-    //Matrix4x4f localMatrix;
     Vector3f rotation;
-    //Actor actor;
+	float newContactSlopeFactor = 1.0f;
 
     this(PhysicsWorld world, Vector3f pos, float mass, Geometry geom)
     {
@@ -48,36 +47,20 @@ class CharacterController: ManuallyAllocatable
         rbody.useOwnGravity = true;
         rbody.gravity = Vector3f(0.0f, -artificalGravity, 0.0f);
         rbody.raycastable = false;
-        //rbody.stopThreshold = 0.2f; 
-        //if (geom is null)
-        //    geom = New!GeomSphere(1.0f);
         world.addShapeComponent(rbody, geom, Vector3f(0, 0, 0), mass);
-        //localMatrix = Matrix4x4f.identity;
         rotation = Vector3f(0, 0, 0);
-        //worldGrav = world.gravity.length;
 
-        rbody.onNewContact ~= &onNewContact;
+        rbody.collisionDispatchers.append(this);
     }
 
     void onNewContact(RigidBody b, Contact c)
     {
-        if (dot((c.point - b.position).normalized, world.gravity.normalized) > 0.5f)
+	    newContactSlopeFactor = dot((c.point - b.position).normalized, world.gravity.normalized);
+        if (newContactSlopeFactor > 0.0f)
         {
             collidingWithFloor = true;
         }
     }
-    
-    /*
-    void updateMatrix()
-    {
-        localMatrix = Matrix4x4f.identity;
-        localMatrix *= rotationMatrix(Axis.x, degtorad(rotation.x));
-        localMatrix *= rotationMatrix(Axis.y, degtorad(rotation.y));
-        localMatrix *= rotationMatrix(Axis.z, degtorad(rotation.z));
-
-        direction = localMatrix.forward;
-    }
-    */
 
     void update(bool clampY = true)
     {
@@ -109,7 +92,7 @@ class CharacterController: ManuallyAllocatable
         bool hit = world.raycast(rbody.position, Vector3f(0, -1, 0), 10, cr, true, true);
         if (hit)
         {
-            if (distance(cr.point, rbody.position) <= 1.1f)
+            if (distance(cr.point, rbody.position) <= 1.5f) //1.1f
                 return true;
         }
         return false;

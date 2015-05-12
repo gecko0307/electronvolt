@@ -37,6 +37,8 @@ import dgl.core.application;
 import dgl.core.event;
 import dgl.core.layer;
 
+//version = MemoryDebug;
+
 class Room: EventListener
 {
     RoomApplication app;
@@ -166,7 +168,7 @@ class RoomApplication: Application
         super.freeContent();
         
         version (MemoryDebug) writefln("Deleting RoomApplication...");
-        
+
         foreach(i, room; rooms)
             room.free();
         Delete(rooms);

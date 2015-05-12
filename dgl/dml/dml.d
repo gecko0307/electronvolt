@@ -86,19 +86,17 @@ struct DMLStruct
     DMLValue[string] data;
     alias data this;
 
-    bool addKeyValue(Lexeme key, Lexeme val)
+    bool set(Lexeme key, Lexeme val)
     {
         string k = key.str.data.to!string;
         string v = val.str.data[1..$-1].to!string;
-        DMLValue dmlval = DMLValue(v);
-
-        if (k in data)
-            return false;
-        else
-        {
-            data[k] = dmlval;
-            return true;
-        }
+		return set(k, v);
+    }
+	
+    bool set(string k, string v)
+    {
+        data[k] = DMLValue(v);
+        return true;
     }
 
     void free()
@@ -202,7 +200,7 @@ bool parseStatement(Lexer* lexer, DMLStruct* stru)
     }
     lexeme.free();
 
-    stru.addKeyValue(id, value);
+    stru.set(id, value);
     id.free();
     value.free();
 

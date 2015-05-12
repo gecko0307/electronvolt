@@ -11,6 +11,8 @@ import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.matrix;
 import dlib.math.affine;
+import dlib.math.quaternion;
+import dlib.math.utils;
 import dlib.image.color;
 import dlib.container.array;
 import dlib.container.aarray;
@@ -21,6 +23,7 @@ import derelict.opengl.glu;
 import derelict.sdl.sdl;
 
 import dgl.core.interfaces;
+import dgl.core.compat;
 import dgl.core.event;
 import dgl.core.application;
 import dgl.core.layer;
@@ -33,7 +36,6 @@ import dgl.graphics.axes;
 import dgl.graphics.shapes;
 import dgl.graphics.lightmanager;
 import dgl.graphics.texture;
-import dgl.graphics.glslshader;
 import dgl.graphics.entity;
 import dgl.graphics.mesh;
 import dgl.graphics.scene;
@@ -41,6 +43,10 @@ import dgl.templates.freeview;
 import dgl.asset.resman;
 import dgl.vfs.vfs;
 import dgl.graphics.shadow;
+import dgl.graphics.shader;
+import dgl.graphics.glslshader;
+import dgl.graphics.bumpshader;
+import dgl.graphics.billboard;
 
 import dmech.world;
 import dmech.shape;
@@ -51,6 +57,7 @@ import game.fpcamera;
 import game.cc;
 import game.weapon;
 import game.gravitygun;
+import game.config;
 
 class ScreenSprite: EventListener, Drawable
 {
@@ -167,6 +174,7 @@ class PauseRoom: Room
 class PhysicsEntity: Entity
 {
     ShapeComponent shape;
+    bool highlight = false;
     
     this(Drawable d, ShapeComponent s)
     {
@@ -179,6 +187,28 @@ class PhysicsEntity: Entity
         transformation = shape.transformation;
         // TODO: local transformation
         super.draw(dt);
+    }
+    
+    override void drawModel(double dt)
+    {
+    /*
+        if (highlight)
+        {
+            glCullFace(GL_FRONT);
+            glShadeModel(GL_FLAT);
+            glPushMatrix();
+            glScalef(1.05f, 1.05f, 1.05f);
+            glDisable(GL_LIGHTING);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            super.drawModel(dt);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_LIGHTING);
+            glPopMatrix();
+            glShadeModel(GL_SMOOTH);
+            glCullFace(GL_BACK);
+        }
+    */
+        super.drawModel(dt);
     }
     
     override void free()
@@ -233,6 +263,170 @@ Vector2f lissajousCurve(float t)
     return Vector2f(sin(t), cos(2 * t));
 }
 
+int ATR_EVENT_PICK_PENTAGON = 1;
+
+class Pickable: Entity
+{
+    EventManager eventManager;
+    Vector4f lightPosition;
+    Color4f lightDiffuseColor;
+    Color4f lightAmbientColor;
+    Color4f glowColor;
+    float rot = 0.0f;
+    Texture glowTex;
+    FirstPersonCamera camera;
+    
+    this(EventManager em, FirstPersonCamera camera, Drawable model, Texture glowTex, Vector3f pos)
+    {
+        super(model, pos);
+        lightPosition = Vector4f(0, 0, 0, 1);
+        lightDiffuseColor = Color4f(1, 1, 1, 1);
+        lightAmbientColor = Color4f(0, 0, 0, 1);
+        glowColor = Color4f(1, 0, 1, 0.7);
+        rotation = dlib.math.quaternion.rotation(0, degtorad(-90.0f));
+        setTransformation(position, rotation, scaling);
+        this.eventManager = em;
+        this.camera = camera;
+        this.glowTex = glowTex;
+    }
+    
+    override void draw(double dt)
+    {       
+        if (!visible)
+            return;
+            
+        if (distance(camera.position, position) < 1.0f)
+        {
+            eventManager.generateUserEvent(ATR_EVENT_PICK_PENTAGON);
+            visible = false;
+        }
+    
+        rotation = dlib.math.quaternion.rotation(1, rot) *
+                   dlib.math.quaternion.rotation(0, degtorad(-90.0f));
+        setTransformation(position, rotation, scaling);
+        lightPosition = position + Vector3f(2, 2, 0);
+        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHT0);
+        glLightfv(GL_LIGHT0, GL_POSITION, lightPosition.arrayof.ptr);
+        glLightfv(GL_LIGHT0, GL_SPECULAR, lightDiffuseColor.arrayof.ptr);
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuseColor.arrayof.ptr);
+        glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbientColor.arrayof.ptr);
+        super.draw(dt);
+        glDisable(GL_LIGHTING);
+        
+        rot += 10.0f * dt;
+        if (rot >= 2 * PI)
+            rot = 0.0f;
+            
+        glDisable(GL_LIGHTING);
+            
+        // Draw glow
+        glPushMatrix();
+        glDepthMask(GL_FALSE);
+        glowTex.bind(dt);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        Vector3f pt = Vector3f(0, 0, 0) * transformation;
+        Vector3f n = (camera.transformation.translation - pt).normalized;
+        pt += n * 0.5f;
+        glColor4fv(glowColor.arrayof.ptr);
+        drawBillboard(camera.transformation, pt, 1.0f);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glowTex.unbind();
+        glDepthMask(GL_TRUE);
+        glPopMatrix();
+        
+        glEnable(GL_LIGHTING);
+    }
+
+    override void freeContent()
+    {
+        super.freeContent();
+    }
+    
+    override void free()
+    {
+        freeContent();
+        Delete(this);
+    }
+}
+
+class AnimatedSprite: Drawable
+{
+    Texture texture;
+    uint tileWidth;
+    uint tileHeight;
+    uint tx = 0;
+    uint ty = 0;
+    uint numHTiles;
+    uint numVTiles;
+    float framerate = 1.0f / 25.0f;
+    double counter = 0.0;
+    Vector2f position;
+    
+    this(Texture sheetTex, uint w, uint h)
+    {
+        texture = sheetTex;
+        tileWidth = w;
+        tileHeight = h;
+        numHTiles = texture.width / tileWidth;
+        numVTiles = texture.height / tileHeight;
+        position = Vector2f(0, 0);
+    }
+    
+    void draw(double dt)
+    {
+        counter += dt;
+        if (counter >= framerate)
+        {
+            counter = 0.0;
+            advanceFrame();
+        }
+        
+        float u = cast(float)(tx * tileWidth) / texture.width;
+        float v = cast(float)(ty * tileHeight) / texture.height;
+        float w = cast(float)tileWidth / texture.width;
+        float h = cast(float)tileHeight / texture.height;
+        
+        glDisable(GL_DEPTH_TEST);
+        glPushMatrix();
+        glColor4f(1,1,1,1);
+        glTranslatef(position.x, position.y, 0.0f);
+        glScalef(tileWidth, tileHeight, 1.0f);
+        texture.bind(dt);
+        glBegin(GL_QUADS);
+        glTexCoord2f(u, v);         glVertex2f(0, 0);
+        glTexCoord2f(u + w, v);     glVertex2f(1, 0);
+        glTexCoord2f(u + w, v + h); glVertex2f(1, 1);
+        glTexCoord2f(u, v + h);     glVertex2f(0, 1);
+        glEnd();
+        texture.unbind();
+        glPopMatrix();
+        glEnable(GL_DEPTH_TEST);
+    }
+    
+    void advanceFrame()
+    {
+        tx++;
+        if (tx >= numHTiles)
+        {
+            tx = 0;
+            ty++;
+            
+            if (ty >= numVTiles)
+            {
+                ty = 0;
+            }
+        }
+    }
+
+    void free()
+    {
+        Delete(this);
+    }
+    
+    mixin ManualModeImpl;
+}
+
 class Scene3DRoom: Room
 {
     Scene sceneLevel;
@@ -240,6 +434,8 @@ class Scene3DRoom: Room
     Scene sceneGravityGun;
     Scene scenePhysics;
     Scene sceneWeapon;
+    Scene scenePentagon;
+    Scene scenePickables;
     ResourceManager rm;
     Layer layer3d;
     Layer layer2d;
@@ -258,22 +454,33 @@ class Scene3DRoom: Room
     GeomBox gBox;
     
     TextLine textLine;
+    TextLine pCounterLine;
 
-    GLSLShader shader;
+    Shader shader;
+    
+    uint numPentagons = 0;
     
     this(EventManager em, TestApp app)
     {
         super(em, app);
         
         rm = New!ResourceManager();
-        rm.fs.mount("data/levels/gateway");
-        rm.fs.mount("data/scenes");
+        rm.fs.mount("data/levels/corridor");
+        rm.fs.mount("data/items");
         rm.fs.mount("data/shaders");
         rm.fs.mount("data/weapons");
-        sceneLevel = rm.loadScene("gateway.dgl2", false);
-        sceneCube = rm.loadScene("cube.dgl2", false);
-        sceneGravityGun = rm.loadScene("gravity-gun.dgl2", false);
+        rm.fs.mount("data/ui");
         scenePhysics = rm.addEmptyScene("physics", false);
+        dgl.graphics.mesh.generateTangentVectors = false;
+        sceneLevel = rm.loadScene("corridor.dgl2", false);
+        dgl.graphics.mesh.generateTangentVectors = true;
+        sceneCube = rm.loadScene("box.dgl2", false);
+        sceneGravityGun = rm.loadScene("gravity-gun.dgl2", false);
+        scenePentagon = rm.loadScene("pentagon.dgl2", false);
+        scenePickables = rm.addEmptyScene("pickables", true);
+        scenePickables.lighted = false;
+        
+        sceneLevel.createDynamicLights();
         
         layer3d = New!Layer(em, LayerType.Layer3D);
         addLayer(layer3d);
@@ -283,7 +490,9 @@ class Scene3DRoom: Room
 
         layer3d.addDrawable(rm);
         
-        textLine = New!TextLine(app.rm.getFont("Droid"), "FPS: 0", Vector2f(8, 8));
+        auto font = app.rm.getFont("Droid");
+        
+        textLine = New!TextLine(font, "FPS: 0", Vector2f(8, 8));
         textLine.color = Color4f(1, 1, 1);
         layer2d.addDrawable(textLine);
         
@@ -295,27 +504,16 @@ class Scene3DRoom: Room
         gFloor = New!GeomBox(Vector3f(100, 1, 100));
         auto bFloor = world.addStaticBody(Vector3f(0, -5, 0));
         auto scFloor = world.addShapeComponent(bFloor, gFloor, Vector3f(0, 0, 0), 1);
-
-        sceneLevel.createDynamicLights();
-
-        auto m = sceneCube.materials["Material"];
-        if (m)
-            m.ambientColor = Color4f(0.5f, 0.5f, 0.5f, 1.0f);
-            
-        m = sceneGravityGun.materials["matGravityGun"];
-        if (m)
-            m.ambientColor = Color4f(0.5f, 0.5f, 0.5f, 1.0f);
-
+        
         gSphere = New!GeomSphere(1.0f);
         gBox = New!GeomBox(Vector3f(1, 1, 1));
 
-        createBodiesStack(3, gBox);
-
         // Create camera
-        Vector3f playerPos = Vector3f(-6, 1.001, 0);
+        // TODO: read playerPos from scene data (use entity with a special name)
+        Vector3f playerPos = Vector3f(0, 2, -5);
         camera = New!FirstPersonCamera(playerPos);
         camera.turn = 90.0f;
-        camera.eyePosition = Vector3f(0, 0.8f, 0);
+        camera.eyePosition = Vector3f(0, 0.0f, 0);
         camera.gunPosition = Vector3f(0.15f, -0.2f, -0.2f);
         layer3d.addModifier(camera);
 
@@ -323,40 +521,53 @@ class Scene3DRoom: Room
         ccPlayer = New!CharacterController(world, playerPos, 1.0f, gSphere);
         ccPlayer.rotation.y = -90.0f;
 
-        // Create weapon
-        Entity eGravityGun = sceneGravityGun.entities["objGravityGun"];
-        assert(eGravityGun !is null);
-        Texture glowTex = rm.getTexture("glow.png");
-        weapon = New!GravityGun(eGravityGun, glowTex, camera, rm, eventManager, world);
-        sceneLevel.addEntity("wGravityGun", weapon);
-
-/*
-        // GLSL shader demo
-        string txtVP = rm.readText("phong.vp.glsl");
-        string txtFP = rm.readText("phong.fp.glsl");
-        //writeln(txtVP);
-        shader = New!GLSLShader(txtVP, txtFP);
-        Delete(txtVP);
-        Delete(txtFP);
-        m.shader = shader;
-        m.ambientColor = Color4f(0.1f, 0.1f, 0.1f, 1.0f);
-*/
-
-        if (enableShadows)
+        if (config["enableShaders"].toInt)
         {
-            // TODO: move this check to Shadow class
-            if (DerelictGL.isExtensionSupported("GL_ARB_shadow") &&
-                DerelictGL.isExtensionSupported("GL_ARB_depth_texture"))
+            //string txtVP = rm.readText("normalmapping.vp.glsl");
+            //string txtFP = rm.readText("normalmapping.fp.glsl");
+            //New!GLSLShader(txtVP, txtFP);
+            //Delete(txtVP);
+            //Delete(txtFP);
+            
+            if (isGLSLSupported())
+            {
+                shader = bumpShader();
+        
+                auto m = sceneGravityGun.material("matGravityGun");
+                if (m)
+                {
+                    m.shader = shader;
+                    m.textures[1] = rm.getTexture("gravity-gun-normal.png");
+                    m.specularColor = Color4f(0.9, 0.9, 0.9, 1.0);
+                }
+        
+                m = sceneCube.material("Material");
+                if (m)
+                {
+                    m.shader = shader;
+                    m.textures[1] = rm.getTexture("normal.png");
+                }
+            }
+            else
+            {
+                writeln("GLSL is not available");
+                config.set("enableShaders", "0");
+            }
+        }
+
+        if (config["enableShadows"].toInt)
+        {
+            if (isShadowmapSupported())
             {
                 rm.enableShadows = true;
-                rm.shadow = New!ShadowMap(shadowMapSize, shadowMapSize);
+                rm.shadow = New!ShadowMap(config["shadowMapSize"].toInt, config["shadowMapSize"].toInt);
                 rm.shadow.castScene = scenePhysics;
                 rm.shadow.receiveScene = sceneLevel;
             }
             else
             {
-                writeln("Dynamic shadows are not available: GL_ARB_shadow and GL_ARB_depth_texture are not supported");
-                enableShadows = false;
+                writeln("Dynamic shadows are not available");
+                config.set("enableShadows", "0");
             }
         }
         else
@@ -364,18 +575,66 @@ class Scene3DRoom: Room
             scenePhysics.visible = true;
             sceneLevel.visible = true;
         }
-
-        sceneLevel.setMaterialsShadeless(false);
+        
+        // Create weapon
+        Entity eGravityGun = sceneGravityGun.entity("objGravityGun");
+        assert(eGravityGun !is null);
+        Texture glowTex = rm.getTexture("glow.png");
+        weapon = New!GravityGun(eGravityGun, glowTex, camera, rm, eventManager, world);
+        sceneLevel.addEntity("wGravityGun", weapon);
+        
+        scenePentagon.material("matPentagon").ambientColor = scenePentagon.material("matPentagon").diffuseColor;
+        
+        createDynamicObjects();
+        
+        auto pentaSheet = rm.getTexture("pentagon.png");
+        auto pentaSprite = New!AnimatedSprite(pentaSheet, 32, 32);
+        pentaSprite.position = Vector2f(8, eventManager.windowHeight - 8 - 32);
+        layer2d.addDrawable(pentaSprite);
+        
+        pCounterLine = New!TextLine(font, "0", Vector2f(8 + 32 + 8, em.windowHeight - 16 - font.height));
+        pCounterLine.color = Color4f(1, 1, 1);
+        layer2d.addDrawable(pCounterLine);
     }
     
-    void createBodiesStack(uint n, Geometry g)
+    void createDynamicObjects()
+    {
+        foreach(i, e; sceneLevel.entities)
+        {
+            if (e.type == 2) addPentagon(e.position);
+            else if (e.type == 3) addBox(e.position);
+        }
+    }
+    
+    uint pentIndex = 0;
+    Pickable addPentagon(Vector3f position)
+    {
+        Texture glowTex = rm.getTexture("glow.png");
+        Pickable p = New!Pickable(eventManager, camera, scenePentagon.mesh("mPentagon"), glowTex, position);
+        scenePickables.addEntity(format("pentagon%s", pentIndex), p);
+        pentIndex++;
+        return p;
+    }
+    
+    uint boxIndex = 0;
+    PhysicsEntity addBox(Vector3f position)
+    {
+        auto b = world.addDynamicBody(position);
+        auto sc = world.addShapeComponent(b, gBox, Vector3f(0, 0, 0), 10.0f);
+        auto e = New!PhysicsEntity(sceneCube.mesh("Cube"), sc);
+        scenePhysics.addEntity(format("box%s", boxIndex), e);
+        boxIndex++;
+        return e;
+    }
+    
+    void createBodiesStack(string name, float x, uint n, Geometry g)
     {
         foreach(i; 0..n)
         {
-            auto b = world.addDynamicBody(Vector3f(0, 1.5f + i * 2, -(i * 0.4f)));
-            auto sc = world.addShapeComponent(b, g, Vector3f(0, 0, 0), 1.0f);
-            auto e = New!PhysicsEntity(sceneCube.meshes["Cube"], sc);
-            scenePhysics.addEntity(format("stack_body%s", i), e);
+            auto b = world.addDynamicBody(Vector3f(x, 1.5f + i * 2, -(i * 0.4f)));
+            auto sc = world.addShapeComponent(b, g, Vector3f(0, 0, 0), 100.0f);
+            auto e = New!PhysicsEntity(sceneCube.mesh("Cube"), sc);
+            scenePhysics.addEntity(format("%s%s", name, i), e);
         }
     }
     
@@ -439,9 +698,41 @@ class Scene3DRoom: Room
         swayControl();
         
         textLine.setText(format("FPS: %s", eventManager.fps));
+        
+        // FIXME: this gives an error sometimes
+        //pCounterLine.setText(format("%s", numPentagons));
+        
+        pCounterLine.setText(numPentagons.to!string);
 
-        if (enableShadows)
+        if (config["enableShadows"].toInt)
             rm.shadow.lightPosition = camera.position;
+            
+        //highlightShootedObject();
+    }
+    
+    void highlightShootedObject()
+    {
+        //if (weapon.shootedBody is null)
+        //{
+        //    foreach(i, e; scenePhysics.entities)
+        //        e.highlight = false;
+        //}
+        foreach(i, e; scenePhysics.entities)
+        {
+            PhysicsEntity pe = cast(PhysicsEntity)e;
+            if (pe !is null)
+            {
+                pe.highlight = false;
+                if (weapon.shootedBody !is null)
+                foreach(s; weapon.shootedBody.shapes.data)
+                {
+                    if (s is pe.shape)
+                    {
+                        pe.highlight = true;
+                    }
+                }
+            }
+        }
     }
     
     void swayControl()
@@ -464,10 +755,20 @@ class Scene3DRoom: Room
         }
     }
     
+    override void onUserEvent(int code) 
+    {
+        if (code == ATR_EVENT_PICK_PENTAGON)
+        {
+            writeln("Pick");
+            numPentagons++;
+        }
+    }
+    
     override void free()
     {
         super.freeContent();
-        //shader.free();
+        if (shader !is null)
+            shader.free();
         camera.free();
         ccPlayer.free();
         world.free();
@@ -522,7 +823,6 @@ class TestApp: RoomApplication
     override void freeContent()
     {
         super.freeContent();
-        writeln("Deleting TestApp...");
         rm.free();
     }
     
@@ -533,29 +833,9 @@ class TestApp: RoomApplication
     }
 }
 
-import std.getopt;
-
-// TODO: create configuration manager
-uint enableShadows = 1;
-uint shadowMapSize = 512;
-
-void readOptions(string[] args)
-{
-    try
-    {
-        getopt(args,
-            "enableShadows", &enableShadows,
-            "shadowMapSize", &shadowMapSize);
-    }
-    catch(Exception)
-    {
-        writeln("Illegal option");
-    }
-}
-
 void main(string[] args)
 {
-    readOptions(args);
+    readConfig();
 
     writefln("Allocated memory at start: %s", allocatedMemory);
     loadLibraries();

@@ -31,6 +31,7 @@ module dgl.graphics.scene;
 import std.stdio;
 
 import dlib.core.memory;
+import dlib.container.array;
 import dlib.container.aarray;
 import dlib.image.color;
 
@@ -53,11 +54,45 @@ import dgl.asset.resman;
 class Scene: Drawable
 {
     ResourceManager rm;
-    AArray!Entity entities;
-    AArray!Mesh meshes;
-    AArray!Material materials;
+	
+	DynamicArray!Entity _entities;
+	DynamicArray!Mesh _meshes;
+	DynamicArray!Material _materials;
+
+	AArray!size_t entitiesByName;
+	AArray!size_t meshesByName;
+	AArray!size_t materialsByName;
+	
     bool visible = true;
     bool lighted = true;
+	
+	Entity[] entities() {return _entities.data;}
+	Mesh[] meshes() {return _meshes.data;}
+	Material[] materials() {return _materials.data;}
+	
+	Entity entity(string name)
+	{
+	    if (name in entitiesByName)
+		    return _entities.data[entitiesByName[name]-1];
+		else
+		    return null;
+	}
+	
+	Mesh mesh(string name)
+	{
+	    if (name in meshesByName)
+		    return _meshes.data[meshesByName[name]-1];
+		else
+		    return null;
+	}
+	
+	Material material(string name)
+	{
+	    if (name in materialsByName)
+		    return _materials.data[materialsByName[name]-1];
+		else
+		    return null;
+	}
 
     this(ResourceManager rm)
     {
@@ -67,9 +102,9 @@ class Scene: Drawable
 
     protected void createArrays()
     {
-        entities = New!(AArray!Entity)();
-        meshes = New!(AArray!Mesh)();
-        materials = New!(AArray!Material)();
+	    entitiesByName = New!(AArray!size_t);
+	    meshesByName = New!(AArray!size_t);
+		materialsByName = New!(AArray!size_t);
     }
 
     void clearArrays()
@@ -80,36 +115,36 @@ class Scene: Drawable
 
     void resolveLinks()
     {
-        foreach(ei, e; entities)
+        foreach(ei, e; _entities.data)
         {
-            foreach(mi, material; materials)
+            foreach(mi, m; _materials.data)
             {
-                if (e.materialId == material.id)
+                if (e.materialId == m.id)
                 {
-                    e.modifier = material;
+                    e.modifier = m;
                     break;
                 }
             }
 
-            foreach(mi, mesh; meshes)
+            foreach(mi, m; _meshes.data)
             {
-                if (e.meshId == mesh.id)
+                if (e.meshId == m.id)
                 {
-                    e.drawable = mesh;
+                    e.drawable = m;
                     break;
                 }
             }
         }
 
-        foreach(mi, mesh; meshes)
+        foreach(mi, m; _meshes.data)
         {
-            mesh.genFaceGroups(this);
+            m.genFaceGroups(this);
         }
     }
 
-    void createDynamicLights(bool debugDraw = true)
+    void createDynamicLights(bool debugDraw = false)
     {
-        foreach(i, e; entities)
+        foreach(i, e; _entities.data)
         {
             if (e.type == 1)
             {
@@ -124,26 +159,29 @@ class Scene: Drawable
 
     Entity addEntity(string name, Entity e)
     {
-        entities[name] = e;
+	    _entities.append(e);
+        entitiesByName[name] = _entities.length;
         return e;
     }
 
     Mesh addMesh(string name, Mesh m)
     {
-        meshes[name] = m;
+	    _meshes.append(m);
+        meshesByName[name] = _meshes.length;
         return m;
     }
 
     Material addMaterial(string name, Material m)
     {
-        materials[name] = m;
+	    _materials.append(m);
+        materialsByName[name] = _materials.length;
         return m;
     }
 
     Material getMaterialById(int id)
     {
         Material res = null;
-        foreach(mi, mat; materials)
+        foreach(mi, mat; _materials.data)
         {
             if (mat.id == id)
             {
@@ -161,23 +199,26 @@ class Scene: Drawable
 
     void freeEntities()
     {
-        foreach(i, e; entities)
+        foreach(i, e; _entities.data)
             e.free();
-        entities.free();
+        _entities.free();
+		entitiesByName.free();
     }
 
     void freeMeshes()
     {
-        foreach(i, m; meshes)
+        foreach(i, m; _meshes.data)
             m.free();
-        meshes.free();
+        _meshes.free();
+		meshesByName.free();
     }
 
     void freeMaterials()
     {
-        foreach(i, m; materials)
+        foreach(i, m; _materials.data)
             m.free();
-        materials.free();
+        _materials.free();
+		materialsByName.free();
     }
 
     void freeContent()
@@ -189,15 +230,22 @@ class Scene: Drawable
 
     void setMaterialsShadeless(bool shadeless)
     {
-        foreach(i, m; materials)
+        foreach(i, m; _materials.data)
+        {
             m.shadeless = shadeless;
+        }
+    }
+    
+    void setMaterialsUseTextures(bool mode)
+    {
+        foreach(i, m; _materials.data)
+            m.useTextures = mode;
     }
 
     void draw(double dt)
     {
-        //if (visible)
-        foreach(i, e; entities)
-        {
+        foreach(i, e; _entities.data)
+        {        
             if (!lighted)
                 rm.lm.lightsOn = false;
             rm.lm.bind(e, dt);

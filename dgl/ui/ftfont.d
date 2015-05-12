@@ -134,7 +134,7 @@ final class FreeTypeFont: Font
     
     override void free()
     {
-        writefln("Deleting %s glyph(s) in FTFont...", glyphs.length);
+        //writefln("Deleting %s glyph(s) in FTFont...", glyphs.length);
         foreach(i, glyph; glyphs)
             glDeleteTextures(1, &glyph.textureId);
         Delete(glyphs);

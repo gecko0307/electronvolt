@@ -112,7 +112,7 @@ final class TrackballCamera: Modifier
             translateTarget((target_translate - current_translate)/30.0f);
         }
 
-	glPushMatrix();
+	    glPushMatrix();
 
         rotPitch = rotation(Vector3f(1.0f,0.0f,0.0f), degtorad(rotPitchTheta));
         rotTurn = rotation(Vector3f(0.0f,1.0f,0.0f), degtorad(rotTurnTheta));

@@ -49,7 +49,7 @@ class Entity: Object3D
     uint type = 0;
     int materialId = -1;
     int meshId = -1;
-    bool debugDraw = true;
+    bool debugDraw = false;
 
     Drawable drawable;
     Modifier modifier;
@@ -61,6 +61,8 @@ class Entity: Object3D
     Matrix4x4f transformation;
 
     DMLData props;
+    
+    bool visible = true;
     
     this(Drawable drw, Vector3f pos)
     {
@@ -85,7 +87,8 @@ class Entity: Object3D
         position = Vector3f(0, 0, 0);
         rotation = Quaternionf.identity;
         scaling = Vector3f(1, 1, 1);
-        transformation = translationMatrix(position);
+        setTransformation(position, rotation, scaling);
+        //transformation = translationMatrix(position);
         drawable = null;
     }
 
@@ -102,7 +105,7 @@ class Entity: Object3D
     
     override Vector3f getPosition()
     {
-        return position; //transformation.translation;
+        return transformation.translation;
     }
 
     Quaternionf getRotation()
@@ -126,10 +129,13 @@ class Entity: Object3D
     
     override void draw(double dt)
     {
-        glPushMatrix();
-        glMultMatrixf(transformation.arrayof.ptr);            
-        drawModel(dt);
-        glPopMatrix();
+        if (visible)
+        {
+            glPushMatrix();
+            glMultMatrixf(transformation.arrayof.ptr);            
+            drawModel(dt);
+            glPopMatrix();
+        }
     }
 
     void drawModel(double dt)
@@ -154,16 +160,12 @@ class Entity: Object3D
 
     void drawPoint()
     {
-        //glDisable(GL_DEPTH_TEST);
-        glDisable(GL_LIGHTING);
         glColor4f(1,1,1,1);
         glPointSize(5.0f);
         glBegin(GL_POINTS);
         glVertex3f(0, 0, 0);
         glEnd();
         glPointSize(1.0f);
-        glEnable(GL_LIGHTING);
-        //glEnable(GL_DEPTH_TEST);
     }
 
     override string toString()
