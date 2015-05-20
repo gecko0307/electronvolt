@@ -32,10 +32,12 @@ class CharacterController: ManuallyAllocatable, CollisionDispatcher
     bool jumping = false;
     Vector3f direction = Vector3f(0, 0, 1);
     float speed = 0.0f;
+    float jSpeed = 0.0f;
     float maxVelocityChange = 0.75f;
     float artificalGravity = 50.0f;
     Vector3f rotation;
 	float newContactSlopeFactor = 1.0f;
+    RigidBody floorBody;
 
     this(PhysicsWorld world, Vector3f pos, float mass, Geometry geom)
     {
@@ -75,7 +77,7 @@ class CharacterController: ManuallyAllocatable, CollisionDispatcher
             velocityChange.y = clamp(velocityChange.y, -maxVelocityChange, maxVelocityChange);
         rbody.linearVelocity += velocityChange;
 
-        speed = 0.0f;
+        //speed = 0.0f;
 
         falling = rbody.linearVelocity.y < -0.05f;
         jumping = rbody.linearVelocity.y > 0.05f;
@@ -84,16 +86,26 @@ class CharacterController: ManuallyAllocatable, CollisionDispatcher
             collidingWithFloor = false;
 
         onGround = checkOnGround() || collidingWithFloor;
+
+        if (onGround && floorBody && speed == 0.0f && jSpeed == 0.0f)
+            rbody.linearVelocity = floorBody.linearVelocity;
+
+        speed = 0.0f;
+        jSpeed = 0.0f;
     }
 
     bool checkOnGround()
     {
+        floorBody = null;
         CastResult cr;
         bool hit = world.raycast(rbody.position, Vector3f(0, -1, 0), 10, cr, true, true);
         if (hit)
         {
             if (distance(cr.point, rbody.position) <= 1.5f) //1.1f
+            {
+                floorBody = cr.rbody;
                 return true;
+            }
         }
         return false;
     }
@@ -113,7 +125,8 @@ class CharacterController: ManuallyAllocatable, CollisionDispatcher
     {
         if (onGround)
         {
-            rbody.linearVelocity.y = jumpSpeed(height);
+            jSpeed = jumpSpeed(height);
+            rbody.linearVelocity.y = jSpeed;
             collidingWithFloor = false;
         }
     }

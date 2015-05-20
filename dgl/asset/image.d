@@ -26,7 +26,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module vegan.image;
+module dgl.asset.image;
 
 import dlib.image.image;
 import dlib.core.memory;

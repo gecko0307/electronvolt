@@ -33,7 +33,7 @@ import dlib.core.memory;
 import dlib.core.stream;
 import dlib.container.array;
 import dlib.filesystem.filesystem;
-import vegan.stdfs;
+import dgl.vfs.stdfs;
 
 class StdDirFileSystem: ReadOnlyFileSystem, ManuallyAllocatable
 {

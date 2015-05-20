@@ -77,7 +77,7 @@ class Application: EventListener
         environment["SDL_VIDEO_WINDOW_POS"] = "";
         environment["SDL_VIDEO_CENTERED"] = "1";
         
-        auto screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL); // | SDL_FULLSCREEN
+        auto screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL | SDL_RESIZABLE); // | SDL_FULLSCREEN
         if (screen is null)
             throw new Exception("Failed to set video mode: " ~ to!string(SDL_GetError()));
             
@@ -150,7 +150,7 @@ class Application: EventListener
         writefln("Application resized to %s, %s", width, height);
         SDL_Surface* screen = SDL_SetVideoMode(width, 
                                                height, 
-                                               0, SDL_OPENGL);
+                                               0, SDL_OPENGL | SDL_RESIZABLE);
         if (screen is null)
             throw new Exception("failed to set video mode: " ~ to!string(SDL_GetError()));
     }

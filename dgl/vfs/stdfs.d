@@ -26,7 +26,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module vegan.stdfs;
+module dgl.vfs.stdfs;
 
 import std.file;
 import std.string;

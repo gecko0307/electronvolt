@@ -75,6 +75,8 @@ class Layer: EventListener, Drawable
     
     void draw(double dt)
     {       
+        glViewport(0, 0, eventManager.windowWidth, eventManager.windowHeight);
+        
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
         glLoadIdentity();

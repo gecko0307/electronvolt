@@ -7,6 +7,7 @@ import std.ascii;
 import std.math;
 import std.conv;
 
+/*
 import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.matrix;
@@ -47,11 +48,19 @@ import dgl.graphics.shader;
 import dgl.graphics.glslshader;
 import dgl.graphics.bumpshader;
 import dgl.graphics.billboard;
+*/
 
+/*
 import dmech.world;
 import dmech.shape;
 import dmech.geometry;
 import dmech.bvh;
+import dmech.raycast;
+*/
+
+import dlib;
+import dgl;
+import dmech;
 
 import game.fpcamera;
 import game.cc;
@@ -113,6 +122,11 @@ class LoadingRoom: Room
         counter = 0.5;
     }
     
+    override void onEnter()
+    {
+        eventManager.showCursor(true);
+    }
+    
     override void onUpdate()
     {
         super.onUpdate();
@@ -153,13 +167,18 @@ class PauseRoom: Room
         //layer2d.addDrawable(text);
     }
     
+    override void onEnter()
+    {
+        eventManager.showCursor(true);
+    }
+    
     override void onKeyDown(int key)
     {
         if (key == SDLK_ESCAPE)
             app.exit();
         else if (key == SDLK_RETURN)
         {
-            eventManager.showCursor(false);
+            //eventManager.showCursor(false);
             app.setCurrentRoom("scene3d");
         }
     }
@@ -178,13 +197,72 @@ class PhysicsEntity: Entity
     
     this(Drawable d, ShapeComponent s)
     {
-        super(d, s.position);
+        if (s)
+            super(d, s.position);
+        else
+            super(d, Vector3f(0, 0, 0));
         shape = s;
     }
     
     override void draw(double dt)
     {
-        transformation = shape.transformation;
+        if (shape !is null)
+            transformation = shape.transformation;
+        else
+            transformation = Matrix4x4f.identity;
+        // TODO: local transformation
+        super.draw(dt);
+    }
+    
+    override void drawModel(double dt)
+    {
+    /*
+        if (highlight)
+        {
+            glCullFace(GL_FRONT);
+            glShadeModel(GL_FLAT);
+            glPushMatrix();
+            glScalef(1.05f, 1.05f, 1.05f);
+            glDisable(GL_LIGHTING);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            super.drawModel(dt);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_LIGHTING);
+            glPopMatrix();
+            glShadeModel(GL_SMOOTH);
+            glCullFace(GL_BACK);
+        }
+    */
+        super.drawModel(dt);
+    }
+    
+    override void free()
+    {
+        shape = null;
+        Delete(this);
+    }
+}
+
+class PhysicsEntity2: Entity
+{
+    ShapeComponent shape;
+    bool highlight = false;
+    
+    this(Drawable d, ShapeComponent s)
+    {
+        if (s)
+            super(d, s.position);
+        else
+            super(d, Vector3f(0, 0, 0));
+        shape = s;
+    }
+    
+    override void draw(double dt)
+    {
+        if (shape !is null)
+            transformation = translationMatrix(shape.transformation.translation);
+        else
+            transformation = Matrix4x4f.identity;
         // TODO: local transformation
         super.draw(dt);
     }
@@ -283,7 +361,7 @@ class Pickable: Entity
         lightDiffuseColor = Color4f(1, 1, 1, 1);
         lightAmbientColor = Color4f(0, 0, 0, 1);
         glowColor = Color4f(1, 0, 1, 0.7);
-        rotation = dlib.math.quaternion.rotation(0, degtorad(-90.0f));
+        rotation = rotationQuaternion(0, degtorad(-90.0f));
         setTransformation(position, rotation, scaling);
         this.eventManager = em;
         this.camera = camera;
@@ -301,8 +379,8 @@ class Pickable: Entity
             visible = false;
         }
     
-        rotation = dlib.math.quaternion.rotation(1, rot) *
-                   dlib.math.quaternion.rotation(0, degtorad(-90.0f));
+        rotation = rotationQuaternion(1, rot) *
+                   rotationQuaternion(0, degtorad(-90.0f));
         setTransformation(position, rotation, scaling);
         lightPosition = position + Vector3f(2, 2, 0);
         glEnable(GL_LIGHTING);
@@ -348,6 +426,48 @@ class Pickable: Entity
         freeContent();
         Delete(this);
     }
+}
+
+class Sprite: Drawable
+{
+    Texture texture;
+    uint width;
+    uint height;
+    Vector2f position;
+    
+    this(Texture tex, uint w, uint h)
+    {
+        texture = tex;
+        width = w;
+        height = h;
+        position = Vector2f(0, 0);
+    }
+    
+    void draw(double dt)
+    {       
+        glDisable(GL_DEPTH_TEST);
+        glPushMatrix();
+        glColor4f(1,1,1,1);
+        glTranslatef(position.x, position.y, 0.0f);
+        glScalef(width, height, 1.0f);
+        texture.bind(dt);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0, 0); glVertex2f(0, 0);
+        glTexCoord2f(1, 0); glVertex2f(1, 0);
+        glTexCoord2f(1, 1); glVertex2f(1, 1);
+        glTexCoord2f(0, 1); glVertex2f(0, 1);
+        glEnd();
+        texture.unbind();
+        glPopMatrix();
+        glEnable(GL_DEPTH_TEST);
+    }
+    
+    void free()
+    {
+        Delete(this);
+    }
+    
+    mixin ManualModeImpl;
 }
 
 class AnimatedSprite: Drawable
@@ -427,6 +547,47 @@ class AnimatedSprite: Drawable
     mixin ManualModeImpl;
 }
 
+class KinematicObject: ManuallyAllocatable
+{
+    PhysicsWorld world;
+    RigidBody rbody;
+
+    this(PhysicsWorld world, Vector3f pos, Geometry geom)
+    {
+        this.world = world;
+        rbody = world.addStaticBody(pos);
+        //rbody.bounce = 0.0f;
+        //rbody.friction = 1.0f;
+        //rbody.enableRotation = false;
+        //rbody.useOwnGravity = true;
+        //rbody.gravity = Vector3f(0.0f, 0.0f, 0.0f);
+        rbody.raycastable = true;
+        world.addShapeComponent(rbody, geom, Vector3f(0, 0, 0), 1.0f);
+        //rotation = Vector3f(0, 0, 0);
+
+        //rbody.collisionDispatchers.append(this);
+    }
+
+    Vector3f p1 = Vector3f(-3, 0.5f, 0);
+    Vector3f p2 = Vector3f(10, 4, 0);
+    float t = 0.0f;
+    int moveFwd = 1;
+    void update(double dt)
+    {
+        t += 0.1f * dt * moveFwd;
+        if (t >= 1.0f) { moveFwd = -1; }
+        else if (t <= 0.0f) { moveFwd = +1; }
+
+        Vector3f newPosition = lerp(p1, p2, t);
+        rbody.linearVelocity = (newPosition - rbody.position) / dt;
+        rbody.position += rbody.linearVelocity * dt;
+        rbody.updateShapeComponents();
+    }
+
+    mixin FreeImpl;
+    mixin ManualModeImpl;
+}
+
 class Scene3DRoom: Room
 {
     Scene sceneLevel;
@@ -460,6 +621,13 @@ class Scene3DRoom: Room
     
     uint numPentagons = 0;
     
+    //ShapeSphere sSphere;
+    //Entity eCastSphere;
+    //ShapeComponent scSphere;
+    //GeomSphere gSphere2;
+    
+    Font font;
+    
     this(EventManager em, TestApp app)
     {
         super(em, app);
@@ -471,9 +639,9 @@ class Scene3DRoom: Room
         rm.fs.mount("data/weapons");
         rm.fs.mount("data/ui");
         scenePhysics = rm.addEmptyScene("physics", false);
-        dgl.graphics.mesh.generateTangentVectors = false;
+        generateTangentVectors = false;
         sceneLevel = rm.loadScene("corridor.dgl2", false);
-        dgl.graphics.mesh.generateTangentVectors = true;
+        generateTangentVectors = true;
         sceneCube = rm.loadScene("box.dgl2", false);
         sceneGravityGun = rm.loadScene("gravity-gun.dgl2", false);
         scenePentagon = rm.loadScene("pentagon.dgl2", false);
@@ -490,13 +658,14 @@ class Scene3DRoom: Room
 
         layer3d.addDrawable(rm);
         
-        auto font = app.rm.getFont("Droid");
+        font = app.rm.getFont("Droid");
         
         textLine = New!TextLine(font, "FPS: 0", Vector2f(8, 8));
         textLine.color = Color4f(1, 1, 1);
         layer2d.addDrawable(textLine);
         
         world = New!PhysicsWorld();
+        world.positionCorrectionIterations = 20;
         bvh = sceneBVH(sceneLevel);
         world.bvhRoot = bvh.root;
         
@@ -520,6 +689,15 @@ class Scene3DRoom: Room
         // Create character
         ccPlayer = New!CharacterController(world, playerPos, 1.0f, gSphere);
         ccPlayer.rotation.y = -90.0f;
+
+        sBox = New!ShapeBox(Vector3f(3, 0.25f, 2));
+        gBox2 = New!GeomBox(Vector3f(3, 0.25f, 2));
+        //ccBox = New!CharacterController(world, Vector3f(0, 1, 3), 1.0f, gBox2);
+        //ccBox.artificalGravity = 0.0f;
+        //ccBox.rbody.gravity = Vector3f(0.0f, 0.0f, 0.0f);
+        kBox = New!KinematicObject(world, Vector3f(0.0f, 1.5f, 3.0f), gBox2);
+        eBox = New!PhysicsEntity(sBox, kBox.rbody.shapes.data[0]); //ccBox.rbody.shapes.data[0]
+        scenePhysics.addEntity("ePlatform", eBox);
 
         if (config["enableShaders"].toInt)
         {
@@ -588,14 +766,34 @@ class Scene3DRoom: Room
         createDynamicObjects();
         
         auto pentaSheet = rm.getTexture("pentagon.png");
-        auto pentaSprite = New!AnimatedSprite(pentaSheet, 32, 32);
+        pentaSprite = New!AnimatedSprite(pentaSheet, 32, 32);
         pentaSprite.position = Vector2f(8, eventManager.windowHeight - 8 - 32);
         layer2d.addDrawable(pentaSprite);
+        
+        crosshairSprite = New!Sprite(rm.getTexture("crosshair-2.png"), 64, 64);
+        crosshairSprite.position = Vector2f(em.windowWidth/2 - 32, em.windowHeight/2 - 32);
+        layer2d.addDrawable(crosshairSprite);
         
         pCounterLine = New!TextLine(font, "0", Vector2f(8 + 32 + 8, em.windowHeight - 16 - font.height));
         pCounterLine.color = Color4f(1, 1, 1);
         layer2d.addDrawable(pCounterLine);
+        
+
+
+        //sSphere = New!ShapeSphere(0.5f);
+        //eCastSphere = New!Entity(sSphere, Vector3f(0, 0, 0));
+        //scenePhysics.addEntity("eCastSphere", eCastSphere);
+        //gSphere2 = New!GeomSphere(0.5f);
+        //scSphere = New!ShapeComponent(gSphere2, Vector3f(0, 0, 0), 0);
     }
+
+    ShapeBox sBox;
+    GeomBox gBox2;
+    KinematicObject kBox;
+    PhysicsEntity eBox;
+    
+    AnimatedSprite pentaSprite;
+    Sprite crosshairSprite;
     
     void createDynamicObjects()
     {
@@ -620,6 +818,8 @@ class Scene3DRoom: Room
     PhysicsEntity addBox(Vector3f position)
     {
         auto b = world.addDynamicBody(position);
+        b.stopThreshold = 0.1f;
+        //b.damping = 2.0f;
         auto sc = world.addShapeComponent(b, gBox, Vector3f(0, 0, 0), 10.0f);
         auto e = New!PhysicsEntity(sceneCube.mesh("Cube"), sc);
         scenePhysics.addEntity(format("box%s", boxIndex), e);
@@ -638,6 +838,11 @@ class Scene3DRoom: Room
         }
     }
     
+    override void onEnter()
+    {
+        eventManager.showCursor(false);
+    }
+    
     override void onKeyDown(int key)
     {
         if (key == SDLK_ESCAPE)
@@ -648,12 +853,28 @@ class Scene3DRoom: Room
     }
 
     void cameraControl()
-    {        
-        float turn_m = -(cast(float)eventManager.windowWidth/2 - eventManager.mouseX)/10.0f;
-        float pitch_m = (cast(float)eventManager.windowHeight/2 - eventManager.mouseY)/10.0f;
+    {
+        int hWidth = eventManager.windowWidth / 2;
+        int hHeight = eventManager.windowHeight / 2;
+        float turn_m = -(hWidth - eventManager.mouseX) * 0.1f;
+        float pitch_m = (hHeight - eventManager.mouseY) * 0.1f;
         camera.pitch += pitch_m;
         camera.turn += turn_m;
         camera.gunPitch += pitch_m * 0.85f;
+        
+        float pitchLimitMax = 60.0f;
+        float pitchLimitMin = -60.0f;
+        if (camera.pitch > pitchLimitMax)
+        {
+            camera.pitch = pitchLimitMax;
+            camera.gunPitch = pitchLimitMax * 0.85f;
+        }
+        else if (camera.pitch < pitchLimitMin)
+        {
+            camera.pitch = pitchLimitMin;
+            camera.gunPitch = pitchLimitMin * 0.85f;
+        }
+        
         eventManager.setMouseToCenter();
     }
 
@@ -691,6 +912,8 @@ class Scene3DRoom: Room
             time -= timeStep;
             playerControl();
             ccPlayer.update();
+            //ccBox.update();
+            kBox.update(timeStep);
             world.update(timeStep);
         }
         
@@ -707,7 +930,31 @@ class Scene3DRoom: Room
         if (config["enableShadows"].toInt)
             rm.shadow.lightPosition = camera.position;
             
+        /*
+        scSphere._transformation = translationMatrix(camera.position + camera.eyePosition);
+            
+        Vector3f castDir = camera.transformation.forward;
+        CastResult cr;
+        bool hit = world.convexCast(
+            scSphere, 
+            //camera.position + camera.eyePosition,
+            castDir, 
+            1000.0f,
+            cr, false, true);
+            
+        if (hit)
+        {
+            eCastSphere.setTransformation(
+                camera.position + camera.eyePosition - castDir * cr.param, 
+                //cr.point,
+                eCastSphere.rotation, 
+                eCastSphere.scaling);
+        }
+        //else
+        //    eCastSphere.setTransformation(Vector3f(0, 0, 0), eCastSphere.rotation, eCastSphere.scaling);
+            
         //highlightShootedObject();
+        */
     }
     
     void highlightShootedObject()
@@ -759,9 +1006,17 @@ class Scene3DRoom: Room
     {
         if (code == ATR_EVENT_PICK_PENTAGON)
         {
-            writeln("Pick");
+            //writeln("Pick");
             numPentagons++;
         }
+    }
+    
+    override void resizeLayers(int width, int height)
+    {
+        super.resizeLayers(width, height);
+        pentaSprite.position = Vector2f(8, height - 8 - 32);
+        crosshairSprite.position = Vector2f(width/2 - 32, height/2 - 32);
+        pCounterLine.position = Vector2f(8 + 32 + 8, height - 16 - font.height);
     }
     
     override void free()
@@ -776,6 +1031,9 @@ class Scene3DRoom: Room
         gFloor.free();
         gSphere.free();
         gBox.free();
+        //sSphere.free();
+        //scSphere.free();
+        //gSphere2.free();
         Delete(this);
     }
 }
@@ -810,7 +1068,7 @@ class TestApp: RoomApplication
 
         room3d = New!Scene3DRoom(eventManager, this);
         addRoom("scene3d", room3d);
-        eventManager.showCursor(false);
+        //eventManager.showCursor(false);
         loadRoom("scene3d");
     }
     

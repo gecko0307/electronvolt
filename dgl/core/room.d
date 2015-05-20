@@ -67,6 +67,10 @@ class Room: EventListener
         return layer;
     }
     
+    void onEnter()
+    {
+    }
+    
     void onUpdate()
     {
         processEvents();
@@ -96,6 +100,12 @@ class Room: EventListener
     {
         freeContent();
         Delete(this);
+    }
+    
+    void resizeLayers(int width, int height)
+    {
+        foreach(i, layer; layers.data)
+            layer.onResize(width, height);
     }
 }
 
@@ -149,6 +159,7 @@ class RoomApplication: Application
         }
         currentRoom = rooms[name];
         currentRoomName = name;
+        currentRoom.onEnter();
     }
     
     override void onUpdate()
@@ -161,6 +172,13 @@ class RoomApplication: Application
     {
         if (currentRoom)
             currentRoom.onRedraw();
+    }
+    
+    override void onResize(int width, int height)
+    {
+        super.onResize(width, height);
+        foreach(i, r; rooms)
+            r.resizeLayers(width, height);
     }
     
     override void freeContent()

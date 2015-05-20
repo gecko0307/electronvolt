@@ -307,7 +307,7 @@ class EventManager
             FPSCounter = 0;
             FPSTickCounter = 0;
             averageDelta = 1.0 / cast(double)(fps);
-	}
+	    }
     }
 
     void setMouse(int x, int y)
@@ -319,11 +319,11 @@ class EventManager
 
     void setMouseToCenter()
     {
-        int x = windowWidth / 2;
-        int y = windowHeight / 2;
-        SDL_WarpMouse(cast(ushort)x, cast(ushort)(windowHeight - y));
-        mouseX = x;
-        mouseY = y;
+        float x = (cast(float)windowWidth)/2;
+        float y = (cast(float)windowHeight)/2;
+        SDL_WarpMouse(cast(ushort)x, cast(ushort)(y));
+        mouseX = cast(int)x;
+        mouseY = cast(int)y;
     }
 
     void showCursor(bool mode)
