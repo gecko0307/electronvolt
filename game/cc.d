@@ -101,7 +101,7 @@ class CharacterController: ManuallyAllocatable, CollisionDispatcher
         bool hit = world.raycast(rbody.position, Vector3f(0, -1, 0), 10, cr, true, true);
         if (hit)
         {
-            if (distance(cr.point, rbody.position) <= 1.5f) //1.1f
+            if (distance(cr.point, rbody.position) <= 1.1f) //1.1f
             {
                 floorBody = cr.rbody;
                 return true;

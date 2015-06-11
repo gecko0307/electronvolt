@@ -13,4 +13,4 @@ Prerequisites
 
 Building
 ========
-cd to project directory and run `cook atrium`
+cd to project directory and run `cook --rsp atrium`

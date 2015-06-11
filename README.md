@@ -12,7 +12,8 @@ Atrium will provide high level of interactivity, featuring fully dynamic world w
 
 Screenshots
 -----------
-[![Screenshot1](/screenshots/002_thumb.jpg)](/screenshots/002.jpg)
+[![Screenshot1](/screenshots/003_thumb.jpg)](/screenshots/003.jpg)
+[![Screenshot1](/screenshots/004_thumb.jpg)](/screenshots/004.jpg)
 
 Tech details
 ------------
