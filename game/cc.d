@@ -22,7 +22,7 @@ import dmech.raycast;
  * CharacterController is intended for
  * generic action game character movement.
  */
-class CharacterController: ManuallyAllocatable, CollisionDispatcher
+class CharacterController: Freeable, CollisionDispatcher
 {
     PhysicsWorld world;
     RigidBody rbody;
@@ -136,6 +136,8 @@ class CharacterController: ManuallyAllocatable, CollisionDispatcher
         return sqrt(2.0f * jumpHeight * artificalGravity);
     }
 
-    mixin FreeImpl;
-    mixin ManualModeImpl;
+    override void free()
+    {
+        Delete(this);
+    }
 }

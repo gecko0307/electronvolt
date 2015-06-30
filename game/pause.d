@@ -43,7 +43,6 @@ class PauseRoom: Room
     
     override void free()
     {
-        super.freeContent();
         Delete(this);
     }
 }

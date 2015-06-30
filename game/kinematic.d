@@ -3,7 +3,7 @@ module kinematic;
 import dlib;
 import dmech;
 
-class KinematicObject: ManuallyAllocatable
+class KinematicObject: Freeable
 {
     PhysicsWorld world;
     RigidBody rbody;
@@ -32,6 +32,8 @@ class KinematicObject: ManuallyAllocatable
         rbody.updateShapeComponents();
     }
 
-    mixin FreeImpl;
-    mixin ManualModeImpl;
+    void free()
+    {
+        Delete(this);
+    }
 }

@@ -14,7 +14,7 @@ void main(string[] args)
     loadLibraries();
     auto app = New!TestApp();
     app.run();
-    app.free();
+    Delete(app);
     writefln("Allocated memory at end: %s", allocatedMemory);
 }
 

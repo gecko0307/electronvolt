@@ -166,11 +166,14 @@ class GravityGun: Weapon
             }
         }
     }
+    
+    ~this()
+    {
+        Delete(tesla);
+    }
 
     override void free()
     {
-        freeContent();
-        tesla.free();
         Delete(this);
     }
 }

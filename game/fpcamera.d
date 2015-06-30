@@ -62,7 +62,5 @@ class FirstPersonCamera: Modifier
     {
         Delete(this);
     }
-
-    mixin ManualModeImpl;
 }
 

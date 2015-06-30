@@ -91,15 +91,9 @@ class Pickable: Entity
             }
         }
     }
-
-    override void freeContent()
-    {
-        super.freeContent();
-    }
     
     override void free()
     {
-        freeContent();
         Delete(this);
     }
 }

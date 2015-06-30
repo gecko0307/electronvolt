@@ -48,7 +48,6 @@ class LoadingRoom: Room
     
     override void free()
     {
-        super.freeContent();
         Delete(this);
     }
 }

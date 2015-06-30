@@ -48,15 +48,9 @@ abstract class Weapon: Entity, Modifier
         drawModel(dt);
         unbind();
     }
-
-    override void freeContent()
-    {
-        super.freeContent();
-    }
     
     override void free()
     {
-        freeContent();
         Delete(this);
     }
 

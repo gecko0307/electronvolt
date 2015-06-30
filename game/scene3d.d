@@ -67,16 +67,18 @@ class FramebufferObject: Modifier
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     
-    void free()
+    ~this()
     {
         glDeleteRenderbuffersEXT(1, &rbDepth);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         glDeleteFramebuffersEXT(1, &fbo);
         tex.free();
-        Delete(this);
     }
     
-    mixin ManualModeImpl;
+    void free()
+    {
+        Delete(this);
+    }
 }
 
 class FBOLayer: Layer
@@ -136,15 +138,13 @@ class FBOLayer: Layer
             super.draw(dt);
     }
     
-    override void freeContent()
+    ~this()
     {
-        super.freeContent();
         fbo.free();
     }
     
     override void free()
     {
-        freeContent();
         Delete(this);
     }
 }
@@ -735,9 +735,8 @@ class Scene3DRoom: Room
         pCounterLine.position = Vector2f(8 + 32 + 8, height - 16 - font.height);
     }
     
-    override void free()
+    ~this()
     {
-        super.freeContent();
         if (shader !is null)
             shader.free();
         camera.free();
@@ -756,7 +755,10 @@ class Scene3DRoom: Room
         
         if (sBlurh !is null) sBlurh.free();
         if (sBlurv !is null) sBlurv.free();
-        
+    }
+    
+    override void free()
+    {        
         Delete(this);
     }
 }

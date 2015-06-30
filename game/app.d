@@ -37,7 +37,7 @@ class TestApp: RoomApplication
         auto fontDroid18 = New!FreeTypeFont("data/fonts/droid/DroidSans.ttf", 18);
         rm.addFont("Droid", fontDroid18);
         
-        rooms = New!(AArray!Room)();
+        //rooms = New!(AArray!Room)();
         
         addRoom("pause", New!PauseRoom(eventManager, this));
         setCurrentRoom("pause", false);
@@ -57,15 +57,13 @@ class TestApp: RoomApplication
         loading.reset(name);
     }
     
-    override void freeContent()
+    ~this()
     {
-        super.freeContent();
-        rm.free();
+        Delete(rm);
     }
     
     override void free()
     {
-        freeContent();
         Delete(this);
     }
 }

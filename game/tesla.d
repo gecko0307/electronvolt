@@ -145,9 +145,6 @@ class TeslaEffect: Object3D
     
     override void free()
     {
-        //super.freeContent();
         Delete(this);
     }
-
-    mixin ManualModeImpl;
 }

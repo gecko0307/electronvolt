@@ -38,7 +38,6 @@ class PhysicsEntity: Entity
     
     override void free()
     {
-        shape = null;
         Delete(this);
     }
 }

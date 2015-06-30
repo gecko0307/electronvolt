@@ -8,7 +8,7 @@ Follow the development blog (in Russian) at http://dlanggamedev.blogspot.ru
 
 Gameplay
 --------
-Atrium will provide high level of interactivity, featuring fully dynamic world with everything being controlled by the physics engine. You will be able to walk on any surface and push any object, use special devices to affect gravity and other physical behaviours of the environment. The gameplay will be peaceful and non-violent: explore the world, solve  the puzzles and unleash the mysteries.
+Atrium will provide high level of interactivity, featuring fully dynamic world with everything being controlled by the physics engine. You will be able to walk on any surface and push any object, use special devices to affect gravity and other physical behaviours of the environment. The gameplay will be peaceful and non-violent: explore the world, solve the puzzles and unleash the mysteries.
 
 Screenshots
 -----------
