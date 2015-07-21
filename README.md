@@ -17,6 +17,6 @@ Screenshots
 
 Tech details
 ------------
-Atrium uses OpenGL for rendering, thus (theoretically) supporting all platforms that provide OpenGL API. Main target platforms for now are Windows and Linux. Currently Atrium is tested and known to work on Ubuntu 8.10, Windows XP, Windows Vista and Windows 7 (32-bit).
+Atrium uses OpenGL for rendering, thus (theoretically) supporting all platforms that provide OpenGL API. Main target platforms for now are Windows and Linux. Currently Atrium is tested and known to work on Ubuntu 8.10, Windows XP, Windows Vista, Windows 7 and Windows 8 (32-bit).
 
 The project is written in D2 using Phobos and requires up-to-date D compiler (DMD or LDC). To build Atrium, follow the instructions in the INSTALL file.
