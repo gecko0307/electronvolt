@@ -4,7 +4,7 @@ The goal of this project is to create a first-person shooter with physics based 
 
 Visit the project site at http://gecko0307.github.io/atrium
 
-Follow the development blog (in Russian) at http://dlanggamedev.blogspot.ru
+Also visit our [GameJolt page](http://gamejolt.com/games/action/atrium/46185) and follow the development blog (in Russian) at http://dlanggamedev.blogspot.ru
 
 Gameplay
 --------
@@ -21,7 +21,7 @@ Atrium uses OpenGL for rendering, thus (theoretically) supporting all platforms 
 
 Download
 --------
-The project is still far from being finished, but you already can give it a shot: download a recent testbuild for your OS from [here](https://www.dropbox.com/sh/mmh9qod4x2nsuyi/66ZW6KX7N6). Also visit our [GameJolt page](http://gamejolt.com/games/action/atrium/46185) and [development blog](http://dlanggamedev.blogspot.ru) (in Russian).
+The project is still far from being finished, but you already can give it a shot: download a recent testbuild for your OS from [here](https://www.dropbox.com/sh/mmh9qod4x2nsuyi/66ZW6KX7N6).
 
 Build from source
 -----------------
