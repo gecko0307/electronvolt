@@ -19,4 +19,10 @@ Tech details
 ------------
 Atrium uses OpenGL for rendering, thus (theoretically) supporting all platforms that provide OpenGL API. Main target platforms for now are Windows and Linux. Currently Atrium is tested and known to work on Ubuntu 8.10, Windows XP, Windows Vista, Windows 7 and Windows 8 (32-bit).
 
+Download
+--------
+The project is still far from being finished, but you already can give it a shot: download a recent testbuild for your OS from [here](https://www.dropbox.com/sh/mmh9qod4x2nsuyi/66ZW6KX7N6). Also visit our [GameJolt page](http://gamejolt.com/games/action/atrium/46185) and [development blog](http://dlanggamedev.blogspot.ru) (in Russian).
+
+Build from source
+-----------------
 The project is written in D2 using Phobos and requires up-to-date D compiler (DMD or LDC). To build Atrium, follow the instructions in the INSTALL file.
