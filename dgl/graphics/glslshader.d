@@ -37,7 +37,7 @@ import derelict.opengl.glext;
 import dgl.core.event;
 import dgl.graphics.shader;
 
-final class GLSLShader: Shader
+class GLSLShader: Shader
 {
     EventManager eventManager;
     GLenum shaderVert;

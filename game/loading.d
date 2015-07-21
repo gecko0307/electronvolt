@@ -12,7 +12,7 @@ class LoadingRoom: Room
     string nextRoomName;
     double counter = 0.0;
     
-    this(EventManager em, TestApp app)
+    this(EventManager em, GameApp app)
     {
         super(em, app);        
         layer2d = addLayer(LayerType.Layer2D);

@@ -22,6 +22,7 @@ class FirstPersonCamera: Modifier
     float roll = 0.0f;
     float gunPitch = 0.0f;
     float gunRoll = 0.0f;
+    Matrix4x4f worldTransInv;
     
     this(Vector3f position)
     {
@@ -29,8 +30,7 @@ class FirstPersonCamera: Modifier
     }
     
     Matrix4x4f worldTrans(double dt)
-    {
-        //roll = -gunSway.x * 5.0f;   
+    {  
         Matrix4x4f m = translationMatrix(position + eyePosition);
         m *= rotationMatrix(Axis.y, degtorad(turn));
         m *= rotationMatrix(Axis.x, degtorad(pitch));
@@ -48,7 +48,7 @@ class FirstPersonCamera: Modifier
         gunTransformation *= rotationMatrix(Axis.z, degtorad(gunRoll));
         gunTransformation *= translationMatrix(gunPosition);
         
-        Matrix4x4f worldTransInv = transformation.inverse;
+        worldTransInv = transformation.inverse;
         glPushMatrix();
         glMultMatrixf(worldTransInv.arrayof.ptr);
     }

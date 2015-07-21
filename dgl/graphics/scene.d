@@ -45,10 +45,8 @@ import dgl.graphics.shader;
 import dgl.asset.resman;
 
 /*
- * Scene class stores a number of entities
- * together with their meshes and materials.
- * Textures are stored separately, in ResourceManager
- * (because textures may be shared between several Scenes).
+ * Scene class stores a number of entities together with their meshes and materials.
+ * Textures are stored separately, in ResourceManager, because textures may be shared between several Scenes.
  * Scene is bind to ResourceManager.
  */
 

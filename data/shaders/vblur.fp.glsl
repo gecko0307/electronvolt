@@ -17,5 +17,5 @@ void main(void)
     total *= 0.95;
         
     gl_FragColor = total;
-    gl_FragColor.a = 0.3;
+    //gl_FragColor.a = 0.1;
 }

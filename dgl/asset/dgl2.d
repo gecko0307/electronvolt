@@ -50,6 +50,13 @@ import dgl.graphics.mesh;
 import dgl.asset.resman;
 import dgl.asset.serialization;
 
+/*
+ * DGL2 is a simple chunk-based binary scene format for DGL. It is a successor of DGL format (DGL1).
+ * Main change from DGL1 is the usage of DML (DGL Markup Language) instead of JSON for serializing game-specific properties.
+ * DGL2 supports meshes, entities and per-polygon materials with maximum of 8 texture slots.
+ * You can create DGL2 scenes in Blender, via our exporter (io_export_dgl2.py).
+ */
+
 //version = DGLDebug;
 
 enum ChunkType

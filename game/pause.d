@@ -10,7 +10,7 @@ class PauseRoom: Room
     ScreenSprite pauseScreen;
     Texture pauseTex;
 
-    this(EventManager em, TestApp app)
+    this(EventManager em, GameApp app)
     {
         super(em, app);
         
@@ -20,9 +20,6 @@ class PauseRoom: Room
         
         pauseScreen = New!ScreenSprite(em, pauseTex);
         layer2d.addDrawable(pauseScreen);
-        
-        //TextLineInput text = New!TextLineInput(em, app.rm.getFont("Droid"), Vector2f(10, em.windowHeight - 32));
-        //layer2d.addDrawable(text);
     }
     
     override void onEnter()
@@ -36,7 +33,6 @@ class PauseRoom: Room
             app.exit();
         else if (key == SDLK_RETURN)
         {
-            //eventManager.showCursor(false);
             app.setCurrentRoom("scene3d");
         }
     }

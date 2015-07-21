@@ -3,7 +3,13 @@ module kinematic;
 import dlib;
 import dmech;
 
-class KinematicObject: Freeable
+/*
+ * Kinematic controller implements an object that doesn't react to collisions 
+ * with other bodies (like static body), yet is able to move and transfer its
+ * movement to dynamic bodies - ideal for things like moving platforms.
+ * Kinematic object's movement is fully controlled by the programmer.
+ */
+class KinematicController: Freeable
 {
     PhysicsWorld world;
     RigidBody rbody;
@@ -16,18 +22,9 @@ class KinematicObject: Freeable
         world.addShapeComponent(rbody, geom, Vector3f(0, 0, 0), 1.0f);
     }
 
-    Vector3f p1 = Vector3f(10, 4, 0);
-    Vector3f p2 = Vector3f(-3, 0.5f, 0);
-    float t = 0.0f;
-    int moveFwd = 1;
-    void update(double dt)
+    void moveToPosition(Vector3f pos, double dt)
     {
-        t += 0.1f * dt * moveFwd;
-        if (t >= 1.0f) { moveFwd = -1; }
-        else if (t <= 0.0f) { moveFwd = +1; }
-
-        Vector3f newPosition = lerp(p1, p2, t);
-        rbody.linearVelocity = (newPosition - rbody.position) / dt;
+        rbody.linearVelocity = (pos - rbody.position) / dt;
         rbody.position += rbody.linearVelocity * dt;
         rbody.updateShapeComponents();
     }
@@ -37,3 +34,5 @@ class KinematicObject: Freeable
         Delete(this);
     }
 }
+
+

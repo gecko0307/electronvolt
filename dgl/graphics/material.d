@@ -89,14 +89,14 @@ class Material: Modifier
 
     void bind(double dt)
     {
+        glDisable(GL_TEXTURE_2D);
+        
         glEnable(GL_LIGHTING);
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambientColor.arrayof.ptr);
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseColor.arrayof.ptr);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specularColor.arrayof.ptr);
         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissionColor.arrayof.ptr);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, &shininess);
-
-		//glDisable(GL_NORMALIZE);
 
         if (additiveBlending)
             glBlendFunc(GL_ONE, GL_ONE);
@@ -120,8 +120,6 @@ class Material: Modifier
 
         if (shader && !useDimLight)
             shader.bind(dt);
-
-		//glEnable(GL_NORMALIZE);
     }
 
     void unbind()

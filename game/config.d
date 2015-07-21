@@ -9,8 +9,10 @@ DMLData config;
 void readConfig()
 {
 	config.set("enableShadows", "1");
+    config.set("enableGLSLShadows", "1");
     config.set("shadowMapSize", "512");
     config.set("enableShaders", "1");
+    config.set("enableGlow", "1");
     config.set("videoWidth", "800");
     config.set("videoHeight", "600");
 	

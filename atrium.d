@@ -8,13 +8,13 @@ import game.app;
 
 void main(string[] args)
 {
+    loadLibraries();
     readConfig();
 
     writefln("Allocated memory at start: %s", allocatedMemory);
-    loadLibraries();
-    auto app = New!TestApp();
+    auto app = New!GameApp();
     app.run();
     Delete(app);
     writefln("Allocated memory at end: %s", allocatedMemory);
+    //printMemoryLog();
 }
-

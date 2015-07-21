@@ -53,10 +53,10 @@ class ResourceManager: Freeable, Drawable
     AArray!Font fonts;
     AArray!Texture textures;
 
-	  DynamicArray!Scene _scenes;
-	  AArray!size_t scenesByName;
+    DynamicArray!Scene _scenes;
+    AArray!size_t scenesByName;
 
-	  LightManager lm;
+    LightManager lm;
     ShadowMap shadow;
     bool enableShadows = false;
 

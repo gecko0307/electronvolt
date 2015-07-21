@@ -1,4 +1,4 @@
-﻿module game.cc;
+﻿module game.character;
 
 import std.math;
 
@@ -22,7 +22,7 @@ import dmech.raycast;
  * CharacterController is intended for
  * generic action game character movement.
  */
-class CharacterController: Freeable, CollisionDispatcher
+class CharacterController: Freeable //, CollisionDispatcher
 {
     PhysicsWorld world;
     RigidBody rbody;
@@ -52,16 +52,19 @@ class CharacterController: Freeable, CollisionDispatcher
         world.addShapeComponent(rbody, geom, Vector3f(0, 0, 0), mass);
         rotation = Vector3f(0, 0, 0);
 
-        rbody.collisionDispatchers.append(this);
+        //rbody.collisionDispatchers.append(this);
     }
 
     void onNewContact(RigidBody b, Contact c)
     {
+    /*
+        // FIXME
 	    newContactSlopeFactor = dot((c.point - b.position).normalized, world.gravity.normalized);
         if (newContactSlopeFactor > 0.0f)
         {
             collidingWithFloor = true;
         }
+    */
     }
 
     void update(bool clampY = true)
@@ -76,8 +79,6 @@ class CharacterController: Freeable, CollisionDispatcher
         else
             velocityChange.y = clamp(velocityChange.y, -maxVelocityChange, maxVelocityChange);
         rbody.linearVelocity += velocityChange;
-
-        //speed = 0.0f;
 
         falling = rbody.linearVelocity.y < -0.05f;
         jumping = rbody.linearVelocity.y > 0.05f;

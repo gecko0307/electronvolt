@@ -41,15 +41,11 @@ import dgl.graphics.material;
 
 class ScreenSprite: EventListener, Drawable
 {
-    //Texture loadingTex;
-    //Color4f color;
     Material material;
 
     this(EventManager em, Texture tex)
     {
         super(em);
-        //loadingTex = tex;
-        //color = Color4f(1, 1, 1, 1);
         material = New!Material();
         material.shadeless = true;
         material.textures[0] = tex;
@@ -58,7 +54,6 @@ class ScreenSprite: EventListener, Drawable
     override void draw(double dt)
     {
         material.bind(dt);
-        //glColor4fv(color.arrayof.ptr);
         glBegin(GL_QUADS);
         glTexCoord2f(0, 1); glVertex2f(0, eventManager.windowHeight);
         glTexCoord2f(0, 0); glVertex2f(0, 0);

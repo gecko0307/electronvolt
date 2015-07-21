@@ -65,14 +65,14 @@ class ShadowMap: Drawable
     float ofsFactor = 4.7;
     float ofsUnits = 5.3;
 
-	bool useShader = true;
+    bool useShader = true;
 
     this(uint w, uint h)
     {
         width = w;
         height = h;
 
-        glDepthFunc(GL_LEQUAL);
+        //glDepthFunc(GL_LEQUAL);
         glEnable(GL_DEPTH_TEST);
 
         glGenTextures(1, &depthBuffer);
@@ -81,8 +81,6 @@ class ShadowMap: Drawable
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //GL_NEAREST for sharp edges
         //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        //Vector4f wrapColor = Vector4f(1, 1, 1, 1);
-        //glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, wrapColor.arrayof.ptr);
 
         //Enable shadow comparison
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_COMPARE_R_TO_TEXTURE_ARB);
@@ -92,11 +90,13 @@ class ShadowMap: Drawable
         glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
 
         glTexImage2D(GL_TEXTURE_2D, 0,
-            GL_DEPTH_COMPONENT, width, height, 0,
-            GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null);
+           GL_DEPTH_COMPONENT, width, height, 0,
+           GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null);
+        //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
 
         glLoadIdentity();
-        glOrtho(-13, 13, -13, 13, -100.0f, 100.0f);
+        float size = 20;
+        glOrtho(-size, size, -size, size, -20.0f, 100.0f);
         glGetFloatv(GL_MODELVIEW_MATRIX, lightProjectionMatrix.arrayof.ptr);
         glLoadIdentity();
 
@@ -118,14 +118,6 @@ class ShadowMap: Drawable
         glGetFloatv(GL_MODELVIEW_MATRIX, lightViewMatrix.arrayof.ptr);
         glPopMatrix();
 
-        //lightViewMatrix = directionToMatrix(Vector3f(0, -1, 0).normalized);
-
-        //Vector3f posVector = Vector3f(lightPosition.x, 20.0f, lightPosition.z);
-        //Vector3f toVector = Vector3f(lightPosition.x, 0.0f, lightPosition.z);
-        //lightViewMatrix = lookAtMatrix(Vector3f(0, -1, 0), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
-            //translationMatrix(Vector3f(lightPosition));
-            //rotationMatrix(2, degtorad(-90.0f));
-
         renderDepthBuffer(dt);
 
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -137,8 +129,6 @@ class ShadowMap: Drawable
         glLightfv(GL_LIGHT7, GL_SPECULAR, black.arrayof.ptr);
         glEnable(GL_LIGHT7);
         glEnable(GL_LIGHTING);
-
-        //matUseShaders = false;
 
         if (receiveScene)
         {
@@ -163,6 +153,10 @@ class ShadowMap: Drawable
         glActiveTextureARB(GL_TEXTURE3_ARB);
         bindDepthBuffer();
 
+        //Matrix4x4f modelView;
+        //glGetFloatv(GL_MODELVIEW_MATRIX, modelView.arrayof.ptr);
+        //Matrix4x4f invViewMartrix = modelView.inverse();
+
         // Calculate texture matrix for projection
         // This matrix takes us from eye space to the light's clip space
         // It is postmultiplied by the inverse of the current view matrix when specifying texgen
@@ -170,16 +164,16 @@ class ShadowMap: Drawable
         glMatrixMode(GL_TEXTURE);
         glPushMatrix();
         glLoadIdentity();
-        //glLoadMatrixf(textureMatrix.arrayof.ptr);
-        glTranslatef(0.5f, 0.5f, 0.5f); // remap from [-1,1]^2 to [0,1]^2
+        glTranslatef(0.5f, 0.5f, 0.5f); // bias matrix
         glScalef(0.5f, 0.5f, 0.5f);
         glMultMatrixf(lightProjectionMatrix.arrayof.ptr);
         glMultMatrixf(lightViewMatrix.arrayof.ptr);
+        //glMultMatrixf(invViewMartrix.arrayof.ptr);
         glMatrixMode(GL_MODELVIEW);
-
-        auto ide = Matrix4x4f.identity;
-
+        
         //Set up texture coordinate generation.
+        auto ide = Matrix4x4f.identity;
+        
         glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
         glTexGenfv(GL_S, GL_EYE_PLANE, ide.getRow(0).arrayof.ptr);
         glEnable(GL_TEXTURE_GEN_S);
@@ -204,8 +198,6 @@ class ShadowMap: Drawable
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(ofsFactor, ofsUnits);
-
-        //matUseShaders = true;
 
         if (castScene)
         {
@@ -258,15 +250,12 @@ class ShadowMap: Drawable
         glPushMatrix();
         glLoadMatrixf(lightViewMatrix.arrayof.ptr);
 
-        //matUseShaders = false;
-
         // Draw the scene
         if (castScene)
         {
-		    dgl.graphics.material.useDimLight = true;
-            //castScene.setMaterialsUseShaders(false);
+            dgl.graphics.material.useDimLight = true;
             castScene.draw(dt);
-			dgl.graphics.material.useDimLight = false;
+            dgl.graphics.material.useDimLight = false;
         }
 
         glPopMatrix();

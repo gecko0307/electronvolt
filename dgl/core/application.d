@@ -96,7 +96,8 @@ class Application: EventListener
         glAlphaFunc(GL_GREATER, 0.0);
         glEnable(GL_ALPHA_TEST);
         glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
+        glDepthFunc(GL_LEQUAL);
+        //glDepthFunc(GL_LESS);
         glEnable(GL_CULL_FACE);
 
         EventManager emngr = New!EventManager(width, height);

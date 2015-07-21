@@ -7,7 +7,7 @@ import game.pause;
 import game.scene3d;
 import game.config;
 
-class TestApp: RoomApplication
+class GameApp: RoomApplication
 {
     ResourceManager rm;
     LoadingRoom loading;
@@ -25,19 +25,17 @@ class TestApp: RoomApplication
     
     this()
     {
-        super(videoWidth(), videoHeight(), "Atrium"); // TODO: read resolution from config
+        super(videoWidth(), videoHeight(), "Atrium");
 
         exitOnEscapePress = false;
         
-        clearColor = Color4f(0.5f, 0.5f, 0.5f);
+        clearColor = Color4f(0.0f, 0.0f, 0.0f);
 
         rm = New!ResourceManager();
         rm.fs.mount("data");
         
         auto fontDroid18 = New!FreeTypeFont("data/fonts/droid/DroidSans.ttf", 18);
         rm.addFont("Droid", fontDroid18);
-        
-        //rooms = New!(AArray!Room)();
         
         addRoom("pause", New!PauseRoom(eventManager, this));
         setCurrentRoom("pause", false);
