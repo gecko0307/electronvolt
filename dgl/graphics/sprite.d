@@ -55,10 +55,10 @@ class ScreenSprite: EventListener, Drawable
     {
         material.bind(dt);
         glBegin(GL_QUADS);
-        glTexCoord2f(0, 1); glVertex2f(0, eventManager.windowHeight);
-        glTexCoord2f(0, 0); glVertex2f(0, 0);
-        glTexCoord2f(1, 0); glVertex2f(eventManager.windowWidth, 0);
-        glTexCoord2f(1, 1); glVertex2f(eventManager.windowWidth, eventManager.windowHeight);
+        glTexCoord2f(0, 0); glVertex2f(0, eventManager.windowHeight);
+        glTexCoord2f(0, 1); glVertex2f(0, 0);
+        glTexCoord2f(1, 1); glVertex2f(eventManager.windowWidth, 0);
+        glTexCoord2f(1, 0); glVertex2f(eventManager.windowWidth, eventManager.windowHeight);
         glEnd();
         material.unbind();
         glDisable(GL_LIGHTING);
@@ -99,10 +99,10 @@ class Sprite: Drawable
         glScalef(width, height, 1.0f);
         texture.bind(dt);
         glBegin(GL_QUADS);
-        glTexCoord2f(0, 1); glVertex2f(0, 1);
-        glTexCoord2f(0, 0); glVertex2f(0, 0);
-        glTexCoord2f(1, 0); glVertex2f(1, 0);
-        glTexCoord2f(1, 1); glVertex2f(1, 1);
+        glTexCoord2f(0, 0); glVertex2f(0, 1);
+        glTexCoord2f(0, 1); glVertex2f(0, 0);
+        glTexCoord2f(1, 1); glVertex2f(1, 0);
+        glTexCoord2f(1, 0); glVertex2f(1, 1);
         glEnd();
         texture.unbind();
         glPopMatrix();
@@ -163,10 +163,10 @@ class AnimatedSprite: Drawable
         glScalef(tileWidth, tileHeight, 1.0f);
         texture.bind(dt);
         glBegin(GL_QUADS);
-        glTexCoord2f(u, v);         glVertex2f(0, 0);
-        glTexCoord2f(u + w, v);     glVertex2f(1, 0);
-        glTexCoord2f(u + w, v + h); glVertex2f(1, 1);
-        glTexCoord2f(u, v + h);     glVertex2f(0, 1);
+        glTexCoord2f(u, v + h);     glVertex2f(0, 0);
+        glTexCoord2f(u + w, v + h); glVertex2f(1, 0);
+        glTexCoord2f(u + w, v);     glVertex2f(1, 1);
+        glTexCoord2f(u, v);         glVertex2f(0, 1);
         glEnd();
         texture.unbind();
         glPopMatrix();

@@ -36,7 +36,7 @@ class Axes: Drawable
 {
     override void draw(double dt)
     {
-        glDisable(GL_LIGHTING);
+        //glDisable(GL_LIGHTING);
         glPointSize(5.0f);
         glPushMatrix();
         glScalef(10.0f, 10.0f, 10.0f);
@@ -70,7 +70,7 @@ class Axes: Drawable
         glEnd();
         glPopMatrix();
         glPointSize(1.0f);
-        glEnable(GL_LIGHTING);
+        //glEnable(GL_LIGHTING);
     }
 
     override void free()

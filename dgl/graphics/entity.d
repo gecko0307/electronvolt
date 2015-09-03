@@ -123,6 +123,7 @@ class Entity: Object3D
 
     override AABB getAABB()
     {
+        // TODO: calculate actual size
         return AABB(transformation.translation, Vector3f(1, 1, 1));
     }
 

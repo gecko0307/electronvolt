@@ -244,6 +244,16 @@ final class TrackballCamera: Modifier
     {
         return transform.forward();
     }
+    
+    Matrix4x4f getTransform()
+    {
+        return transform;
+    }
+    
+    float getDistance()
+    {
+        return distance;
+    }
 
     void strafe(float speed)
     {
