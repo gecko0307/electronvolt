@@ -25,11 +25,10 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
+module dgl.graphics.axes;
 
 import derelict.opengl.gl;
-
 import dlib.core.memory;
-
 import dgl.core.interfaces;
 
 class Axes: Drawable

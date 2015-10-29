@@ -107,6 +107,20 @@ package
         extLoadPlatform();
     }
 
+    void extLoadMinimal()
+    {
+        loaded["GL_ARB_multitexture"] = load_GL_ARB_multitexture();
+        loaded["GL_ARB_vertex_program"] = load_GL_ARB_vertex_program();
+        loaded["GL_ARB_fragment_program"] = load_GL_ARB_fragment_program();
+        loaded["GL_ARB_vertex_buffer_object"] = load_GL_ARB_vertex_buffer_object();
+        loaded["GL_ARB_shader_objects"] = load_GL_ARB_shader_objects();
+        loaded["GL_ARB_vertex_shader"] = load_GL_ARB_vertex_shader();
+        loaded["GL_ARB_fragment_shader"] = load_GL_ARB_fragment_shader();
+        loaded["GL_ARB_shading_language_100"] = load_GL_ARB_shading_language_100();
+        loaded["GL_ARB_texture_non_power_of_two"] = load_GL_ARB_texture_non_power_of_two();
+        loaded["GL_ARB_framebuffer_object"] = load_GL_ARB_framebuffer_object();
+    }
+
     string[] getLoadedExtensionNames()
     {
         auto keys = loaded.keys;

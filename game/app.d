@@ -24,7 +24,7 @@ class GameApp: RoomApplication
     }
     
     this()
-    {
+    {       
         super(videoWidth(), videoHeight(), "Atrium");
 
         exitOnEscapePress = false;
@@ -32,7 +32,7 @@ class GameApp: RoomApplication
         clearColor = Color4f(0.0f, 0.0f, 0.0f);
 
         rm = New!ResourceManager();
-        rm.fs.mount("data");
+        rm.fs.mount("data/default");
         
         auto fontDroid18 = New!FreeTypeFont("data/fonts/droid/DroidSans.ttf", 18);
         rm.addFont("Droid", fontDroid18);

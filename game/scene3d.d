@@ -179,35 +179,6 @@ Vector2f lissajousCurve(float t)
     return Vector2f(sin(t), cos(2 * t));
 }
 
-class ShadowShader: GLSLShader
-{
-    Matrix4x4f invCamView;
-    FirstPersonCamera camera;
-    
-    this(EventManager emgr, FirstPersonCamera camera, string vertexProgram, string fragmentProgram)
-    {
-        super(emgr, vertexProgram, fragmentProgram);
-        invCamView = Matrix4x4f.identity;
-        this.camera = camera;
-    }
-    
-    override void bind(double delta)
-    {
-        super.bind(delta);
-        if (_supported)
-        {
-            GLuint id = glGetUniformLocation(shaderProg, cast(char*)("dgl_InvCamViewMatrix"));
-            invCamView = camera.transformation;
-            glUniformMatrix4fv(id, 1, GL_FALSE, invCamView.arrayof.ptr);
-        }
-    }
-    
-    override void free()
-    {
-        Delete(this);
-    }
-}
-
 class MovingPlatfrom: KinematicController
 {
     this(PhysicsWorld world, Vector3f pos, Geometry geom)
@@ -266,7 +237,11 @@ class Scene3DRoom: Room
     TextLine textLine;
     TextLine pCounterLine;
 
-    Shader shader;
+    GLSLShader shShadeless;
+    GLSLShader shSimple;
+    GLSLShader shTex;
+    GLSLShader shBump;
+    GLSLShader shParallax;
     
     uint numPentagons = 0;
     
@@ -292,9 +267,7 @@ class Scene3DRoom: Room
     
     GLSLShader sBlurh;
     GLSLShader sBlurv;
-    
-    ShadowShader smShader;
-    
+        
     Material gunMaterial;
     
     bool shadersEnabled()
@@ -303,7 +276,7 @@ class Scene3DRoom: Room
     }
     
     bool glowEnabled()
-    {
+    {       
         return config["enableGlow"].toInt && shadersEnabled();
     }
     
@@ -322,18 +295,15 @@ class Scene3DRoom: Room
         super(em, app);
         
         rm = New!ResourceManager();
-        rm.fs.mount("data/levels/corridor");
-        rm.fs.mount("data/items");
-        rm.fs.mount("data/shaders");
-        rm.fs.mount("data/weapons");
-        rm.fs.mount("data/ui");
+        rm.fs.mount("data/levels/new"); // level files override default ones
+        rm.fs.mount("data/default/items");
+        rm.fs.mount("data/default/weapons");
+        rm.fs.mount("data/default/shaders");
+        rm.fs.mount("data/default/ui");
         
         // Load objects
         scenePhysics = rm.addEmptyScene("physics", false);
-        
-        generateTangentVectors = false;
-        sceneLevel = rm.loadScene("corridor.dgl2", false);
-        generateTangentVectors = true;
+        sceneLevel = rm.loadScene("walls.dgl2", false);
         sceneCube = rm.loadScene("box.dgl2", false);
         sceneGravityGun = rm.loadScene("gravity-gun.dgl2", false);
         scenePentagon = rm.loadScene("pentagon.dgl2", false);
@@ -341,6 +311,8 @@ class Scene3DRoom: Room
         scenePickables.lighted = false;
         
         sceneLevel.createDynamicLights();
+        
+        string txtVP, txtFP;
         
         if (glowEnabled())
         {
@@ -352,17 +324,8 @@ class Scene3DRoom: Room
             blurLayer.drawToScreen = false;
             addLayer(blurLayer);
         
-            string txtVP = rm.readText("blur.vp.glsl");
-            string txtFP = rm.readText("hblur.fp.glsl");
-            sBlurh = New!GLSLShader(em, txtVP, txtFP);
-            Delete(txtVP);
-            Delete(txtFP);
-
-            txtVP = rm.readText("blur.vp.glsl");
-            txtFP = rm.readText("vblur.fp.glsl");
-            sBlurv = New!GLSLShader(em, txtVP, txtFP);
-            Delete(txtVP);
-            Delete(txtFP);
+            sBlurh = loadShader(em, "blur.vp.glsl", "hblur.fp.glsl");
+            sBlurv = loadShader(em, "blur.vp.glsl", "vblur.fp.glsl");
 
             renderedSprite = New!ScreenSprite(em, fboLayer.fbo.tex);
             renderedSprite.material.shader = sBlurh;
@@ -420,11 +383,15 @@ class Scene3DRoom: Room
         
         // Create geoms
         gSphere = New!GeomSphere(1.0f);
-        gBox = New!GeomBox(Vector3f(1, 1, 1));
+        gBox = New!GeomBox(Vector3f(0.75, 0.75, 0.75));
 
         // Create camera
         // TODO: read playerPos from scene data (use entity with a special name)
         Vector3f playerPos = Vector3f(20, 2, 0);
+        if (sceneLevel.entity("spawnPos"))
+        {
+            playerPos = sceneLevel.entity("spawnPos").position;
+        }
         camera = New!FirstPersonCamera(playerPos);
         camera.turn = -90.0f;
         camera.eyePosition = Vector3f(0, 0.0f, 0);
@@ -445,26 +412,65 @@ class Scene3DRoom: Room
         // Apply bump shader
         if (shadersEnabled())
         {
-            shader = bumpShader(em);
-        
+            shBump = uberShader(em);
+            shBump.setParamBool("textureEnabled", true);
+            shBump.setParamBool("bumpEnabled", true);
+            shBump.setParamBool("parallaxEnabled", false);
+
             gunMaterial = sceneGravityGun.material("matGravityGun");
             if (gunMaterial)
             {
-                gunMaterial.shader = shader;
+                gunMaterial.shader = shBump;
                 gunMaterial.textures[1] = rm.getTexture("gravity-gun-normal.png");
                 gunMaterial.textures[2] = rm.getTexture("gravity-gun-emit.png");
-                gunMaterial.ambientColor = Color4f(0.3, 0.5, 0.7, 1.0);
-                gunMaterial.specularColor = Color4f(0.9, 0.9, 0.9, 1.0);
+                //gunMaterial.ambientColor = Color4f(0.3, 0.5, 0.7, 1.0);
+                //gunMaterial.specularColor = Color4f(0.9, 0.9, 0.9, 1.0);
                 gunMaterial.emissionColor.w = 0.0f;
             }
         
-            auto m = sceneCube.material("Material");
-            if (m)
+            auto matCube = sceneCube.material("Material");
+            if (matCube)
             {
-                m.shader = shader;
-                m.textures[1] = rm.getTexture("normal.png");
-                m.textures[2] = rm.getTexture("emit.png");
-                m.emissionColor.w = 1.0f;
+                matCube.shader = shBump;
+                matCube.textures[1] = rm.getTexture("normal.png");
+                matCube.textures[2] = rm.getTexture("emit.png");
+                //m.ambientColor = Color4f(0.5, 0.5, 0.5, 1.0);
+                matCube.emissionColor.w = 1.0f;
+            }
+
+            shParallax = uberShader(em);
+            shParallax.setParamBool("textureEnabled", true);
+            shParallax.setParamBool("bumpEnabled", true);
+            shParallax.setParamBool("parallaxEnabled", true);
+            sceneLevel.material("mBumpTest").shader = shParallax;
+            
+            shTex = uberShader(em);
+            shTex.setParamBool("textureEnabled", true);
+            shTex.setParamBool("bumpEnabled", false);
+            shTex.setParamBool("parallaxEnabled", false);
+            
+            shSimple = uberShader(em);
+            shSimple.setParamBool("textureEnabled", false);
+            shSimple.setParamBool("bumpEnabled", false);
+            shSimple.setParamBool("parallaxEnabled", false);
+            
+            shShadeless = uberShader(em);
+            shShadeless.setParamBool("shadeless", true);
+            shShadeless.setParamBool("textureEnabled", false);
+            shShadeless.setParamBool("bumpEnabled", false);
+            shShadeless.setParamBool("parallaxEnabled", false);
+            
+            foreach(i, m; sceneLevel.materials)
+            {
+                if (m.textures[1])
+                    m.shader = shParallax;
+                else if (m.textures[0])
+                    m.shader = shTex;
+                else if (!m.shadeless)
+                    m.shader = shSimple;
+                else
+                    m.shader = shShadeless;
+                // TODO: shadeless
             }
         }
 
@@ -472,25 +478,9 @@ class Scene3DRoom: Room
         if (shadowsEnabled())
         {
             rm.enableShadows = true;
-            rm.shadow = New!ShadowMap(config["shadowMapSize"].toInt, config["shadowMapSize"].toInt);
+            rm.shadow = New!ShadowMap(config["shadowMapSize"].toInt, config["shadowMapSize"].toInt, camera);
             rm.shadow.castScene = scenePhysics;
             rm.shadow.receiveScene = sceneLevel;
-
-            if (glslShadowsEnabled())
-            {
-                string txtVP = rm.readText("shadowmapping.vp.glsl");
-                string txtFP = rm.readText("shadowmapping.fp.glsl");
-                smShader = New!ShadowShader(em, camera, txtVP, txtFP);
-                Delete(txtVP);
-                Delete(txtFP);
-                    
-                // Set the level geometry to use shadow mapping shader
-                foreach(i, m; rm.shadow.receiveScene.materials)
-                {
-                    if (m.numTextures > 1) // ignore materials without lightmap
-                        m.shader = smShader;
-                }
-            }
         }
         else
         {
@@ -508,6 +498,16 @@ class Scene3DRoom: Room
         scenePentagon.material("matPentagon").ambientColor = scenePentagon.material("matPentagon").diffuseColor;
         
         createDynamicObjects();
+    }
+    
+    GLSLShader loadShader(EventManager em, string vp, string fp)
+    {
+        string txtVP = rm.readText(vp);
+        string txtFP = rm.readText(fp);
+        auto shader = New!GLSLShader(em, txtVP, txtFP);
+        Delete(txtVP);
+        Delete(txtFP);
+        return shader;
     }
     
     void createDynamicObjects()
@@ -534,7 +534,7 @@ class Scene3DRoom: Room
     {
         auto b = world.addDynamicBody(position);
         b.stopThreshold = 0.1f;
-        auto sc = world.addShapeComponent(b, gBox, Vector3f(0, 0, 0), 10.0f);
+        auto sc = world.addShapeComponent(b, gBox, Vector3f(0, 0, 0), 20.0f);
         auto e = New!PhysicsEntity(sceneCube.mesh("Cube"), sc);
         scenePhysics.addEntity(format("box%s", boxIndex), e);
         
@@ -612,7 +612,7 @@ class Scene3DRoom: Room
         
         eventManager.setMouseToCenter();
     }
-
+        
     void playerControl()
     {   
         playerWalking = false;
@@ -683,9 +683,15 @@ class Scene3DRoom: Room
         {
             rm.shadow.lightPosition = camera.position;
             
-            if (glslShadowsEnabled())
-                smShader.invCamView = camera.transformation;
+            //if (glslShadowsEnabled())
+            //    smShader.invCamView = camera.transformation;
         }
+    }
+    
+    override void onRedraw()
+    {
+        rm.shadow.renderShadowMap(eventManager.deltaTime);
+        super.onRedraw();
     }
     
     void highlightShootedObject()
@@ -753,8 +759,12 @@ class Scene3DRoom: Room
     
     ~this()
     {
-        if (shader !is null)
-            shader.free();
+        if (shShadeless !is null) shShadeless.free();
+        if (shSimple !is null) shSimple.free();
+        if (shTex !is null) shTex.free();
+        if (shBump !is null) shBump.free();
+        if (shParallax !is null) shParallax.free();
+        
         camera.free();
         ccPlayer.free();
         world.free();
@@ -768,7 +778,6 @@ class Scene3DRoom: Room
         
         if (sBlurh !is null) sBlurh.free();
         if (sBlurv !is null) sBlurv.free();
-        if (smShader !is null) smShader.free();
     }
     
     override void free()

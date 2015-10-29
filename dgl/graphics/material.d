@@ -72,7 +72,7 @@ class Material: Modifier
 
     this()
     {
-        ambientColor = Color4f(0.7f, 0.7f, 0.7f, 1.0f);
+        ambientColor = Color4f(0.0f, 0.0f, 0.0f, 1.0f);
         diffuseColor = Color4f(0.8f, 0.8f, 0.8f, 1.0f);
         specularColor = Color4f(1.0f, 1.0f, 1.0f, 1.0f);
         emissionColor = Color4f(0.0f, 0.0f, 0.0f, 0.0f);
@@ -113,7 +113,7 @@ class Material: Modifier
         {
             if (tex !is null)
             {
-                glActiveTextureARB(GL_TEXTURE0_ARB + i);
+                glActiveTextureARB(GL_TEXTURE0_ARB + cast(uint)i);
                 tex.bind(dt);
             }
         }
@@ -132,7 +132,7 @@ class Material: Modifier
         {
             if (tex !is null)
             {
-                glActiveTextureARB(GL_TEXTURE0_ARB + i);
+                glActiveTextureARB(GL_TEXTURE0_ARB + cast(uint)i);
                 tex.unbind();
             }
         }

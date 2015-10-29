@@ -34,6 +34,7 @@ import derelict.opengl.glext;
 
 import dlib.core.memory;
 import dlib.container.array;
+import dlib.image.color;
 import dlib.math.vector;
 import dlib.math.matrix;
 import dlib.math.affine;
@@ -42,8 +43,169 @@ import dlib.math.utils;
 import dgl.core.interfaces;
 import dgl.graphics.scene;
 import dgl.graphics.material;
+import dgl.graphics.camera;
 
 class ShadowMap: Drawable
+{
+    Scene castScene;
+    Scene receiveScene;
+    
+    GLuint depthBuffer;
+    GLuint fbo;
+    
+    uint width, height;
+    GLint[4] viewport;
+    
+    Matrix4x4f lightProjectionMatrix;
+    Matrix4x4f lightViewMatrix;
+    Vector3f lightPosition = Vector4f(0.0f, -1.0f, 0.0f, 0.0f); //Vector4f(5.0f, 5.0f, 5.0f);
+    Matrix4x4f invCamMatrix;
+    Camera camera;
+    
+    this(uint w, uint h, Camera cam)
+    {
+        width = w;
+        height = h;
+        camera = cam;
+        
+        glEnable(GL_DEPTH_TEST);
+
+        glGenTextures(1, &depthBuffer);
+        glBindTexture(GL_TEXTURE_2D, depthBuffer);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        
+        Color4f col = Color4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, col.arrayof.ptr);
+
+        glTexImage2D(GL_TEXTURE_2D, 0,
+           GL_DEPTH_COMPONENT, width, height, 0,
+           GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null);
+           
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glGenFramebuffers(1, &fbo);
+	    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        
+        glDrawBuffer(GL_NONE);
+	    glReadBuffer(GL_NONE);
+        
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        glLoadIdentity();
+        float size = 12;
+        glOrtho(-size, size, -size, size, -20.0f, 100.0f);
+        glGetFloatv(GL_MODELVIEW_MATRIX, lightProjectionMatrix.arrayof.ptr);
+        glLoadIdentity();
+        
+        Vector3f v1 = Vector3f(1, -1, 1).normalized;
+        Vector3f v2 = cross(v1, Vector3f(0, 1, 0));
+        up = cross(v2, v1);
+        
+        invCamMatrix = Matrix4x4f.identity;
+    }
+    
+    Vector3f up;
+    
+    void renderShadowMap(double dt)
+    {
+        glPushMatrix();
+        glLoadIdentity();
+        Vector3f toVector = Vector3f(lightPosition.x + 1, -1, lightPosition.z + 1);
+        gluLookAt(lightPosition.x, 1, lightPosition.z,
+            toVector.x, toVector.y, toVector.z,
+            up.x, up.y, up.z);
+        glGetFloatv(GL_MODELVIEW_MATRIX, lightViewMatrix.arrayof.ptr);
+        glPopMatrix();
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        
+        glGetIntegerv(GL_VIEWPORT, viewport.ptr);
+        glViewport(0, 0, width, height);
+        
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glShadeModel(GL_FLAT);
+        glColorMask(0, 0, 0, 0);
+        
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadMatrixf(lightProjectionMatrix.arrayof.ptr);
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadMatrixf(lightViewMatrix.arrayof.ptr);
+        
+        glCullFace(GL_FRONT);
+        if (castScene)
+        {
+            dgl.graphics.material.useDimLight = true;
+            castScene.draw(dt);
+            dgl.graphics.material.useDimLight = false;
+        }
+        
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        
+        glCullFace(GL_BACK);
+        glShadeModel(GL_SMOOTH);
+        glColorMask(1, 1, 1, 1);
+        
+        glBindFramebuffer(GL_FRAMEBUFFER,0);
+        glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    }
+    
+    void draw(double dt)
+    {
+        invCamMatrix = camera.getTransform();
+        
+        //lightViewMatrix = lookAtMatrix(lightPosition, lightPosition - Vector3f(1, 1, 1), Vector3f(0, 1, 0));
+
+	    glActiveTextureARB(GL_TEXTURE7);
+        glMatrixMode(GL_TEXTURE);
+        glLoadIdentity();	
+        glTranslatef(0.5f, 0.5f, 0.5f); // bias
+        glScalef(0.5f, 0.5f, 0.5f);
+        glMultMatrixf(lightProjectionMatrix.arrayof.ptr);
+        glMultMatrixf(lightViewMatrix.arrayof.ptr);
+        glMultMatrixf(invCamMatrix.arrayof.ptr);
+        glMatrixMode(GL_MODELVIEW);
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, depthBuffer);
+        glActiveTextureARB(GL_TEXTURE0_ARB);
+
+        if (castScene)
+        {
+            castScene.draw(dt);
+        }
+        if (receiveScene)
+        {
+            receiveScene.draw(dt);
+        }
+        
+        glActiveTextureARB(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+        glActiveTextureARB(GL_TEXTURE0_ARB);
+    }
+    
+    ~this()
+    {
+        if (glIsTexture(depthBuffer))
+            glDeleteTextures(1, &depthBuffer);
+    }
+    
+    void free()
+    {
+        Delete(this);
+    }
+}
+
+/*
+class ShadowMapOld: Drawable
 {
     Scene castScene;
     Scene receiveScene;
@@ -301,3 +463,4 @@ class ShadowMap: Drawable
         glDisable(GL_TEXTURE_2D);
     }
 }
+*/

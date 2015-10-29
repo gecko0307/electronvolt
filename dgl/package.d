@@ -17,7 +17,7 @@ public
     import dgl.graphics.arbshader;
     import dgl.graphics.axes;
     import dgl.graphics.billboard;
-    import dgl.graphics.bumpshader;
+    import dgl.graphics.camera;
     import dgl.graphics.entity;
     import dgl.graphics.glslshader;
     import dgl.graphics.light;
@@ -32,6 +32,7 @@ public
     import dgl.graphics.sprite;
     import dgl.graphics.tbcamera;
     import dgl.graphics.texture;
+    import dgl.graphics.ubershader;
 
     import dgl.ui.font;
     import dgl.ui.ftfont;

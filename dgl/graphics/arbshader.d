@@ -62,7 +62,7 @@ final class ARBShader: Shader
             glBindProgramARB(GL_VERTEX_PROGRAM_ARB, vertShader);
             glProgramStringARB(GL_VERTEX_PROGRAM_ARB,
                                GL_PROGRAM_FORMAT_ASCII_ARB,
-                               vertexProgram.length,
+                               cast(uint)vertexProgram.length,
                                toStringz(vertexProgram));
             glGetIntegerv(GL_PROGRAM_ERROR_POSITION_ARB, &err);
             if (err >= 0)
@@ -74,7 +74,7 @@ final class ARBShader: Shader
             glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragShader);
             glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB,
                                GL_PROGRAM_FORMAT_ASCII_ARB,
-  			                   fragmentProgram.length,
+                               cast(uint)fragmentProgram.length,
                                toStringz(fragmentProgram));
             glGetIntegerv(GL_PROGRAM_ERROR_POSITION_ARB, &err);
             if (err >= 0)

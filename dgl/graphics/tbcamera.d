@@ -41,8 +41,9 @@ import dlib.math.affine;
 import dlib.math.quaternion;
 
 import dgl.core.interfaces;
+import dgl.graphics.camera;
 
-final class TrackballCamera: Modifier
+final class TrackballCamera: Modifier, Camera
 {
     private:
 
@@ -89,8 +90,11 @@ final class TrackballCamera: Modifier
         rotPitch = rotation(Vector3f(1.0f,0.0f,0.0f), 0.0f);
         rotTurn = rotation(Vector3f(0.0f,1.0f,0.0f), 0.0f);
         rotRoll = rotation(Vector3f(0.0f,0.0f,1.0f), 0.0f);
-        transform.identity();
+        transform = Matrix4x4f.identity;
         distance = 10.0f;
+        
+        current_translate = Vector3f(0.0f, 0.0f, 0.0f);
+        target_translate = Vector3f(0.0f, 0.0f, 0.0f);
     }
 
     void bind(double delta)
@@ -105,8 +109,9 @@ final class TrackballCamera: Modifier
         }
         if (current_translate != target_translate)
         {
-            current_translate += (target_translate - current_translate)/30.0f;
-            translateTarget((target_translate - current_translate)/30.0f);
+            Vector3f t = (target_translate - current_translate)/30.0f;
+            current_translate += t;
+            translateTarget(t);
         }
 
 	    glPushMatrix();

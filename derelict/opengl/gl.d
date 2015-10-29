@@ -146,6 +146,13 @@ public:
             throw new DerelictException("An OpenGL context must be created and activated before attempting to load extensions.");
         extLoadAll();
     }
+    
+    void loadBaseExtensions()
+    {
+        if(!hasValidContext())
+            throw new DerelictException("An OpenGL context must be created and activated before attempting to load extensions.");
+        extLoadMinimal();
+    }
 
     string[] loadedExtensionNames()
     {

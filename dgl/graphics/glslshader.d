@@ -32,6 +32,8 @@ import std.stdio;
 import std.string;
 import std.conv;
 import dlib.core.memory;
+import dlib.container.dict;
+import dlib.math.vector;
 import derelict.opengl.gl;
 import derelict.opengl.glext;
 import dgl.core.event;
@@ -47,10 +49,14 @@ class GLSLShader: Shader
 
 	char*[9] texStrings;
 
+    Dict!(bool, string) paramBool;
+
     this(EventManager emgr, string vertexProgram, string fragmentProgram)
     {
         eventManager = emgr;
         _supported = supported;
+        
+        paramBool = dict!(bool, string);
 
         if (_supported)
         {
@@ -61,11 +67,11 @@ class GLSLShader: Shader
             int len;
             char* srcptr;
 
-            len = vertexProgram.length;
+            len = cast(int)vertexProgram.length;
             srcptr = cast(char*)vertexProgram.ptr;
             glShaderSourceARB(shaderVert, 1, &srcptr, &len);
 
-            len = fragmentProgram.length;
+            len = cast(int)fragmentProgram.length;
             srcptr = cast(char*)fragmentProgram.ptr;
             glShaderSourceARB(shaderFrag, 1, &srcptr, &len);
 
@@ -102,6 +108,11 @@ class GLSLShader: Shader
     {
         return DerelictGL.isExtensionSupported("GL_ARB_shading_language_100");
     }
+    
+    void setParamBool(string name, bool v)
+    {
+        paramBool[name] = v;
+    }
 
     void bind(double delta)
     {
@@ -119,6 +130,9 @@ class GLSLShader: Shader
             glUniform1iARB(glGetUniformLocationARB(shaderProg, texStrings[7]), 7);
 
             glUniform2fARB(glGetUniformLocationARB(shaderProg, texStrings[8]), eventManager.windowWidth, eventManager.windowHeight);
+            
+            foreach(k, v; paramBool)
+                glUniform1i(glGetUniformLocation(shaderProg, k.ptr), v);
         }
     }
 
@@ -133,6 +147,7 @@ class GLSLShader: Shader
     ~this()
     {
         unbind();
+        Delete(paramBool);
     }
 
     void free()

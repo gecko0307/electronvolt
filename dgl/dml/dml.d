@@ -31,9 +31,12 @@ module dgl.dml.dml;
 import std.stdio;
 import std.conv;
 import dlib.core.memory;
+import dlib.container.dict;
+import dlib.container.hash;
 import dlib.math.vector;
 import dlib.image.color;
 import dgl.dml.lexer;
+import dgl.dml.stringconv;
 
 struct DMLValue
 {
@@ -83,25 +86,37 @@ struct DMLValue
 //TODO: rewrite without GC
 struct DMLStruct
 {
-    DMLValue[string] data;
+    //DMLValue[string] data;
+    Dict!(DMLValue, string) data;
     alias data this;
+    
+    static DMLStruct opCall()
+    {
+        DMLStruct s;
+        s.data = dict!(DMLValue, string);
+        return s;
+    }
 
     bool set(Lexeme key, Lexeme val)
     {
-        string k = key.str.data.to!string;
-        string v = val.str.data[1..$-1].to!string;
+        string k = convToStr(key.str.data);
+        string v = convToStr(val.str.data[1..$-1]);
 		return set(k, v);
     }
 	
     bool set(string k, string v)
     {
+        if (data is null)
+            data = dict!(DMLValue, string);
+        
         data[k] = DMLValue(v);
         return true;
     }
 
     void free()
     {
-        // TODO
+        if (data !is null)
+            Delete(data);
     }
 }
 
@@ -109,6 +124,13 @@ struct DMLData
 {
     DMLStruct root;
     alias root this;
+    
+    static DMLData opCall()
+    {
+        DMLData d;
+        d.root = DMLStruct();
+        return d;
+    }
 
     void free()
     {
@@ -117,7 +139,7 @@ struct DMLData
 }
 
 bool parseDML(string text, DMLData* data)
-{
+{    
     Lexer lexer = Lexer(text);
 
     Lexeme lexeme;

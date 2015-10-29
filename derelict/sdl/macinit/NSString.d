@@ -130,15 +130,15 @@ class NSString : NSObject
 
     NSString stringByReplacingRange (NSRange aRange, NSString str)
     {
-        uint bufferSize;
-        uint selfLen = this.length;
-        uint aStringLen = str.length;
+        size_t bufferSize;
+        size_t selfLen = this.length;
+        size_t aStringLen = str.length;
         wchar* buffer;
         NSRange localRange;
         NSString result;
 
         bufferSize = selfLen + aStringLen - aRange.length;
-        buffer = cast(wchar*) NSAllocateMemoryPages(bufferSize * wchar.sizeof);
+        buffer = cast(wchar*)NSAllocateMemoryPages(cast(uint)(bufferSize * wchar.sizeof));
 
         /* Get first part into buffer */
         localRange.location = 0;
@@ -156,9 +156,9 @@ class NSString : NSObject
         this.getCharacters(buffer + aRange.location + aStringLen, localRange);
 
         /* Build output string */
-        result = NSString.stringWithCharacters(buffer, bufferSize);
+        result = NSString.stringWithCharacters(buffer, cast(uint)(bufferSize));
 
-        NSDeallocateMemoryPages(buffer, bufferSize);
+        NSDeallocateMemoryPages(buffer, cast(uint)(bufferSize));
 
         return result;
     }

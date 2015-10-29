@@ -153,6 +153,7 @@ class Scene: Drawable
                 auto light = rm.lm.addPointLight(e.position);
                 light.debugDraw = debugDraw;
                 light.diffuseColor = col;
+                light.highPriority = true;
                 e.drawable = light;
             }
         }

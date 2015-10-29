@@ -142,7 +142,7 @@ void calcTriangleData(Triangle* tri, DGLTriangle* dglTri)
 }
 
 void loadDGL2(InputStream istrm, Scene scene)
-{
+{   
     assert(scene !is null);
 
     DataChunk readChunk()
@@ -204,7 +204,7 @@ void loadDGL2(InputStream istrm, Scene scene)
         else if (chunk.type == ChunkType.TRIMESH)
         {
             assert(!(chunk.data.length % DGLTriangle.sizeof)); // Check data integrity
-            uint numTris = chunk.data.length / DGLTriangle.sizeof;
+            size_t numTris = chunk.data.length / DGLTriangle.sizeof;
             Triangle[] tris = New!(Triangle[])(numTris);
             auto mtris = cast(DGLTriangle[])chunk.data;
             uint offset = 0;
@@ -300,6 +300,8 @@ void decodeMaterial(Material m, InputStream istrm, Scene scene)
             }
         }
     }
+    
+    dml.free();
 }
 
 

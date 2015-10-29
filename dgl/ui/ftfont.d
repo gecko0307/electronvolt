@@ -252,7 +252,7 @@ final class FreeTypeFont: Font
             glyph = glyphs[code];
         else
             glyph = glyphs[loadChar(code)];
-        return glyph.advanceX >> 6;
+        return cast(int)(glyph.advanceX >> 6);
     }
 
     override void draw(string str)

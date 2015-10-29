@@ -9,8 +9,9 @@ import dlib.math.affine;
 import dlib.math.utils;
 
 import dgl.core.interfaces;
+import dgl.graphics.camera;
 
-class FirstPersonCamera: Modifier
+class FirstPersonCamera: Modifier, Camera
 {
     Matrix4x4f transformation;
     Matrix4x4f gunTransformation;
@@ -36,6 +37,11 @@ class FirstPersonCamera: Modifier
         m *= rotationMatrix(Axis.x, degtorad(pitch));
         m *= rotationMatrix(Axis.z, degtorad(roll));
         return m;
+    }
+    
+    Matrix4x4f getTransform()
+    {
+        return transformation;
     }
     
     override void bind(double dt)

@@ -80,7 +80,7 @@ class GravityGun: Weapon, CollisionDispatcher
     }
     
     RigidBody shootedBody = null;
-    float attractDistance = 4.0f;
+    float attractDistance = 3.0f;
     bool canShoot = true;
 
     void onNewContact(RigidBody b, Contact c)
