@@ -12,8 +12,8 @@ Atrium will provide high level of interactivity, featuring fully dynamic world w
 
 Screenshots
 -----------
-[![Screenshot1](/screenshots/003_thumb.jpg)](/screenshots/003.jpg)
 [![Screenshot1](/screenshots/004_thumb.jpg)](/screenshots/004.jpg)
+[![Screenshot1](/screenshots/005_thumb.jpg)](/screenshots/005.jpg)
 
 Tech details
 ------------
@@ -21,7 +21,7 @@ Atrium uses OpenGL for rendering, thus (theoretically) supporting all platforms 
 
 Download
 --------
-The project is still far from being finished, but you already can give it a shot: download a recent testbuild for your OS from [here](https://www.dropbox.com/sh/mmh9qod4x2nsuyi/66ZW6KX7N6).
+The project is still far from being finished, but you already can give it a shot: download a recent tech demo for your OS from [here](https://www.dropbox.com/sh/mmh9qod4x2nsuyi/66ZW6KX7N6).
 
 Build from source
 -----------------
