@@ -62,7 +62,7 @@ class GravityGun: Weapon, CollisionDispatcher
         rm.lm.addLight(light);
 
         tesla = New!TeslaEffect(this, glowTexture, light);
-        tesla.start = Vector3f(0, 0.1f, -0.5f);
+        tesla.start = Vector3f(0, 0.075f, -0.5f);
         tesla.width = 5.0f;
         tesla.color = teslaColor;
         
@@ -70,6 +70,15 @@ class GravityGun: Weapon, CollisionDispatcher
         sparks.collisions = true;
         sparks.primaryColor = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
         sparks.secondaryColor = Color4f(1.0f, 0.0f, 0.0f, 0.0f);
+    }
+    
+    override void enableGravity(bool mode)
+    {
+        super.enableGravity(mode);
+        if (mode)
+            sparks.gravityVector = Vector3f(0, -1, 0);
+        else
+            sparks.gravityVector = Vector3f(0, 0, 0);
     }
     
     override void draw(double dt)
@@ -255,6 +264,7 @@ class GravityGun: Weapon, CollisionDispatcher
             {
                 if (shootedBody)
                 {
+                    sparks.reset(objPos, -camDir);
                     shootedBody.applyImpulse(camDir * 200.0f, shootedBody.position);
                     unsetShootedBody();
                 }

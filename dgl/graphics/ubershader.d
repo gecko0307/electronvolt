@@ -82,13 +82,13 @@ private string _uberFragmentShader = q{
     uniform bool bumpEnabled;
     uniform bool parallaxEnabled;
     
-    const float parallaxScale = 0.05;
+    const float parallaxScale = 0.06;
     const float parallaxBias = -0.03;
-    const float lightRadiusSqr = 7.0;
+    const float lightRadiusSqr = 8.5;
     const float wrapFactor = 0.5;
     const float shadowBrightness = 0.3;
     const float shininess = 32.0;
-    const float edgeWidth = 0.3;
+    const float edgeWidth = 0.4;
     
     float texture2DCompare(sampler2D depths, vec2 uv, float compare)
     {
@@ -124,14 +124,22 @@ private string _uberFragmentShader = q{
             gl_FragColor = gl_FrontMaterial.diffuse;
             return;
         }
-    
+        
+        // Fog term
+        /*
+        const vec4 fogColor = vec4(0.1, 0.2, 0.2, 1.0);
+        float fogDistance = gl_FragCoord.w * 20.0; //1.0 - (gl_FragCoord.z / gl_FragCoord.w) / 4000.0;
+        fogDistance = (fogDistance > 10.0)? fogDistance : 1.0;
+        float fog = clamp(fogDistance, 0.0, 1.0);
+        */
+        
         // Shadow term
 	    vec4 shadowCoordinateWdivide = shadowCoord / shadowCoord.w ;
  	    float shadow;
         if (shadowCoord.w > 0.0)
         {
             shadowCoordinateWdivide.z *= 1.005;
-            shadow = texture2DShadowLerp(dgl_Texture7, vec2(512.0, 512.0), 
+            shadow = texture2DShadowLerp(dgl_Texture7, vec2(1024.0, 1024.0), 
                 shadowCoordinateWdivide.st, shadowCoordinateWdivide.z);
         }
         shadow += shadowBrightness;
@@ -162,7 +170,7 @@ private string _uberFragmentShader = q{
         float attenuation; 
         vec3 L;
             
-        vec4 col = vec4(0.05, 0.05, 0.05, 1.0);
+        vec4 col = vec4(0.02, 0.02, 0.02, 1.0);
 
         float diffuse;
         float specular;
@@ -181,7 +189,8 @@ private string _uberFragmentShader = q{
 	        if (gl_LightSource[i].position.w < 2.0)
 	        {
 	            //vec4 Ca = gl_LightSource[i].ambient; 
-	            vec4 Cd = gl_FrontMaterial.diffuse * gl_LightSource[i].diffuse; 
+                vec4 Md = gl_FrontMaterial.diffuse;
+	            vec4 Cd = Md * gl_LightSource[i].diffuse; 
 	            vec4 Cs = gl_FrontMaterial.specular * gl_LightSource[i].specular;  
             
 	            vec3 positionToLightSource = vec3(gl_LightSource[i].position.xyz - position);
@@ -205,19 +214,19 @@ private string _uberFragmentShader = q{
                 // Edge term
                 edgeScale = edgeBias(1.0 - dot(E, N), edgeWidth);
 		        edgeScale = max(0.5, edgeScale * 2.0);
-		        rim = edgeScale * diffuse;
+		        rim = edgeScale * 1.5;
                 
                 // Blinn-Phong specular term
                 H = normalize(L + E);
 			    NH = dot(N, H);
 			    specular = max(pow(NH, shininess), 0.0);
 
-	            col += ((Cd*diffuse) + (Cs*specular) + (Cr*rim)) * attenuation;
+	            col += ((Cd*diffuse) + (Cs*specular*3.0) + (Cr*Md*rim)) * attenuation;
 	        }
 	    }
 
-        col *= 0.9;
-	    gl_FragColor = tex * col * shadow + emit;
+        col *= 0.85;
+	    gl_FragColor = (tex * col * shadow + emit); //mix(fogColor, (tex * col * shadow + emit), fog);
 	    gl_FragColor.a = 1.0;
     }
 };

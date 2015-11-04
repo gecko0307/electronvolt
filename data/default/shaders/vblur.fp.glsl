@@ -14,7 +14,7 @@ void main(void)
     }
 
     total /= (radius * 2.0 + 1.0);
-    total *= 0.75;
+    total *= 0.8;
         
     gl_FragColor = total;
     //gl_FragColor.a = 0.1;

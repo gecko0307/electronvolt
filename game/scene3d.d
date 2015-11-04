@@ -147,6 +147,12 @@ BVHTree!Triangle sceneBVH(Scene scene)
         if (e.type == 0)
         if (e.meshId > -1 && e.drawable)
         {
+            if ("ghost" in e.props)
+            {
+                if (e.props["ghost"].toBool)
+                    continue;
+            }
+        
             Matrix4x4f mat = e.transformation;
 
             auto mesh = cast(Mesh)e.drawable;
@@ -207,11 +213,142 @@ class MovingPlatfrom: KinematicController
     }
 }
 
+enum RegionType
+{
+    ZeroGravity
+}
+
+struct Region
+{
+    AABB aabb;
+    RegionType type;
+    
+    this(Vector3f pos, Vector3f hSize, RegionType t)
+    {
+        aabb = AABB(pos, hSize);
+        type = t;
+    }
+    
+    bool isPointInside(Vector3f p)
+    {
+        return aabb.containsPoint(p);
+    }
+}
+
+class DoorEntity: Entity
+{
+    PhysicsWorld world;
+    Entity doorFrame;
+    Entity door1;
+    Entity door2;
+    Geometry doorGeom;
+    RigidBody doorBody;
+    DynamicArray!RigidBody openerBodies;
+    Vector3f t1;
+    Vector3f t2;
+    Vector3f pos1 = Vector3f(0, 0, 0);
+    Vector3f pos2 = Vector3f(6, 0, 0);
+    bool opened = false;
+    int key = 0;
+    
+    this(Scene doorScene, PhysicsWorld w, Vector3f pos, Quaternionf rot)
+    {
+        super(pos);
+
+        doorFrame = doorScene.entity("doorFrame");
+        door1 = doorScene.entity("door1");
+        door2 = doorScene.entity("door2");
+        
+        world = w;
+        doorGeom = New!GeomBox(Vector3f(2, 2, 0.1f));
+       
+        doorBody = world.addStaticBody(pos);
+        doorBody.orientation = rot;
+        auto sc = world.addShapeComponent(doorBody, doorGeom, Vector3f(0, 0, 0), 100.0f);
+        
+        t1 = Vector3f(0, 0, 0);
+        t2 = Vector3f(0, 0, 0);
+        
+        setTransformation(pos, rot, Vector3f(1, 1, 1));
+    }
+
+    void addOpener(RigidBody rb)
+    {
+        openerBodies.append(rb);
+    }
+    
+    float t = 0.0f;
+    override void drawModel(double dt)
+    {
+        opened = false;
+        foreach(b; openerBodies)
+        {
+            if ((position - b.position).lengthsqr < 10.0f)
+            {
+                opened = true;
+                break;
+            }
+        }
+            
+        doorBody.active = !opened;
+        
+        if (opened)
+        {
+            t1 = lerp(pos1, pos2, t);
+            t2 = lerp(pos1, -pos2, t);
+            if (t < 1.0f)
+                t += 1.0f * dt;
+        }
+        else
+        {
+            t1 = lerp(pos1, pos2, t);
+            t2 = lerp(pos1, -pos2, t);
+            if (t > 0.0f)
+                t -= 1.0f * dt;
+        }
+    
+        if (modifier !is null)
+            modifier.bind(dt);
+            
+        if (doorFrame !is null) doorFrame.draw(dt);
+        
+        glPushMatrix();
+        glTranslatef(t1.x, t1.y, t1.z);
+        if (door1 !is null) door1.draw(dt);
+        glPopMatrix();
+        
+        glPushMatrix();
+        glTranslatef(t2.x, t2.y, t2.z);
+        if (door2 !is null) door2.draw(dt);
+        glPopMatrix();
+        
+        if (debugDraw)
+        {
+            drawPoint();
+        }
+        
+        if (modifier !is null)
+            modifier.unbind();
+    }
+    
+    override void free()
+    {
+        Delete(this);
+    }
+
+    ~this()
+    {
+        Delete(doorGeom);
+        openerBodies.free();
+    }
+}
+
 class Scene3DRoom: Room
 {
     Scene sceneLevel;
     Scene sceneCube;
     Scene sceneGravityGun;
+    Scene sceneDoor;
     Scene scenePhysics;
     Scene sceneWeapon;
     Scene scenePentagon;
@@ -269,6 +406,9 @@ class Scene3DRoom: Room
     GLSLShader sBlurv;
         
     Material gunMaterial;
+    Material glowingMaterial;
+    
+    DynamicArray!Region regions;
     
     bool shadersEnabled()
     {
@@ -305,10 +445,11 @@ class Scene3DRoom: Room
         scenePhysics = rm.addEmptyScene("physics", false);
         sceneLevel = rm.loadScene("walls.dgl2", false);
         sceneCube = rm.loadScene("box.dgl2", false);
-        sceneGravityGun = rm.loadScene("gravity-gun.dgl2", false);
+        sceneGravityGun = rm.loadScene("gravity-gun-2.dgl2", false);
         scenePentagon = rm.loadScene("pentagon.dgl2", false);
         scenePickables = rm.addEmptyScene("pickables", true);
         scenePickables.lighted = false;
+        sceneDoor = rm.loadScene("door.dgl2", false);
         
         sceneLevel.createDynamicLights();
         
@@ -401,12 +542,13 @@ class Scene3DRoom: Room
         // Create character
         ccPlayer = New!CharacterController(world, playerPos, 1.0f, gSphere);
         ccPlayer.rotation.y = -90.0f;
+        characterGravity = ccPlayer.rbody.gravity;
 
         // Create moving platform
         sBox = New!ShapeBox(Vector3f(3, 0.25f, 2));
         gBox2 = New!GeomBox(Vector3f(3, 0.25f, 2));
         platform = New!MovingPlatfrom(world, Vector3f(0.0f, 1.5f, 0.0f), gBox2);
-        eBox = New!PhysicsEntity(sBox, platform.rbody.shapes.data[0]);
+        eBox = New!PhysicsEntity(sBox, platform.rbody, platform.rbody.shapes.data[0]);
         scenePhysics.addEntity("ePlatform", eBox);
 
         // Apply bump shader
@@ -416,7 +558,7 @@ class Scene3DRoom: Room
             shBump.setParamBool("textureEnabled", true);
             shBump.setParamBool("bumpEnabled", true);
             shBump.setParamBool("parallaxEnabled", false);
-
+/*
             gunMaterial = sceneGravityGun.material("matGravityGun");
             if (gunMaterial)
             {
@@ -427,7 +569,7 @@ class Scene3DRoom: Room
                 //gunMaterial.specularColor = Color4f(0.9, 0.9, 0.9, 1.0);
                 gunMaterial.emissionColor.w = 0.0f;
             }
-        
+        */
             auto matCube = sceneCube.material("Material");
             if (matCube)
             {
@@ -442,7 +584,7 @@ class Scene3DRoom: Room
             shParallax.setParamBool("textureEnabled", true);
             shParallax.setParamBool("bumpEnabled", true);
             shParallax.setParamBool("parallaxEnabled", true);
-            sceneLevel.material("mBumpTest").shader = shParallax;
+            sceneLevel.material("mGlowing").shader = shParallax;
             
             shTex = uberShader(em);
             shTex.setParamBool("textureEnabled", true);
@@ -470,8 +612,41 @@ class Scene3DRoom: Room
                     m.shader = shSimple;
                 else
                     m.shader = shShadeless;
-                // TODO: shadeless
+                    
+                if (m.textures[2])
+                    m.emissionColor.w = 1.0f;
             }
+            
+            foreach(i, m; sceneGravityGun.materials)
+            {
+                if (m.textures[1])
+                    m.shader = shParallax;
+                else if (m.textures[0])
+                    m.shader = shTex;
+                else if (!m.shadeless)
+                    m.shader = shSimple;
+                else
+                    m.shader = shShadeless;
+                m.emissionColor.w = 0.0f;
+            }
+            
+            foreach(i, m; sceneDoor.materials)
+            {
+                if (m.textures[1])
+                    m.shader = shParallax;
+                else if (m.textures[0])
+                    m.shader = shTex;
+                else if (!m.shadeless)
+                    m.shader = shSimple;
+                else
+                    m.shader = shShadeless;
+                m.emissionColor.w = 0.0f;
+            }
+            
+            sceneGravityGun.material("mBlackPlastic").diffuseColor = Color4f(0, 0, 0, 1);
+            sceneGravityGun.material("mWhiteMetalDoubleSided").doubleSided = true;
+            
+            glowingMaterial = sceneLevel.material("mGlowing");
         }
 
         // Create shadow
@@ -487,6 +662,40 @@ class Scene3DRoom: Room
             sceneLevel.visible = true;
             scenePhysics.visible = true;
         }
+                
+        createDynamicObjects();
+        
+        // Add special objects (regions and doors)
+        foreach(i, e; sceneLevel.entities)
+        {
+            foreach(k, v; e.props)
+            {
+                //writeln(k, ": ", v);
+                if ("zeroGravity" in e.props &&
+                    "bbox" in e.props)
+                {
+                    if (e.props["zeroGravity"].toBool)
+                    {
+                        Vector3f bboxHSize = e.props["bbox"].toVector3f * 0.5f;
+                        regions.append(Region(e.getPosition, bboxHSize, RegionType.ZeroGravity));
+                    }
+                }
+            }
+            
+            if ("door" in e.props)
+            {
+                if (e.props["door"].toBool)
+                {
+                    DoorEntity de = addDoor(e.getPosition, e.getRotation);
+                    de.addOpener(ccPlayer.rbody);
+                    foreach(spe; scenePhysics.entities)
+                    {
+                        PhysicsEntity pe = cast(PhysicsEntity)spe;
+                        if (pe) de.addOpener(pe.rbody);
+                    }
+                }
+            }
+        }
         
         // Create weapon
         Entity eGravityGun = sceneGravityGun.entity("objGravityGun");
@@ -497,7 +706,15 @@ class Scene3DRoom: Room
         
         scenePentagon.material("matPentagon").ambientColor = scenePentagon.material("matPentagon").diffuseColor;
         
-        createDynamicObjects();
+        rm.lm.useUpdateTreshold = true;
+        
+        glEnable(GL_FOG);
+        glFogi(GL_FOG_MODE, GL_LINEAR);
+        Color4f fogColor = Color4f(0.0f, 0.0f, 0.0f, 1.0f);
+        glFogfv(GL_FOG_COLOR, fogColor.arrayof.ptr);
+        glFogf(GL_FOG_DENSITY, 0.35f);
+        glFogf(GL_FOG_START, 1.0f);
+        glFogf(GL_FOG_END, 20.0f);
     }
     
     GLSLShader loadShader(EventManager em, string vp, string fp)
@@ -535,7 +752,7 @@ class Scene3DRoom: Room
         auto b = world.addDynamicBody(position);
         b.stopThreshold = 0.1f;
         auto sc = world.addShapeComponent(b, gBox, Vector3f(0, 0, 0), 20.0f);
-        auto e = New!PhysicsEntity(sceneCube.mesh("Cube"), sc);
+        auto e = New!PhysicsEntity(sceneCube.mesh("Cube"), b, sc);
         scenePhysics.addEntity(format("box%s", boxIndex), e);
         
         auto light = rm.lm.addPointLight(e.position);
@@ -546,13 +763,22 @@ class Scene3DRoom: Room
         return e;
     }
     
+    uint doorIndex = 0;
+    DoorEntity addDoor(Vector3f position, Quaternionf rotation)
+    {
+        auto e = New!DoorEntity(sceneDoor, world, position, rotation);
+        sceneLevel.addEntity(format("door%s", doorIndex), e);
+        doorIndex++;
+        return e;
+    }
+    
     void createBodiesStack(string name, float x, uint n, Geometry g)
     {
         foreach(i; 0..n)
         {
             auto b = world.addDynamicBody(Vector3f(x, 1.5f + i * 2, -(i * 0.4f)));
             auto sc = world.addShapeComponent(b, g, Vector3f(0, 0, 0), 100.0f);
-            auto e = New!PhysicsEntity(sceneCube.mesh("Cube"), sc);
+            auto e = New!PhysicsEntity(sceneCube.mesh("Cube"), b, sc);
             scenePhysics.addEntity(format("%s%s", name, i), e);
         }
     }
@@ -597,8 +823,8 @@ class Scene3DRoom: Room
         float gunPitchCoef = 0.95f;
         camera.gunPitch += pitch_m * gunPitchCoef;
         
-        float pitchLimitMax = 60.0f;
-        float pitchLimitMin = -60.0f;
+        float pitchLimitMax = 70.0f;
+        float pitchLimitMin = -70.0f;
         if (camera.pitch > pitchLimitMax)
         {
             camera.pitch = pitchLimitMax;
@@ -644,7 +870,19 @@ class Scene3DRoom: Room
                     gunMaterial.emissionColor.w -= 2.0f * timeStep;
             }
         }
+        
+        if (glowingMaterial)
+        {
+            glowingMaterial.emissionColor.w = cos(anim) * 0.5f + 0.5f;
+            anim += 2.0f * timeStep;
+            if (anim >= PI * 2.0f)
+                anim = 0.0f;
+        }
     }
+    
+    Vector3f characterGravity = Vector3f(0, 0, 0);
+    
+    float anim = 0.0f;
     
     float camSwayTime = 0.0f;
     float gunSwayTime = 0.0f;
@@ -667,9 +905,12 @@ class Scene3DRoom: Room
             ccPlayer.update();
             platform.update(timeStep);
             world.update(timeStep);
+            
+            handleGravity();
         }
         
         camera.position = ccPlayer.rbody.position;
+        rm.lm.referencePoint = camera.position;
         swayControl();
         
         textLine.setText(format("FPS: %s", eventManager.fps));
@@ -686,6 +927,59 @@ class Scene3DRoom: Room
             //if (glslShadowsEnabled())
             //    smShader.invCamView = camera.transformation;
         }
+    }
+    
+    void handleGravity()
+    {
+        bool zeroGravity;
+        foreach(e; scenePhysics.entities)
+        {
+            PhysicsEntity pe = cast(PhysicsEntity)e;
+            if (!pe)
+                continue;
+                    
+            zeroGravity = false;
+                
+            foreach(r; regions)
+            {
+                if (r.isPointInside(pe.getPosition))
+                    zeroGravity = true;
+            }
+                
+            if (zeroGravity)
+            {
+                pe.rbody.useOwnGravity = true;
+                pe.rbody.gravity = Vector3f(0, 0, 0);
+            }
+            else
+            {
+                pe.rbody.useOwnGravity = false;
+            }
+        }
+            
+        zeroGravity = false;
+        foreach(r; regions)
+        {
+            if (r.isPointInside(ccPlayer.rbody.position))
+                zeroGravity = true;
+        }
+            
+        if (zeroGravity)
+            ccPlayer.enableGravity(false);
+        else
+            ccPlayer.enableGravity(true);
+            
+        zeroGravity = false;
+        foreach(r; regions)
+        {
+            if (r.isPointInside(weapon.sparks.source))
+                zeroGravity = true;
+        }
+            
+        if (zeroGravity)
+            weapon.enableGravity(false);
+        else
+            weapon.enableGravity(true);
     }
     
     override void onRedraw()
@@ -778,6 +1072,8 @@ class Scene3DRoom: Room
         
         if (sBlurh !is null) sBlurh.free();
         if (sBlurv !is null) sBlurv.free();
+        
+        regions.free();
     }
     
     override void free()

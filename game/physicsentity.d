@@ -6,16 +6,18 @@ import dmech;
 
 class PhysicsEntity: Entity
 {
+    RigidBody rbody;
     ShapeComponent shape;
     Light light;
     bool highlight = false;
     
-    this(Drawable d, ShapeComponent s)
+    this(Drawable d, RigidBody b, ShapeComponent s)
     {
         if (s)
             super(d, s.position);
         else
             super(d, Vector3f(0, 0, 0));
+        rbody = b;
         shape = s;
     }
     

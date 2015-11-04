@@ -46,6 +46,9 @@ class LightManager: Modifier3D, Drawable
     uint maxLightsPerObject = 4;
     bool lightsVisible = false;
     bool lightsOn = true;
+    bool useUpdateTreshold = false;
+    Vector3f referencePoint = Vector3f(0, 0, 0);
+    float updateThreshold = 400.0f;
 
     Light addLight(Light light)
     {
@@ -66,7 +69,15 @@ class LightManager: Modifier3D, Drawable
     void bind(Object3D obj, double dt)
     {
         glEnable(GL_LIGHTING);
-        apply(obj.getPosition);
+        
+        Vector3f objPos = obj.getPosition;
+        if (useUpdateTreshold)
+        {
+            if ((objPos - referencePoint).lengthsqr < updateThreshold)
+                apply(objPos);
+        }
+        else
+            apply(objPos);
     }
 
     void unbind(Object3D obj)

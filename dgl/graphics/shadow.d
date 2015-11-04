@@ -141,7 +141,9 @@ class ShadowMap: Drawable
         if (castScene)
         {
             dgl.graphics.material.useDimLight = true;
+            castScene.lighted = false;
             castScene.draw(dt);
+            castScene.lighted = true;
             dgl.graphics.material.useDimLight = false;
         }
         

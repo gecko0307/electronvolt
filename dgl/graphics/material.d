@@ -69,6 +69,7 @@ class Material: Modifier
     bool shadeless = false;
     bool useTextures = true;
     bool additiveBlending = false;
+    bool doubleSided = false;
 
     this()
     {
@@ -107,6 +108,9 @@ class Material: Modifier
             glDisable(GL_LIGHTING);
             glColor4f(diffuseColor.r, diffuseColor.g, diffuseColor.b, diffuseColor.a);
         }
+        
+        if (doubleSided)
+            glDisable(GL_CULL_FACE);
 
         if (useTextures)
         foreach(i, tex; textures)
@@ -136,6 +140,9 @@ class Material: Modifier
                 tex.unbind();
             }
         }
+        
+        if (doubleSided)
+            glEnable(GL_CULL_FACE);
 
         glActiveTextureARB(GL_TEXTURE0_ARB);
 

@@ -84,7 +84,7 @@ class Layer: EventListener, Drawable
         if (type == LayerType.Layer2D)
             glOrtho(0, eventManager.windowWidth, 0, eventManager.windowHeight, 0, 1);
         else
-            gluPerspective(60, aspectRatio, 0.1, 400.0);
+            gluPerspective(60, aspectRatio, 0.1, 30.0);
         glMatrixMode(GL_MODELVIEW);
 
         glLoadIdentity();

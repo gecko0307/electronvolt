@@ -38,6 +38,7 @@ class CharacterController: Freeable //, CollisionDispatcher
     Vector3f rotation;
 	float newContactSlopeFactor = 1.0f;
     RigidBody floorBody;
+    bool flyMode = false;
 
     this(PhysicsWorld world, Vector3f pos, float mass, Geometry geom)
     {
@@ -53,6 +54,20 @@ class CharacterController: Freeable //, CollisionDispatcher
         rotation = Vector3f(0, 0, 0);
 
         //rbody.collisionDispatchers.append(this);
+    }
+    
+    void enableGravity(bool mode)
+    {
+        flyMode = !mode;
+        
+        if (mode)
+        {
+            rbody.gravity = Vector3f(0.0f, -artificalGravity, 0.0f);
+        }
+        else
+        {
+            rbody.gravity = Vector3f(0, 0, 0);
+        }
     }
 
     void onNewContact(RigidBody b, Contact c)
@@ -74,7 +89,7 @@ class CharacterController: Freeable //, CollisionDispatcher
         Vector3f velocityChange = targetVelocity - rbody.linearVelocity;
         velocityChange.x = clamp(velocityChange.x, -maxVelocityChange, maxVelocityChange);
         velocityChange.z = clamp(velocityChange.z, -maxVelocityChange, maxVelocityChange);
-        if (clampY)
+        if (clampY && !flyMode)
             velocityChange.y = 0;
         else
             velocityChange.y = clamp(velocityChange.y, -maxVelocityChange, maxVelocityChange);
@@ -90,9 +105,16 @@ class CharacterController: Freeable //, CollisionDispatcher
 
         if (onGround && floorBody && speed == 0.0f && jSpeed == 0.0f)
             rbody.linearVelocity = floorBody.linearVelocity;
-
-        speed = 0.0f;
-        jSpeed = 0.0f;
+        if (!flyMode)
+        {
+            speed = 0.0f;
+            jSpeed = 0.0f;
+        }
+        else
+        {
+            speed *= 0.95f;
+            jSpeed *= 0.95f;
+        }
     }
 
     bool checkOnGround()
@@ -124,7 +146,7 @@ class CharacterController: Freeable //, CollisionDispatcher
 
     void jump(float height)
     {
-        if (onGround)
+        if (onGround || flyMode)
         {
             jSpeed = jumpSpeed(height);
             rbody.linearVelocity.y = jSpeed;

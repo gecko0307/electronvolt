@@ -17,11 +17,17 @@ import game.fpcamera;
 abstract class Weapon: Entity, Modifier
 {
     FirstPersonCamera camera;
+    bool gravity = true;
     
     this(FirstPersonCamera camera, Drawable model)
     {
         super(model, Vector3f(0, 0, 0));
         this.camera = camera;
+    }
+    
+    void enableGravity(bool mode)
+    {
+        gravity = mode;
     }
     
     override Vector3f getPosition()
