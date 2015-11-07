@@ -1,4 +1,4 @@
-module kinematic;
+module game.kinematic;
 
 import dlib;
 import dmech;

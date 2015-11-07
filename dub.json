@@ -1,0 +1,29 @@
+{
+    "description": "atrium",
+    "authors": [
+        "Timur Gafarov"
+    ],
+    "license": "Boost",
+    "homepage": "http://github.com/gecko0307/atrium",
+    "name": "atrium",
+    "importPaths": [
+        "."
+    ],
+    "dependencies": {
+        "dlib": "~master"
+    },
+    "buildRequirements":[
+        "allowWarnings"
+    ],
+    "libs-posix": ["dl"],
+    "configurations": [
+        {
+            "name": "atrium",
+            "targetType": "executable",
+            "sourcePaths": ["."],
+            "mainSourceFile": "atrium.d",
+            "excludedSourceFiles": ["editor.d"],
+            "buildOptions": ["noBoundsCheck", "optimize"]
+        }
+    ]
+}
