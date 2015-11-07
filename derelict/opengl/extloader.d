@@ -119,6 +119,7 @@ package
         loaded["GL_ARB_shading_language_100"] = load_GL_ARB_shading_language_100();
         loaded["GL_ARB_texture_non_power_of_two"] = load_GL_ARB_texture_non_power_of_two();
         loaded["GL_ARB_framebuffer_object"] = load_GL_ARB_framebuffer_object();
+        loaded["GL_EXT_framebuffer_object"] = load_GL_EXT_framebuffer_object();
     }
 
     string[] getLoadedExtensionNames()
