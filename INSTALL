@@ -9,8 +9,10 @@ Prerequisites
 =============
 - Up-to-date DMD compiler
 - Git
-- Cook2 build automation utility.
+- DUB or Cook2
 
 Building
 ========
-cd to project directory and run `cook --rsp atrium`
+With Cook2: cd to project directory and run `cook --rsp atrium`
+
+With DUB: cd to project directory and run `dub build`
