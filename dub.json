@@ -10,7 +10,7 @@
         "."
     ],
     "dependencies": {
-        "dlib": "~master"
+        "dlib": "~>0.7.0"
     },
     "buildRequirements":[
         "allowWarnings"
@@ -22,8 +22,7 @@
             "targetType": "executable",
             "sourcePaths": ["."],
             "mainSourceFile": "atrium.d",
-            "excludedSourceFiles": ["editor.d"],
-            "buildOptions": ["noBoundsCheck", "optimize"]
+            "excludedSourceFiles": ["editor.d"]
         }
     ]
 }
