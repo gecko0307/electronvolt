@@ -183,8 +183,16 @@ void loadLibraries()
     }
     version(linux)
     {
-        DerelictSDL.load("./lib/libsdl.so");
-        DerelictFT.load("./lib/libfreetype.so");
+        version(X86)
+        {
+            DerelictSDL.load("./lib/libsdl.so");
+            DerelictFT.load("./lib/libfreetype.so");
+        }
+        version(X86_64)
+        {
+            DerelictSDL.load("./lib/libsdl_64.so");
+            DerelictFT.load("./lib/libfreetype_64.so");
+        }
     }
     version(OSX)
     {
