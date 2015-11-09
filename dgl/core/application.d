@@ -168,11 +168,10 @@ class Application: EventListener
     }
 }
 
-// TODO:
-// Under Linunx, user should be able to select
-// between system libraries and local ones
 void loadLibraries()
 {
+    import core.stdc.stdlib : getenv;
+
     DerelictGL.load();
     DerelictGLU.load();
 
@@ -183,15 +182,23 @@ void loadLibraries()
     }
     version(linux)
     {
-        version(X86)
+        if(envVarIsTrue(getenv("USE_SYSTEM_LIBS").to!string))
         {
-            DerelictSDL.load("./lib/libsdl.so");
-            DerelictFT.load("./lib/libfreetype.so");
+            DerelictSDL.load();
+            DerelictFT.load();
         }
-        version(X86_64)
+        else
         {
-            DerelictSDL.load("./lib/libsdl_64.so");
-            DerelictFT.load("./lib/libfreetype_64.so");
+            version(X86)
+            {
+                DerelictSDL.load("./lib/libsdl.so");
+                DerelictFT.load("./lib/libfreetype.so");
+            }
+            version(X86_64)
+            {
+                DerelictSDL.load("./lib/libsdl_64.so");
+                DerelictFT.load("./lib/libfreetype_64.so");
+            }
         }
     }
     version(OSX)
@@ -199,4 +206,21 @@ void loadLibraries()
         DerelictSDL.load();
         DerelictFT.load();
     }
+}
+
+bool envVarIsTrue(string var)
+{
+    import std.string : strip;
+    import std.uni : toLower;
+    if(var == null)
+        return false;
+    var = var.strip();
+    if(var == null)
+        return false;
+    var = var.toLower!string;
+    if(var == "1")
+        return true;
+    if(var == "true")
+        return true;
+    return false;
 }
