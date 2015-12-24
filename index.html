@@ -1,183 +1,94 @@
-<html lang="ru">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <meta name="Keywords" content="atrium,game,fps,physics,puzzles,3d,opengl,windows,linux,free,opensource"/>    <meta name="Description" content="First person game with physics based puzzles"/>
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon"/>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" href="stylesheet.css" type="text/css" charset="utf-8" />
+    <script src="jquery-1.11.3.min.js"></script>
+    <script language="javascript" type="text/javascript">
+$(document).ready(function(){
+    $('.pages').each(function(){
+        var $bgobj = $(this);
+        $(window).scroll(function() {
+            var x = -($(this).scrollTop() / $bgobj.data('speed'));
+            var coords = '0px '+ x + 'px';
+            $bgobj.css('background-position', coords);
+        });
+    });
+});
+    </script>
+    <title>ATRIUM</title>
+</head>
 
-    <title>Atrium</title>
+<body>
 
-    <link rel="stylesheet" href="style.css" Type="text/css"/>
-  </head>
+<section id="home" data-speed="10" class="pages" style="background-image:url(bg001.jpg)">
+    <div class="pageTitle">&#xb7; A &#xb7; T &#xb7; R &#xb7; I &#xb7; U &#xb7; M &#xb7;
+      <div class="description">Free and Open Source action game with physics based puzzles</div>
+      <div class="description">
+        <br/><a href="https://github.com/gecko0307/atrium" class="linkBox"><img src="github-logo.png"/> GitHub</a>
+        <a href="https://github.com/gecko0307/atrium/releases/tag/v0.0.4" class="linkBox"><img src="download.png"/> Download</a>
+      </div>
+      <div class="description" style="font-size:25px">
+        <br/>&darr; Scroll down to read more &darr;
+      </div>
+    </div>
+</section>
 
-  <body>
-    <center>
-    <table border="0" width="850">
-      <tr valign="top">
-        <td>
+<section id="about" data-speed="10" class="pages" style="background-image:url(bg002.jpg)">
+    <div class="sectionTitle">
+    
+    <div class="description">
+    The main goal of this project is to create a 3D game entirely in D language,
+    <br/>exploring its fitness for real-time application development.
+    </div>
+    
+    <div class="description" style="font-size:25px">
+    D is a modern compiled language which combines efficiency, control, and modeling power, with safety and programmer productivity. 
+    </div>
+    
+    <div class="description">
+    <br/><a href="http://dlang.org" class="linkBox">Learn more about D</a>
+    </div>
 
-          <div>
-            <center>
-              <h1 class="glowing">Atrium</h1>
-	          <h3 class="glowing"><b>First person action game with physics based puzzles</b></h3>
-            </center>
-          </div>
+    </div>
+</section>
 
-            <div class="inner-box">
-              <table class="box" border="0" width="800">
-                <tr valign="top">
-                  <td align="justify">
-                   <p>
-                     The goal of this project is to create a first person shooter game with 
-                     physics based puzzles, entirely in <a href="http://dlang.org" target="_blank" class="glowing">D language</a>.
-                   </p>
-                   <p>
-                     Atrium will provide high level of interactivity, featuring fully dynamic world with everything being controlled by 
-                     the physics engine. You will be able to walk on any surface and push any object, use special devices to affect 
-                     gravity and other physical behaviours of the environment. The gameplay will be peaceful and non-violent: 
-                     explore the world, solve the puzzles and unleash the mysteries.
-                   </p>
-                   <p>
-                     This site is still under construction, stay tuned!
-                   </p>
-                  </td>
-                </tr>
-              </table>
-            </div>
-            
-          <br/>
-          
-               <div class="inner-box">
-                <table class="box" border="0" width="800">
-                  <tr valign="top">
-                    <td align="center" width="25%">
-                      <p>
-                      <a href="images/004.jpg" target="_blank">
-                        <img class="shadow" src="images/thumbs/004.jpg"/>
-                      </a>
-                      </p>
-                    </td>
-                    <td align="center" width="25%">
-                      <p>
-                      <a href="images/005.jpg" target="_blank">
-                        <img class="shadow" src="images/thumbs/005.jpg"/>
-                      </a>
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-              </div>
+<section id="page" data-speed="10" class="pages" style="background-image:url(bg001.jpg)">
+    <div class="sectionTitle">
+    <div class="description">
+    Modern graphics
+    </div>
+    <div class="description" style="font-size:25px">
+    The game is built using DGL - a custom graphics engine on top of OpenGL that supports shader-based effects, 
+    <br/>dynamic shadows and infinite number of light sources.
+    </div>
+    <div class="description">
+    <br/><a href="https://github.com/gecko0307/dgl" class="linkBox"><img src="github-logo.png"/> DGL</a>
+    </div>
+</section>
 
-          <br/>
-          
-              <div class="inner-box">
-                <table class="box" border="0" width="800">
-                  <tr valign="top">
-                    <td align="justify">
-		            <p>
-                         Wanna see something in action? Here's a recent tech demo that shows Atrium's graphics and physics engine possibilities:
-                    </p>
-		            <p>
-                         <a href="https://www.dropbox.com/s/houiajw1vcxvqs9/atrium-shadows-demo-win32.zip?dl=0" target="_blank" class="glowing">
-                           Download for Windows 32-bit
-                         </a>
-                         <br/>
-                         <a href="https://github.com/gecko0307/atrium" target="_blank" class="glowing">
-                           Get the source code on GitHub
-                         </a>
-                    </p>
-                    <p>
-                         There's also an old demo with unfinished 1'st level. Walk around, pull the boxes with the gravity gun and try to
-                         collect all the pink tokens.
-                    </p>
-		            <p>
-                         <a href="https://www.dropbox.com/s/g6gd4mq3otftlbc/atrium-demo-win32.zip?dl=0" target="_blank" class="glowing">
-                           Download for Windows 32-bit
-                         </a>
-                         <br/>
-                         <a href="https://www.dropbox.com/s/1kj9luenvsfs7fa/atrium-demo-linux-x86.tar.gz?dl=0" target="_blank" class="glowing">
-                           Download for Linux x86
-                         </a>
-                    </p>
-                    </td>
-                  </tr>
-                </table>
-              </div>
+<section id="page" data-speed="10" class="pages" style="background-image:url(bg002.jpg)">
+    <div class="sectionTitle">
+    <div class="description">
+    High level of interactivity
+    </div>
+    <div class="description" style="font-size:25px">
+    You will be able to walk on any surface and push any object, use special devices to affect gravity and other physical behaviours of the environment.
+    <br/>This part of the game is driven by our custom physics engine - dmech.
+    </div>
+    <div class="description">
+    <br/><a href="https://github.com/gecko0307/dgl" class="linkBox"><img src="github-logo.png"/> dmech</a>
+    </div>
+</section>
 
-          <br/>
+<div class="pageBottom">
+<div class="description" style="font-size:25px">
+Interested in tech details? Follow the devlog (in Russian): <a class="link" href="http://dlanggamedev.blogspot.ru">dlanggamedev.blogspot.ru</a>
+</div>
+<br/>Copyright (C) 2015 Timur Gafarov. All rights reserved.
+<br/>Content of this page is available under CC-BY
+</div>
 
-            <div class="inner-box">
-              <table class="box" border="0" width="800">
-                <tr valign="top">
-                  <td align="center" width="25%">
-                    <p>
-                    <a href="images/dmech.jpg" target="_blank">
-                      <img class="shadow" src="images/thumbs/dmech.jpg"/>
-                    </a>
-                    </p>
-                  </td>
-                  <td align="justify">
-		    <p>
-                       Atrium uses our own physics engine written from scratch - <b>dmech</b>.
-                    </p>
-		    <p>
-                       dmech stands for "D mechanics": it is a real-time 3D physics engine written in D language, 
-                       capable of simulating rigid body dynamics. It features iterative SI solver, high-performance collision detection,
-                       all basic geometry shapes and body constraints, arbitrary static trimeshes and ray cast support.
-                    </p>
-		    <p>
-                       dmech is already usable in game projects (although some functionality is a subject to change). 
-                       You may check it out on GitHub:
-                       <br/>
-                       <a href="https://github.com/gecko0307/dmech" target="_blank" class="glowing">
-                         https://github.com/gecko0307/dmech
-                       </a>
-                    </p>
-		    <p>
-                       Other technologies that we use:
-                    </p>
-                    <ul>
-                      <li>OpenGL, SDL, FreeType, OpenAL, Ogg/Vorbis</li>
-                      <li><a href="https://github.com/gecko0307/dgl" target="_blank" class="glowing">DGL</a> as a graphics engine</li> 
-                      <li><a href="https://github.com/gecko0307/dlib" target="_blank" class="glowing">dlib</a> as an utility library</li>
-                      <li><a href="https://github.com/gecko0307/cook2" target="_blank" class="glowing">Cook2</a> to automate the building process</li>
-                      <li><a href="http://blender.org" target="_blank" class="glowing">Blender</a> as an asset creation tool</li>
-                    </ul>
-                   </td>
-                  </tr>
-                </table>
-              </div>
-
-          <br/>
-
-            <div class="inner-box">
-              <table class="box" border="0" width="800">
-                <tr valign="top">
-                  <td align="justify">
-		          <center><p>
-                       Follow the development blog (in Russian): 
-                       <br/>
-                       <a href="http://dlanggamedev.blogspot.ru" target="_blank" class="glowing">
-                         http://dlanggamedev.blogspot.ru
-                       </a>
-                   </p>
-                   <p>
-                       Also visit project page on GameJolt:
-                       <br/>
-                       <a href="http://gamejolt.com/games/action/atrium/46185" target="_blank" class="glowing">
-                         http://gamejolt.com/games/action/atrium/46185
-                       </a>
-                   </p></center>
-                  </td>
-                </tr>
-              </table>
-            </div>
-
-          <p class="dark" align="center">Copyright © 2013-2015 Timur Gafarov.</p>
-
-        </td>
-      </tr> 
-    </table>
-    </center>
-
-  </body>
+</body>
 </html>

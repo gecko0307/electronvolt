@@ -1,0 +1,88 @@
+html, body
+{
+    margin: 0;
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    background-color: #000000;
+}
+
+section
+{
+    display: block;
+    height: 100%;
+    width: 100%;
+    color: #FFFFFF;
+    
+    background-position: 0px 0px;
+    background-size:cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+.pageTitle
+{
+    width: 100%;
+    background-color: rgba(0,0,0,0.9);
+    position: relative;
+    top: 25%;
+    padding-top: 3%;
+    padding-bottom: 3%;
+    text-align: center;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 70px;
+    color: #FFFFFF;
+}
+
+.description
+{
+    padding-top: 1%;
+    text-align: center;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 35px;
+    color: #FFFFFF;
+}
+
+.sectionTitle
+{
+    width: 100%;
+    background-color: #0d1310;
+    padding-top: 3%;
+    padding-bottom: 3%;
+    text-align: center;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 70px;
+    color: #FFFFFF;
+}
+
+.pageBottom
+{
+    width: 100%;
+    background-color: #000000;
+    padding-top: 3%;
+    padding-bottom: 3%;
+    text-align: center;
+    font-family: 'Times New Roman', Times, serif;
+    color: #FFFFFF;
+}
+
+.linkBox
+{
+    background-color: #ce7400;
+    color: #FFFFFF;
+    text-decoration: none;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 100px;
+    padding-right: 100px;
+    margin-left: 5px;
+    margin-right: 5px;
+    text-align: center;
+    font-size: 30px;
+}
+
+.link
+{
+    color: #ce7400;
+    text-decoration: none;
+}
