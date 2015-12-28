@@ -1,3 +1,9 @@
+@font-face 
+{
+    font-family: robotothin;
+    src: url("Roboto-Thin.woff") format('woff');
+}
+
 html, body
 {
     margin: 0;
@@ -29,7 +35,7 @@ section
     padding-top: 3%;
     padding-bottom: 3%;
     text-align: center;
-    font-family: 'Times New Roman', Times, serif;
+    font-family: robotothin;
     font-size: 70px;
     color: #FFFFFF;
 }
@@ -38,7 +44,7 @@ section
 {
     padding-top: 1%;
     text-align: center;
-    font-family: 'Times New Roman', Times, serif;
+    font-family: robotothin;
     font-size: 35px;
     color: #FFFFFF;
 }
@@ -50,7 +56,7 @@ section
     padding-top: 3%;
     padding-bottom: 3%;
     text-align: center;
-    font-family: 'Times New Roman', Times, serif;
+    font-family: robotothin;
     font-size: 70px;
     color: #FFFFFF;
 }
@@ -62,7 +68,7 @@ section
     padding-top: 3%;
     padding-bottom: 3%;
     text-align: center;
-    font-family: 'Times New Roman', Times, serif;
+    font-family: robotothin;
     color: #FFFFFF;
 }
 
