@@ -4,16 +4,16 @@ The goal of this project is to create a first-person shooter with physics based 
 
 Visit the project site at http://gecko0307.github.io/atrium
 
-Also visit our [GameJolt page](http://gamejolt.com/games/action/atrium/46185) and follow the development blog (in Russian) at http://dlanggamedev.blogspot.ru
+Also visit our [IndieDB page](http://www.indiedb.com/games/atrium) and follow the development blog (in Russian) at http://dlanggamedev.blogspot.ru
+
+Screenshots
+-----------
+[![Screenshot1](/screenshots/008_thumb.jpg)](/screenshots/008.jpg)
+[![Screenshot1](/screenshots/009_thumb.jpg)](/screenshots/009.jpg)
 
 Gameplay
 --------
 Atrium will provide high level of interactivity, featuring fully dynamic world with everything being controlled by the physics engine. You will be able to walk on any surface and push any object, use special devices to affect gravity and other physical behaviours of the environment. The gameplay will be peaceful and non-violent: explore the world, solve the puzzles and unleash the mysteries.
-
-Screenshots
------------
-[![Screenshot1](/screenshots/006_thumb.jpg)](/screenshots/006.jpg)
-[![Screenshot1](/screenshots/007_thumb.jpg)](/screenshots/007.jpg)
 
 Tech details
 ------------
