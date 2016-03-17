@@ -39,6 +39,10 @@ import dmech.contact;
 
 void prepareContact(Contact* c)
 {
+    if (!c.shape1.active || !c.shape2.active ||
+        !c.shape1.solve || !c.shape2.solve)
+        return;
+
     RigidBody body1 = c.body1;
     RigidBody body2 = c.body2;
     
@@ -64,6 +68,10 @@ void prepareContact(Contact* c)
 
 void solveContact(Contact* c, double dt)
 {
+    if (!c.shape1.active || !c.shape2.active ||
+        !c.shape1.solve || !c.shape2.solve)
+        return;
+
     RigidBody body1 = c.body1;
     RigidBody body2 = c.body2;
     

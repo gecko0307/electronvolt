@@ -9,9 +9,10 @@ import dlib.math.affine;
 import dlib.math.utils;
 
 import dgl.core.interfaces;
+import dgl.core.event;
 import dgl.graphics.camera;
 
-class FirstPersonCamera: Modifier, Camera
+class FirstPersonCamera: Camera
 {
     Matrix4x4f transformation;
     Matrix4x4f gunTransformation;
@@ -30,7 +31,7 @@ class FirstPersonCamera: Modifier, Camera
         this.position = position;
     }
     
-    Matrix4x4f worldTrans(double dt)
+    Matrix4x4f worldTrans()
     {  
         Matrix4x4f m = translationMatrix(position + eyePosition);
         m *= rotationMatrix(Axis.y, degtorad(turn));
@@ -39,14 +40,19 @@ class FirstPersonCamera: Modifier, Camera
         return m;
     }
     
-    Matrix4x4f getTransform()
+    Matrix4x4f getTransformation()
     {
         return transformation;
     }
     
-    override void bind(double dt)
+    Matrix4x4f getInvTransformation()
     {
-        transformation = worldTrans(dt);
+        return worldTransInv;
+    }
+    
+    void update()
+    {
+        transformation = worldTrans();
         
         gunTransformation = translationMatrix(position + eyePosition);
         gunTransformation *= rotationMatrix(Axis.y, degtorad(turn));
@@ -55,18 +61,90 @@ class FirstPersonCamera: Modifier, Camera
         gunTransformation *= translationMatrix(gunPosition);
         
         worldTransInv = transformation.inverse;
-        glPushMatrix();
-        glMultMatrixf(worldTransInv.arrayof.ptr);
-    }
-    
-    override void unbind()
-    {
-        glPopMatrix();
-    }
-
-    void free()
-    {
-        Delete(this);
     }
 }
 
+class FirstPersonView: EventListener
+{
+    FirstPersonCamera camera;
+    int prevMouseX;
+    int prevMouseY;
+    bool mouseControl = true;
+    bool paused = false;
+
+    this(EventManager emngr, Vector3f camPos)
+    {
+        super(emngr);
+        camera = New!FirstPersonCamera(camPos);
+        camera.turn = -90.0f;
+        camera.eyePosition = Vector3f(0, 0.0f, 0);
+        camera.gunPosition = Vector3f(0.15f, -0.2f, -0.2f);
+        eventManager.setMouseToCenter();
+        
+        eventManager.showCursor(false);
+    }
+
+    ~this()
+    {
+        Delete(camera);
+    }
+    
+    void switchMouseControl()
+    {
+        mouseControl = !mouseControl;
+        eventManager.showCursor(!mouseControl);
+    }
+    
+    override void onFocusLoss()
+    {
+        mouseControl = false;
+        eventManager.showCursor(true);
+    }
+    
+    override void onFocusGain()
+    {
+        if (!paused)
+        {
+            mouseControl = true;
+            eventManager.showCursor(false);
+        }
+    }
+
+    void update()
+    {
+        processEvents();
+        
+        if (!mouseControl)
+            return;
+
+        int hWidth = eventManager.windowWidth / 2;
+        int hHeight = eventManager.windowHeight / 2;
+        float turn_m = -(hWidth - eventManager.mouseX) * 0.1f;
+        float pitch_m = (hHeight - eventManager.mouseY) * 0.1f;
+        camera.pitch += pitch_m;
+        camera.turn += turn_m;
+        float gunPitchCoef = 0.95f;
+        camera.gunPitch += pitch_m * gunPitchCoef;
+        
+        float pitchLimitMax = 80.0f;
+        float pitchLimitMin = -80.0f;
+        if (camera.pitch > pitchLimitMax)
+        {
+            camera.pitch = pitchLimitMax;
+            camera.gunPitch = pitchLimitMax * gunPitchCoef;
+        }
+        else if (camera.pitch < pitchLimitMin)
+        {
+            camera.pitch = pitchLimitMin;
+            camera.gunPitch = pitchLimitMin * gunPitchCoef;
+        }
+        
+        eventManager.setMouseToCenter();
+        camera.update();
+    }
+
+    Matrix4x4f getCameraMatrix()
+    {
+        return camera.getInvTransformation();
+    }
+}

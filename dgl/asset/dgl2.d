@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov 
+Copyright (c) 2014-2016 Timur Gafarov 
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -36,19 +36,24 @@ import std.path;
 
 import dlib.core.memory;
 import dlib.core.stream;
+import dlib.container.dict;
 import dlib.filesystem.filesystem;
 import dlib.math.vector;
 import dlib.math.quaternion;
 import dlib.geometry.triangle;
+import dlib.text.lexer;
 
-import dgl.dml.dml;
+import dgl.text.dml;
 import dgl.graphics.material;
 import dgl.graphics.texture;
 import dgl.graphics.scene;
 import dgl.graphics.entity;
 import dgl.graphics.mesh;
-import dgl.asset.resman;
+
+import dgl.asset.resource;
 import dgl.asset.serialization;
+
+import dgl.text.stringconv;
 
 /*
  * DGL2 is a simple chunk-based binary scene format for DGL. It is a successor of DGL format (DGL1).
@@ -141,10 +146,119 @@ void calcTriangleData(Triangle* tri, DGLTriangle* dglTri)
     tri.edges[2] = tri.v[0] - tri.v[2];
 }
 
-void loadDGL2(InputStream istrm, Scene scene)
-{   
-    assert(scene !is null);
+class DGLResource: Resource
+{
+    ResourceManager resourceManager;
+    MaterialLibrary materialLib;
+    
+    Dict!(Mesh, int) meshesById;
+    Dict!(Mesh, string) meshesByName;
+    Dict!(Entity, int) entitiesById;
+    Dict!(Entity, string) entitiesByName;
+    
+    this(ResourceManager resman)
+    {
+        resourceManager = resman;
+        materialLib = New!MaterialLibrary();
+        
+        meshesById = New!(Dict!(Mesh, int));
+        meshesByName = New!(Dict!(Mesh, string));
+        entitiesById = New!(Dict!(Entity, int));
+        entitiesByName = New!(Dict!(Entity, string));
+    }
+    
+    Dict!(Material, int) materialsById()
+    {
+        return materialLib.materialsById;
+    }
+    
+    Dict!(Material, string) materialsByName()
+    {
+        return materialLib.materialsByName;
+    }
+    
+    void addEntity(int id, string name, Entity e)
+    {
+        entitiesById[id] = e;
+        entitiesByName[copyStr(name)] = e;
+    }
+    
+    void addMesh(int id, string name, Mesh mesh)
+    {
+        meshesById[id] = mesh;
+        meshesByName[copyStr(name)] = mesh;
+    }
+    
+    void addMaterial(int id, string name, Material mat)
+    {
+        materialLib.addMaterial(id, name, mat);
+    }
 
+    bool loadThreadSafePart(InputStream istrm)
+    {
+        loadDGL2(this, istrm);
+        return true;
+    }
+    
+    bool loadThreadUnsafePart()
+    {
+        foreach(i, e; entitiesById)
+        {
+            if (e.type == 4)
+            {
+                if ("mesh" in e.props)
+                {
+                    string meshName = e.props["mesh"].toString;
+                    if (meshName in meshesByName)
+                    {
+                        Mesh mesh = meshesByName[meshName];
+                        
+                        if ("genTangents" in e.props)
+                            mesh.genTangents = e.props["genTangents"].toBool;
+                    }
+                }
+            }
+        }
+    
+        foreach(i, m; meshesById)
+        {
+            m.genFaceGroups(materialLib);
+        }
+        
+        foreach(i, e; entitiesById)
+        {
+            if (e.meshID in meshesById)
+                e.model = meshesById[e.meshID];
+        }
+        
+        materialLib.setShader();
+        return true;
+    }
+    
+    ~this()
+    {
+        foreach(name, m; meshesByName)
+        {
+            Delete(name);
+            Delete(m);
+        }
+        Delete(meshesByName);
+        Delete(meshesById);
+        
+        foreach(name, e; entitiesByName)
+        {
+            Delete(name);
+            Delete(e);
+        }
+        Delete(entitiesByName);
+        Delete(entitiesById);
+        
+        Delete(materialLib);
+    }
+}
+
+void loadDGL2(DGLResource res, InputStream istrm)
+{
     DataChunk readChunk()
     {
         DataChunk chunk;
@@ -182,11 +296,12 @@ void loadDGL2(InputStream istrm, Scene scene)
             // TODO: duplicate
             //e.name = chunk.name;
             auto dataStrm = New!ArrayStream(chunk.data, chunk.data.length);
-            decodeEntity(e, dataStrm, scene);
+            decodeEntity(e, dataStrm, res);
             Delete(dataStrm);
             
             version(DGLDebug) writefln("----\nEntity:\n%s", e);
-            scene.addEntity(chunk.name, e);
+            
+            res.addEntity(e.id, chunk.name, e);
         }
         else if (chunk.type == ChunkType.MATERIAL)
         {
@@ -195,14 +310,15 @@ void loadDGL2(InputStream istrm, Scene scene)
             // TODO: duplicate
             //mat.name = chunk.name;
             auto dataStrm = New!ArrayStream(chunk.data, chunk.data.length);
-            decodeMaterial(mat, dataStrm, scene);
+            decodeMaterial(mat, dataStrm, res);
             Delete(dataStrm);
 
             version(DGLDebug) writefln("----\nMaterial:\n%s", mat);
-            scene.addMaterial(chunk.name, mat);
+            
+            res.addMaterial(mat.id, chunk.name, mat);
         }
         else if (chunk.type == ChunkType.TRIMESH)
-        {
+        {        
             assert(!(chunk.data.length % DGLTriangle.sizeof)); // Check data integrity
             size_t numTris = chunk.data.length / DGLTriangle.sizeof;
             Triangle[] tris = New!(Triangle[])(numTris);
@@ -217,10 +333,11 @@ void loadDGL2(InputStream istrm, Scene scene)
             }
 
             Mesh mesh = New!Mesh(tris);
-            mesh.id = chunk.id;
+            mesh.id = chunk.id;            
+            res.addMesh(mesh.id, chunk.name, mesh);
+            
             // TODO: duplicate
             //mesh.name = chunk.name;
-            scene.addMesh(chunk.name, mesh);
 
             version(DGLDebug) writefln("numTris: %s", numTris);
         }
@@ -231,35 +348,39 @@ void loadDGL2(InputStream istrm, Scene scene)
     version(DGLDebug) writeln("end");
 }
 
-void decodeEntity(Entity e, InputStream istrm, Scene scene)
+void decodeEntity(Entity e, InputStream istrm, DGLResource res)
 {
     e.type = read!uint(istrm);
-    e.materialId = read!int(istrm);
-    e.meshId = read!int(istrm);
-
+    e.materialID = read!int(istrm);
+    e.meshID = read!int(istrm);
+    
     Vector3f position = read!(Vector3f, true)(istrm);
     Quaternionf rotation = read!(Quaternionf, true)(istrm);
     Vector3f scaling = read!(Vector3f, true)(istrm);
     e.setTransformation(position, rotation, scaling);
-
+    
     DMLData dml;
     auto dmlSize = read!uint(istrm);
     if (dmlSize > 0)
     {
         auto dmlBytes = New!(ubyte[])(dmlSize);
         istrm.fillArray(dmlBytes);
-        string dmlStr = cast(string)dmlBytes;
+        string dmlStr = cast(string)dmlBytes[0..$];
         version(DGLDebug) writefln("----\ndmlStr:\n%s", dmlStr);
         parseDML(dmlStr, &dml);
         Delete(dmlBytes);
     }
+    
     e.props = dml;
     
     if ("visible" in dml.root.data)
-        e.visible = cast(bool)dml.root.data["visible"].toInt;
+        e.visible = dml.root.data["visible"].toBool;
+        
+    if ("transparent" in dml.root.data)
+        e.transparent = dml.root.data["transparent"].toBool;
 }
 
-void decodeMaterial(Material m, InputStream istrm, Scene scene)
+void decodeMaterial(Material m, InputStream istrm, DGLResource res)
 {
     DMLData dml;
 
@@ -268,14 +389,23 @@ void decodeMaterial(Material m, InputStream istrm, Scene scene)
     {
         auto dmlBytes = New!(ubyte[])(dmlSize);
         istrm.fillArray(dmlBytes);
-        string dmlStr = cast(string)dmlBytes;
+        string dmlStr = cast(string)dmlBytes[0..$];
         version(DGLDebug) writefln("----\ndmlStr:\n%s", dmlStr);
         parseDML(dmlStr, &dml);
         Delete(dmlBytes);
     }
 
     if ("diffuseColor" in dml.root.data)
+    {
         m.diffuseColor = dml.root.data["diffuseColor"].toColor4f;
+        if ("emission" in dml.root.data)
+        {
+            float emission = dml.root.data["emission"].toFloat;
+            m.ambientColor = m.diffuseColor * emission;
+            m.ambientColor.a = 1.0f;
+            m.emissionColor = m.ambientColor;
+        }
+    }
 
     if ("specularColor" in dml.root.data)
         m.specularColor = dml.root.data["specularColor"].toColor4f;
@@ -295,13 +425,49 @@ void decodeMaterial(Material m, InputStream istrm, Scene scene)
                 string filename;
                 int blendType;
                 formattedRead(texStr, "[%s, %s]", &filename, &blendType);
-                Texture tex = scene.getTexture(filename);
+                auto resman = res.resourceManager;
+                Texture tex = null;
+                if (filename in resman.resources)
+                {
+                    tex = resman.getTexture(filename);
+                }
+                else
+                {
+                    TextureResource texres = New!TextureResource(resman.imageFactory);
+                    resman.loadResourceThreadSafePart(texres, filename);
+                    tex = texres.texture;
+                    resman.addResource(filename, texres);
+                }
                 m.textures[i] = tex;
             }
         }
     }
     
+    if ("doubleSided" in dml.root.data)
+    {
+        m.doubleSided = dml.root.data["doubleSided"].toBool;
+    }
+    
+    if ("useGLSL" in dml.root.data)
+    {
+        m.useGLSL = dml.root.data["useGLSL"].toBool;
+    }
+    
+    if ("blendMode" in dml.root.data)
+    {
+        m.additiveBlending = (dml.root.data["blendMode"].toInt == 1);
+    }
+    
+    if ("shininess" in dml.root.data)
+    {
+        m.shininess = dml.root.data["shininess"].toFloat;
+    }
+    
+    if ("rimLight" in dml.root.data)
+    {
+        m.rimLight = dml.root.data["rimLight"].toBool;
+    }
+
     dml.free();
 }
-
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Timur Gafarov
+Copyright (c) 2015-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -55,23 +55,17 @@ class ScreenSprite: EventListener, Drawable
     {
         material.bind(dt);
         glBegin(GL_QUADS);
-        glTexCoord2f(0, 0); glVertex2f(0, eventManager.windowHeight);
-        glTexCoord2f(0, 1); glVertex2f(0, 0);
-        glTexCoord2f(1, 1); glVertex2f(eventManager.windowWidth, 0);
-        glTexCoord2f(1, 0); glVertex2f(eventManager.windowWidth, eventManager.windowHeight);
+        glTexCoord2f(0, 0); glVertex2f(0, 0);
+        glTexCoord2f(1, 0); glVertex2f(eventManager.windowWidth, 0);
+        glTexCoord2f(1, 1); glVertex2f(eventManager.windowWidth, eventManager.windowHeight);
+        glTexCoord2f(0, 1); glVertex2f(0, eventManager.windowHeight);
         glEnd();
         material.unbind();
-        glDisable(GL_LIGHTING);
-    }
-
-    override void free()
-    {
-        Delete(this);
     }
 
     ~this()
     {
-        material.free();
+        Delete(material);
     }
 }
 
@@ -81,6 +75,7 @@ class Sprite: Drawable
     uint width;
     uint height;
     Vector2f position;
+    Color4f color;
 
     this(Texture tex, uint w, uint h)
     {
@@ -88,13 +83,15 @@ class Sprite: Drawable
         width = w;
         height = h;
         position = Vector2f(0, 0);
+        color = Color4f(1,1,1,1);
     }
 
     void draw(double dt)
     {
         glDisable(GL_DEPTH_TEST);
+        glDisable(GL_LIGHTING);
         glPushMatrix();
-        glColor4f(1,1,1,1);
+        glColor4fv(color.arrayof.ptr);
         glTranslatef(position.x, position.y, 0.0f);
         glScalef(width, height, 1.0f);
         texture.bind(dt);
@@ -111,11 +108,6 @@ class Sprite: Drawable
 
     ~this()
     {
-    }
-
-    void free()
-    {
-        Delete(this);
     }
 }
 
@@ -190,10 +182,5 @@ class AnimatedSprite: Drawable
 
     ~this()
     {
-    }
-
-    void free()
-    {
-        Delete(this);
     }
 }

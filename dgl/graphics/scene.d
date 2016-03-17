@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2015-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -28,271 +28,88 @@ DEALINGS IN THE SOFTWARE.
 
 module dgl.graphics.scene;
 
-import std.stdio;
-
 import dlib.core.memory;
 import dlib.container.array;
-import dlib.container.aarray;
-import dlib.image.color;
-
 import dgl.core.interfaces;
-import dgl.graphics.material;
-import dgl.graphics.texture;
-import dgl.graphics.lightmanager;
 import dgl.graphics.entity;
-import dgl.graphics.mesh;
-import dgl.graphics.shader;
-import dgl.asset.resman;
+import dgl.graphics.material;
 
-/*
- * Scene class stores a number of entities together with their meshes and materials.
- * Textures are stored separately, in ResourceManager, because textures may be shared between several Scenes.
- * Scene is bind to ResourceManager.
- */
-
-class Scene: Drawable
+class Scene
 {
-    ResourceManager rm;
+    DynamicArray!Entity entities;
+    DynamicArray!Entity entitiesToDelete;
+    Material defaultMaterial;
+    bool shadeless = false;
+    bool transparentSort = false;
 
-	DynamicArray!Entity _entities;
-	DynamicArray!Mesh _meshes;
-	DynamicArray!Material _materials;
-
-	AArray!size_t entitiesByName;
-	AArray!size_t meshesByName;
-	AArray!size_t materialsByName;
-
-    bool visible = true;
-    bool lighted = true;
-
-	Entity[] entities() {return _entities.data;}
-	Mesh[] meshes() {return _meshes.data;}
-	Material[] materials() {return _materials.data;}
-
-	Entity entity(string name)
-	{
-	    if (name in entitiesByName)
-		    return _entities.data[entitiesByName[name]-1];
-		else
-		    return null;
-	}
-
-	Mesh mesh(string name)
-	{
-	    if (name in meshesByName)
-		    return _meshes.data[meshesByName[name]-1];
-		else
-		    return null;
-	}
-
-	Material material(string name)
-	{
-	    if (name in materialsByName)
-		    return _materials.data[materialsByName[name]-1];
-		else
-		    return null;
-	}
-
-    this(ResourceManager rm)
+    this()
     {
-        this.rm = rm;
-        createArrays();
+        defaultMaterial = New!Material();
     }
 
-    protected void createArrays()
+    Entity createEntity(Drawable d)
     {
-	    entitiesByName = New!(AArray!size_t);
-	    meshesByName = New!(AArray!size_t);
-		  materialsByName = New!(AArray!size_t);
-    }
-
-    void clearArrays()
-    {
-        freeEntities();
-        freeMeshes();
-        freeMaterials();
-        createArrays();
-    }
-
-    void resolveLinks()
-    {
-        foreach(ei, e; _entities.data)
-        {
-            foreach(mi, m; _materials.data)
-            {
-                if (e.materialId == m.id)
-                {
-                    e.modifier = m;
-                    break;
-                }
-            }
-
-            foreach(mi, m; _meshes.data)
-            {
-                if (e.meshId == m.id)
-                {
-                    e.drawable = m;
-                    break;
-                }
-            }
-        }
-
-        foreach(mi, m; _meshes.data)
-        {
-            m.genFaceGroups(this);
-        }
-    }
-
-    void createDynamicLights(bool debugDraw = false)
-    {
-        foreach(i, e; _entities.data)
-        {
-            if (e.type == 1)
-            {
-                Color4f col = e.props["color"].toColor4f;
-                auto light = rm.lm.addPointLight(e.position);
-                light.debugDraw = debugDraw;
-                light.diffuseColor = col;
-                light.highPriority = true;
-                e.drawable = light;
-            }
-        }
-    }
-
-    Entity addEntity(string name, Entity e)
-    {
-	    _entities.append(e);
-        entitiesByName[name] = _entities.length;
+        Entity e = New!Entity(d);
+        e.material = defaultMaterial;
+        entities.append(e);
+        entitiesToDelete.append(e);
         return e;
     }
 
-    Mesh addMesh(string name, Mesh m)
+    Entity addEntity(Entity e)
     {
-	    _meshes.append(m);
-        meshesByName[name] = _meshes.length;
-        return m;
+        entities.append(e);
+        return e;
     }
-
-    Material addMaterial(string name, Material m)
+    
+    void sortByTransparency()
     {
-	    _materials.append(m);
-        materialsByName[name] = _materials.length;
-        return m;
-    }
+        size_t j = 0;
+        Entity tmp;
 
-    Material getMaterialById(int id)
-    {
-        Material res = null;
-        foreach(mi, mat; _materials.data)
+        auto edata = entities.data;
+
+        foreach(i, v; edata)
         {
-            if (mat.id == id)
+            j = i;
+            size_t k = i;
+
+            while (k < edata.length)
             {
-                res = mat;
-                break;
+                int b1 = edata[j].transparent;
+                int b2 = edata[k].transparent;
+                
+                if (b2 < b1)
+                    j = k;
+                
+                k++;
             }
-        }
-        return res;
-    }
 
-    Texture getTexture(string filename)
-    {
-        return rm.getTexture(filename);
-    }
-
-    void freeEntities()
-    {
-        foreach(i, e; _entities.data)
-            e.free();
-        _entities.free();
-		    Delete(entitiesByName);
-    }
-
-    void freeMeshes()
-    {
-        foreach(i, m; _meshes.data)
-            m.free();
-        _meshes.free();
-		    Delete(meshesByName);
-    }
-
-    void freeMaterials()
-    {
-        foreach(i, m; _materials.data)
-            m.free();
-        _materials.free();
-		    Delete(materialsByName);
-    }
-
-    void setMaterialsShadeless(bool shadeless)
-    {
-        foreach(i, m; _materials.data)
-        {
-            m.shadeless = shadeless;
+            tmp = edata[i];
+            edata[i] = edata[j];
+            edata[j] = tmp;
         }
     }
 
-    void setMaterialsUseTextures(bool mode)
-    {
-        foreach(i, m; _materials.data)
-            m.useTextures = mode;
-    }
-
-    void setMaterialsAmbientColor(Color4f col)
-    {
-        foreach(i, m; _materials.data)
-        {
-            m.ambientColor = col;
-        }
-    }
-
-    void setMaterialsSpecularColor(Color4f col)
-    {
-        foreach(i, m; _materials.data)
-        {
-            m.specularColor = col;
-        }
-    }
-
-    void setMaterialsShader(Shader shader)
-    {
-        foreach(i, m; _materials.data)
-        {
-            m.shader = shader;
-        }
-    }
-
-    void setMaterialsTextureSlot(uint src, uint dest)
-    {
-        foreach(i, m; _materials.data)
-        {
-            m.textures[dest] = m.textures[src];
-            m.textures[src] = null;
-        }
-    }
-
-    void draw(double dt)
-    {
-        foreach(i, e; _entities.data)
-        {
-            if (!lighted)
-                rm.lm.lightsOn = false;
-            rm.lm.bind(e, dt);
-            e.draw(dt);
-            if (!lighted)
-                rm.lm.lightsOn = true;
-            rm.lm.unbind(e);
-        }
+    void update(double dt)
+    {    
+        foreach(e; entities)
+            e.update(dt);
     }
 
     void free()
     {
-        Delete(this);
+        foreach(e; entitiesToDelete)
+            Delete(e);
+        entitiesToDelete.free();
+        entities.free();
     }
 
     ~this()
     {
-        freeEntities();
-        freeMeshes();
-        freeMaterials();
+        free();
+        Delete(defaultMaterial);
     }
 }
+
+

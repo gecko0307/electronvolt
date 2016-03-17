@@ -58,6 +58,11 @@ class ShapeComponent: Freeable
 
     bool locked = false;
 
+    bool active = true;
+    bool solve = true;
+    bool raycastable = true;
+    int numCollisions = 0;
+
     @property
     {
         Matrix4x4f transformation()

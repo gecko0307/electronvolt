@@ -3,13 +3,12 @@ module game.particles;
 import std.math;
 import std.random;
 
-import derelict.opengl.gl;
-
 import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.interpolation;
 import dlib.image.color;
 
+import dgl.core.api;
 import dgl.core.interfaces;
 
 import dmech.world;
@@ -20,6 +19,7 @@ struct Particle
 {
     Vector3f position;
     Vector3f velocity;
+    Vector3f gravityVector;
     float lifetime;
     float time;
     bool move;
@@ -41,12 +41,14 @@ class ParticleSystem: Drawable
     Color4f primaryColor = Color4f(1, 1, 1, 1);
     Color4f secondaryColor = Color4f(1, 1, 1, 0);
 
-    Vector3f gravityVector = Vector3f(0, -1, 0);
+    //Vector3f gravityVector = Vector3f(0, -1, 0);
     bool collisions = false;
     float airFrictionDamping = 0.95f;
     float collisionDamping = 0.8f;
     float startSpeed = 20.0f;
     float startVelRandomRadius = 1.0f;
+    
+    bool haveParticlesToDraw = false;
     
     this(PhysicsWorld world, Vector3f src, uint num = 10)
     {
@@ -59,6 +61,7 @@ class ParticleSystem: Drawable
             Vector3f vDir = Vector3f(0, 1, 0);
             p.velocity = randomizeDirection(vDir) * startSpeed;
             p.lifetime = uniform(minLifetime, maxLifetime);
+            p.gravityVector = Vector3f(0, -1, 0);
             p.time = p.lifetime;
             p.move = false;
         }
@@ -72,6 +75,7 @@ class ParticleSystem: Drawable
             p.position = source;
             p.velocity = randomizeDirection(dir) * startSpeed;
             p.lifetime = uniform(minLifetime, maxLifetime);
+            p.gravityVector = Vector3f(0, -1, 0);
             p.time = 0.0f;
             p.move = true;
         }
@@ -95,18 +99,22 @@ class ParticleSystem: Drawable
     
     void update(double dt)
     {
+        haveParticlesToDraw = false;
+    
         foreach(ref p; particles)
         if (p.time < p.lifetime)
         {
             p.time += dt;
             if (p.move)
             {
-                p.velocity += gravityVector;
+                p.velocity += p.gravityVector;
                 p.velocity = p.velocity * airFrictionDamping;
                 p.position += p.velocity * dt;
                 if (collisions)
                     particleCollisions(p);
             }
+            
+            haveParticlesToDraw = true;
         }
     }
     
@@ -120,7 +128,7 @@ class ParticleSystem: Drawable
             p.colBody = cr.rbody;
             if (p.velocity.length < 1.0f && 
                 !cr.rbody.dynamic && 
-                dot(cr.normal, -gravityVector) > 0.5f)
+                dot(cr.normal, -p.gravityVector) > 0.5f)
             {
                 p.move = false;
                 p.position = cr.point;
@@ -134,7 +142,12 @@ class ParticleSystem: Drawable
     }
     
     void draw(double dt)
-    {        
+    {
+        if (!haveParticlesToDraw)
+        {
+            return;
+        }
+    
         glDisable(GL_LIGHTING);
         glLineWidth(5.0f);
         glPointSize(5.0f);

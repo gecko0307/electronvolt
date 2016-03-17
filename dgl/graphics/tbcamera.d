@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013-2015 Timur Gafarov
+Copyright (c) 2013-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -43,7 +43,7 @@ import dlib.math.quaternion;
 import dgl.core.interfaces;
 import dgl.graphics.camera;
 
-final class TrackballCamera: Modifier, Camera
+final class TrackballCamera: Camera
 {
     private:
 
@@ -53,6 +53,7 @@ final class TrackballCamera: Modifier, Camera
     Quaternionf rotTurn;
     Quaternionf rotRoll;
     Matrix4x4f transform;
+    Matrix4x4f invTransform;
 
     float rotPitchTheta = 0.0f;
     float rotTurnTheta = 0.0f;
@@ -91,13 +92,14 @@ final class TrackballCamera: Modifier, Camera
         rotTurn = rotationQuaternion(Vector3f(0.0f,1.0f,0.0f), 0.0f);
         rotRoll = rotationQuaternion(Vector3f(0.0f,0.0f,1.0f), 0.0f);
         transform = Matrix4x4f.identity;
+        invTransform = Matrix4x4f.identity;
         distance = 10.0f;
         
         current_translate = Vector3f(0.0f, 0.0f, 0.0f);
         target_translate = Vector3f(0.0f, 0.0f, 0.0f);
     }
 
-    void bind(double delta)
+    void update()
     {
         if (current_zoom < target_zoom)
         {
@@ -114,23 +116,15 @@ final class TrackballCamera: Modifier, Camera
             translateTarget(t);
         }
 
-	    glPushMatrix();
-
         rotPitch = rotationQuaternion(Vector3f(1.0f,0.0f,0.0f), degtorad(rotPitchTheta));
         rotTurn = rotationQuaternion(Vector3f(0.0f,1.0f,0.0f), degtorad(rotTurnTheta));
         rotRoll = rotationQuaternion(Vector3f(0.0f,0.0f,1.0f), degtorad(rotRollTheta));
 
         Quaternionf q = rotPitch * rotTurn * rotRoll;
         Matrix4x4f rot = q.toMatrix4x4();
-        transform = translationMatrix(Vector3f(0.0f, 0.0f, -distance)) * rot * translationMatrix(center);
-        glLoadMatrixf(transform.arrayof.ptr);
+        invTransform = translationMatrix(Vector3f(0.0f, 0.0f, -distance)) * rot * translationMatrix(center);
 
-        transform.invert();
-    }
-
-    void unbind()
-    {
-        glPopMatrix();
+        transform = invTransform.inverse;
     }
 
     void pitch(float theta)
@@ -250,9 +244,14 @@ final class TrackballCamera: Modifier, Camera
         return transform.forward();
     }
     
-    Matrix4x4f getTransform()
+    Matrix4x4f getTransformation()
     {
         return transform;
+    }
+    
+    Matrix4x4f getInvTransformation()
+    {
+        return invTransform;
     }
     
     float getDistance()
@@ -326,10 +325,5 @@ final class TrackballCamera: Modifier, Camera
 
         worldx = snap? floor(camPos.x - mx * camPos.y / my) : (camPos.x - mx * camPos.y / my);
         worldy = snap? floor(camPos.z - mz * camPos.y / my) : (camPos.z - mz * camPos.y / my);
-    }
-
-    void free()
-    {
-        Delete(this);
     }
 }

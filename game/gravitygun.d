@@ -4,9 +4,6 @@ import std.math;
 import std.algorithm;
 import std.random;
 
-import derelict.opengl.gl;
-import derelict.sdl.sdl;
-
 import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.matrix;
@@ -15,11 +12,12 @@ import dlib.math.utils;
 import dlib.image.color;
 import dlib.image.io.png;
 
+import dgl.core.api;
 import dgl.core.interfaces;
 import dgl.core.event;
 import dgl.graphics.light;
 import dgl.graphics.texture;
-import dgl.asset.resman;
+import dgl.graphics.entity;
 
 import dmech.world;
 import dmech.rigidbody;
@@ -31,24 +29,23 @@ import game.tesla;
 import game.particles;
 import game.fpcamera;
 
-class GravityGun: Weapon, CollisionDispatcher
+class GravityGun: Weapon
 {
-    ResourceManager res;
     EventManager eventManager;
     PhysicsWorld world;
     TeslaEffect tesla;
     ParticleSystem sparks;
-    
-    // TODO: load model and texture here
+    Entity shootFX;
+
     this(Drawable model, 
-         Texture glowTexture,
+         Entity shootFX,
          FirstPersonCamera camera,
-         ResourceManager rm,
          EventManager eventManager,
-         PhysicsWorld world)
+         LightManager lightManager,
+         PhysicsWorld world, 
+         Vector3f bulletStartPos)
     {
         super(camera, model);
-        this.res = res;
         this.eventManager = eventManager;
         this.world = world;
         Color4f teslaColor = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
@@ -58,11 +55,11 @@ class GravityGun: Weapon, CollisionDispatcher
             Color4f(0,0,0,1),
             0.0f, 0.5f, 0.0f);
         light.enabled = false;
-        light.forceOn = true;
-        rm.lm.addLight(light);
+        light.highPriority = true;
+        lightManager.addLight(light);
 
-        tesla = New!TeslaEffect(this, glowTexture, light);
-        tesla.start = Vector3f(0, 0.075f, -0.5f);
+        tesla = New!TeslaEffect(this, light);
+        tesla.start = bulletStartPos;
         tesla.width = 5.0f;
         tesla.color = teslaColor;
         
@@ -70,28 +67,40 @@ class GravityGun: Weapon, CollisionDispatcher
         sparks.collisions = true;
         sparks.primaryColor = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
         sparks.secondaryColor = Color4f(1.0f, 0.0f, 0.0f, 0.0f);
+        
+        this.shootFX = shootFX;
     }
-    
-    override void enableGravity(bool mode)
+    /*
+    void enableGravity(bool mode)
     {
-        super.enableGravity(mode);
         if (mode)
             sparks.gravityVector = Vector3f(0, -1, 0);
         else
             sparks.gravityVector = Vector3f(0, 0, 0);
     }
-    
+    */
     override void draw(double dt)
     {
         sparks.draw(dt);
-        super.draw(dt);
         tesla.draw(dt);
+        bind(dt);
+        drawModel(dt);
+        if (shootFX)
+        {
+            float size = uniform(0.8f, 1.0f);
+            shootFX.scaling = Vector3f(size, size, size);
+            shootFX.update(dt);
+            shootFX.draw(dt);
+        }
+        unbind();
     }
     
     RigidBody shootedBody = null;
+    RigidBody facingBody = null;
     float attractDistance = 3.0f;
     bool canShoot = true;
 
+/*
     void onNewContact(RigidBody b, Contact c)
     {
         if (shootedBody)
@@ -99,7 +108,7 @@ class GravityGun: Weapon, CollisionDispatcher
             shootedBody.position += c.normal * c.penetration;
         }
     }
-
+*/
     void setShootedBody(RigidBody sb)
     {
         shootedBody = sb;       
@@ -144,6 +153,7 @@ class GravityGun: Weapon, CollisionDispatcher
                         {
                             tesla.length = distance(camPos, cr.point);
                             tesla.visible = true;
+                            shootFX.visible = true;
                             tesla.target = cr.point;
                             forceTesla = true;
                             forceTeslaTimer = 0.1f;
@@ -169,6 +179,7 @@ class GravityGun: Weapon, CollisionDispatcher
                     {
                         tesla.length = distance(camPos, cr.point);
                         tesla.visible = true;
+                        shootFX.visible = true;
                         tesla.target = cr.point;
                         forceTesla = true;
                         forceTeslaTimer = 0.1f;
@@ -177,7 +188,7 @@ class GravityGun: Weapon, CollisionDispatcher
                         if (cr.rbody.dynamic)
                         {
                             float d = distance(objPos, cr.rbody.position);
-                            float impulseMag = 200.0f;
+                            float impulseMag = 1000.0f;
                             if (d > 1.0f)
                                 impulseMag *= 1.0f / d;
                             cr.rbody.applyImpulse(camDir * impulseMag, cr.rbody.position);
@@ -189,10 +200,25 @@ class GravityGun: Weapon, CollisionDispatcher
         else
         {
             canShoot = true;
+            /*
+            CastResult cr;
+            if (world.raycast(camPos, camDir, 100.0f, cr, true, true))
+            {
+                if (cr.rbody.dynamic)
+                    facingBody = cr.rbody;
+                else
+                    facingBody = null;
+            }
+            else
+                facingBody = null;
+            */
         }
         
         if (!forceTesla)
+        {
             tesla.visible = false;
+            shootFX.visible = false;
+        }
         else
         {
             forceTeslaTimer -= eventManager.deltaTime;
@@ -250,6 +276,7 @@ class GravityGun: Weapon, CollisionDispatcher
             tesla.length = d1;
             tesla.visible = true;
             tesla.target = b.position;
+            shootFX.visible = true;
 
             bool isec = world.raycast(camPos, objDir, 100.0f, cr, true, true);
             if (isec)
@@ -265,7 +292,7 @@ class GravityGun: Weapon, CollisionDispatcher
                 if (shootedBody)
                 {
                     sparks.reset(objPos, -camDir);
-                    shootedBody.applyImpulse(camDir * 200.0f, shootedBody.position);
+                    shootedBody.applyImpulse(camDir * 1000.0f, shootedBody.position);
                     unsetShootedBody();
                 }
             }
@@ -278,10 +305,5 @@ class GravityGun: Weapon, CollisionDispatcher
     {
         Delete(tesla);
         Delete(sparks);
-    }
-
-    override void free()
-    {
-        Delete(this);
     }
 }

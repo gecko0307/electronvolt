@@ -1,5 +1,5 @@
 ﻿/*
-Copyright (c) 2015 Timur Gafarov
+Copyright (c) 2015-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -28,15 +28,14 @@ DEALINGS IN THE SOFTWARE.
 
 module dgl.core.interfaces;
 
-import dlib.core.memory;
-
-interface Drawable: Freeable
+interface Drawable
 {
     void draw(double dt);
 }
 
-interface Modifier: Freeable
+interface Modifier
 {
     void bind(double delta);
     void unbind();
 }
+

@@ -216,13 +216,13 @@ class RigidBody: Freeable
         if (speed > maxSpeed)
             linearVelocity = linearVelocity.normalized * maxSpeed;
 
-        if (speed > stopThreshold || numContacts < 3)
+        if (speed > stopThreshold /* || numContacts < 3 */)
         {
             position += linearVelocity * dt;
         }
 
         if (enableRotation)
-        if (angularVelocity.length > stopThreshold || numContacts < 3)
+        if (angularVelocity.length > stopThreshold /* || numContacts < 3 */)
         {
             orientation += 0.5f * Quaternionf(angularVelocity, 0.0f) * orientation * dt;
             orientation.normalize();

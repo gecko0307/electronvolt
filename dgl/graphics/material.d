@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013-2015 Timur Gafarov
+Copyright (c) 2015-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -30,56 +30,124 @@ module dgl.graphics.material;
 
 import std.string;
 
-import derelict.opengl.gl;
-import derelict.opengl.glext;
-
 import dlib.core.memory;
 import dlib.image.color;
+import dlib.container.dict;
 
+import dgl.core.api;
 import dgl.core.interfaces;
+import dgl.core.application;
 import dgl.graphics.texture;
+import dgl.graphics.state;
 import dgl.graphics.shader;
+import dgl.graphics.ubershader;
+import dgl.text.stringconv;
 
-enum TextureCombinerMode: ushort
+enum
 {
-    Blend = 0,
-    Modulate = 1,
-    Add = 2,
-    Subtract = 3,
-    Dot3 = 4,
-    Dot3Alpha = 5
+    CBlack = Color4f(0.0f, 0.0f, 0.0f, 1.0f),
+    CWhite = Color4f(1.0f, 1.0f, 1.0f, 1.0f),
+    CRed = Color4f(1.0f, 0.0f, 0.0f, 1.0f),
+    COrange = Color4f(1.0f, 0.5f, 0.0f, 1.0f),
+    CYellow = Color4f(1.0f, 1.0f, 0.0f, 1.0f),
+    CGreen = Color4f(0.0f, 1.0f, 0.0f, 1.0f),
+    CCyan = Color4f(0.0f, 1.0f, 1.0f, 1.0f),
+    CBlue = Color4f(0.0f, 0.0f, 1.0f, 1.0f),
+    CPurple = Color4f(0.5f, 0.0f, 1.0f, 1.0f),
+    CMagenta = Color4f(1.0f, 0.0f, 1.0f, 1.0f)
 }
-
-// TODO: VERY dirty hack, use class for this!
-bool useDimLight = false;
 
 class Material: Modifier
 {
     int id;
     string name;
+    
+    Texture[8] textures;
+    Shader shader;
+    __gshared static UberShader uberShader;
 
     Color4f ambientColor;
     Color4f diffuseColor;
     Color4f specularColor;
     Color4f emissionColor;
-    float shininess;
-    Shader shader;
-    Texture[8] textures;
-    ushort[8] texBlendMode;
+    float shininess = 64.0f;
+    
     bool shadeless = false;
     bool useTextures = true;
     bool additiveBlending = false;
     bool doubleSided = false;
-
+    bool forceActive = false;
+    bool useGLSL = true;
+    bool bump = true;
+    bool parallax = true;
+    bool glowMap = true;
+    bool rimLight = false;
+    bool useFog = false;
+    
     this()
     {
         ambientColor = Color4f(0.0f, 0.0f, 0.0f, 1.0f);
         diffuseColor = Color4f(0.8f, 0.8f, 0.8f, 1.0f);
         specularColor = Color4f(1.0f, 1.0f, 1.0f, 1.0f);
-        emissionColor = Color4f(0.0f, 0.0f, 0.0f, 0.0f);
-        shininess = 64.0f;
+        emissionColor = Color4f(0.0f, 0.0f, 0.0f, 1.0f);
     }
-
+    
+    static void deleteUberShader()
+    {
+        if (uberShader)
+            Delete(uberShader);
+    }
+    
+    void setShader(Shader sh)
+    {
+        if (!useGLSL)
+            return;
+    
+        if (!isGLSLSupported())
+            return;
+            
+        if (!isShadersEnabled())
+            return;
+            
+        //useGLSL = true;
+        
+        shader = sh;
+    }
+    
+    void setShader()
+    {
+        if (!useGLSL)
+            return;
+    
+        if (!isGLSLSupported())
+            return;
+            
+        if (!isShadersEnabled())
+            return;
+            
+        //useGLSL = true;
+        
+        if (uberShader is null)
+            uberShader = New!UberShader();
+            
+        shader = uberShader;
+    }
+    
+    static bool isGLSLSupported()
+    {
+        return DerelictGL.isExtensionSupported("GL_ARB_shading_language_100");
+    }
+    
+    static bool isShadersEnabled()
+    {
+        if ("fxShadersEnabled" in config)
+        {
+            return config["fxShadersEnabled"].toBool;
+        }
+        else
+            return false;
+    }
+    
     @property uint numTextures()
     {
         uint res = 0;
@@ -87,9 +155,14 @@ class Material: Modifier
             if (t !is null) res++;
         return res;
     }
-
+    
     void bind(double dt)
     {
+        if (!PipelineState.materialsActive && !forceActive)
+            return;
+
+        glPushAttrib(GL_ENABLE_BIT);
+
         glDisable(GL_TEXTURE_2D);
         
         glEnable(GL_LIGHTING);
@@ -98,15 +171,15 @@ class Material: Modifier
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specularColor.arrayof.ptr);
         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissionColor.arrayof.ptr);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, &shininess);
-
+        
         if (additiveBlending)
             glBlendFunc(GL_ONE, GL_ONE);
-
+            
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-        if (shadeless && !useDimLight)
+        if (shadeless)
         {
-            glDisable(GL_LIGHTING);
             glColor4f(diffuseColor.r, diffuseColor.g, diffuseColor.b, diffuseColor.a);
+            glDisable(GL_LIGHTING);
         }
         
         if (doubleSided)
@@ -122,15 +195,53 @@ class Material: Modifier
             }
         }
 
-        if (shader && !useDimLight)
-            shader.bind(dt);
-    }
+        if (shader)
+        {
+            if (uberShader)
+            {
+                uberShader.shadeless = false;
+                uberShader.textureEnabled = false;
+                uberShader.bumpEnabled = false;
+                uberShader.parallaxEnabled = false;
+                uberShader.glowMapEnabled = false;
+                uberShader.rimLightEnabled = false;
+                uberShader.fogEnabled = useFog || useFogGlobal;
 
+                if (shadeless)
+                    uberShader.shadeless = true;
+
+                if (useTextures && textures[0])
+                    uberShader.textureEnabled = true;
+
+                if (useTextures && textures[1] && bump)
+                {
+                    uberShader.bumpEnabled = true;
+                    if (textures[1].format == GL_RGBA || textures[1].format == GL_LUMINANCE_ALPHA)
+                        if (parallax)
+                            uberShader.parallaxEnabled = true;
+                }
+              
+                if (useTextures && textures[2] && glowMap)
+                {
+                    uberShader.glowMapEnabled = true;
+                    
+                }
+                
+                uberShader.rimLightEnabled = rimLight;
+            }
+            
+            shader.bind(dt);
+        }
+    }
+    
     void unbind()
     {
-        if (shader && !useDimLight)
-            shader.unbind();
+        if (!PipelineState.materialsActive && !forceActive)
+            return;
 
+        if (shader)
+            shader.unbind();
+    
         if (useTextures)
         foreach(i, tex; textures)
         {
@@ -141,40 +252,100 @@ class Material: Modifier
             }
         }
         
+        glDisable(GL_LIGHTING);
+        
         if (doubleSided)
             glEnable(GL_CULL_FACE);
 
         glActiveTextureARB(GL_TEXTURE0_ARB);
 
-        if (shadeless && !useDimLight)
-            glEnable(GL_LIGHTING);
-
         if (additiveBlending)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    }
 
+        glPopAttrib();
+    }
+    
     override string toString()
     {
         return format(
             "id = %s\n"
             "name = %s\n"
-            "ambientColor = %s\n"
             "diffuseColor = %s\n"
             "specularColor = %s\n"
             "emissionColor = %s",
             id,
             name,
-            ambientColor,
             diffuseColor,
             specularColor,
             emissionColor
         );
     }
-
-    void free()
+    
+    static bool useFogGlobal = false;
+    static void setFogEnabled(bool mode)
     {
-        //if (name.length)
-        //    Delete(name);
-        Delete(this);
+        useFogGlobal = mode;
+    }
+    
+    static void setFogDistance(float minDist, float maxDist)
+    {
+        glFogf(GL_FOG_START, minDist);
+        glFogf(GL_FOG_END, maxDist);
+    }
+    
+    static void setFogColor(Color4f col)
+    {
+        glFogfv(GL_FOG_COLOR, col.arrayof.ptr);
+    }
+}
+
+class MaterialLibrary
+{
+    Dict!(Material, int) materialsById;
+    Dict!(Material, string) materialsByName;
+    
+    this()
+    {
+        materialsById = New!(Dict!(Material, int));
+        materialsByName = New!(Dict!(Material, string));
+    }
+    
+    void addMaterial(int id, string name, Material mat)
+    {
+        materialsById[id] = mat;
+        materialsByName[copyStr(name)] = mat;
+    }
+    
+    Material getMaterial(int id)
+    {
+        if (id in materialsById)
+            return materialsById[id];
+        else
+            return null;
+    }
+    
+    Material getMaterial(string name)
+    {
+        if (name in materialsByName)
+            return materialsByName[name];
+        else
+            return null;
+    }
+    
+    void setShader()
+    {
+        foreach(i, m; materialsById)
+            m.setShader();
+    }
+    
+    ~this()
+    {
+        foreach(name, m; materialsByName)
+        {
+            Delete(name);
+            Delete(m);
+        }
+        Delete(materialsByName);
+        Delete(materialsById);
     }
 }

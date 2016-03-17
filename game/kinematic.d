@@ -1,7 +1,10 @@
 module game.kinematic;
 
-import dlib;
-import dmech;
+import dlib.math.vector;
+import dlib.math.quaternion;
+import dmech.rigidbody;
+import dmech.geometry;
+import dmech.world;
 
 /*
  * Kinematic controller implements an object that doesn't react to collisions 
@@ -9,10 +12,11 @@ import dmech;
  * movement to dynamic bodies - ideal for things like moving platforms.
  * Kinematic object's movement is fully controlled by the programmer.
  */
-class KinematicController: Freeable
+class KinematicController
 {
     PhysicsWorld world;
     RigidBody rbody;
+    Vector3f position;
 
     this(PhysicsWorld world, Vector3f pos, Geometry geom)
     {
@@ -20,18 +24,19 @@ class KinematicController: Freeable
         rbody = world.addStaticBody(pos);
         rbody.raycastable = true;
         world.addShapeComponent(rbody, geom, Vector3f(0, 0, 0), 1.0f);
+        
+        position = rbody.position;
     }
 
-    void moveToPosition(Vector3f pos, double dt)
+    void update(double dt)
     {
-        rbody.linearVelocity = (pos - rbody.position) / dt;
+        rbody.linearVelocity = (position - rbody.position) / dt;
         rbody.position += rbody.linearVelocity * dt;
-        rbody.updateShapeComponents();
-    }
 
-    void free()
-    {
-        Delete(this);
+        rbody.orientation += 0.5f * Quaternionf(rbody.angularVelocity, 0.0f) * rbody.orientation * dt;
+        rbody.orientation.normalize();
+
+        rbody.updateShapeComponents();
     }
 }
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2014-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -44,17 +44,12 @@ import dgl.core.interfaces;
 import dgl.graphics.material;
 import dgl.graphics.scene;
 
-class FaceGroup: Freeable
+class FaceGroup
 {
     DynamicArray!Triangle tris;
     uint displayList;
     int materialIndex;
     Material material;
-
-    void free()
-    {
-        Delete(this);
-    }
 
     ~this()
     {
@@ -66,7 +61,7 @@ class FaceGroup: Freeable
 
 bool vectorsAlmostSame(Vector3f v1, Vector3f v2) nothrow
 {
-    return (v1 - v2).length < 0.00001f;
+    return (v1 - v2).length < 0.001f;
 }
 
 int hasVector(ref DynamicArray!Vector3f arr, Vector3f vec)
@@ -79,7 +74,7 @@ int hasVector(ref DynamicArray!Vector3f arr, Vector3f vec)
     return -1;
 }
 
-bool generateTangentVectors = true;
+//__gshared bool generateTangentVectors = true;
 
 class Mesh: Drawable
 {
@@ -87,16 +82,14 @@ class Mesh: Drawable
     string name;
     Triangle[] tris;
     DynamicArray!FaceGroup fgroups;
+    bool genTangents = true;
 
     this(Triangle[] tris)
     {
         this.tris = tris;
-
-        if (generateTangentVectors)
-            genTangents();
     }
 
-    protected void genTangents()
+    protected void generateTangents()
     {
         DynamicArray!Vector3f vertices;
         DynamicArray!Vector3f normals;
@@ -114,29 +107,87 @@ class Mesh: Drawable
 
                 int vi = vertices.hasVector(v);
 
-                if (vi == -1)
+                //if (vi == -1)
                 {
                     vertices.append(v);
                     normals.append(n);
                     texcoords.append(t);
                     triangle[i] = cast(uint)(vertices.length-1);
                 }
-                else
-                {
-                    triangle[i] = vi;
-                }
+                //else
+                //{
+                //    triangle[i] = vi;
+                //}
             }
             triangles.append(triangle);
         }
 
         Vector3f[] sTan = New!(Vector3f[])(vertices.length);
         Vector3f[] tTan = New!(Vector3f[])(vertices.length);
-
+        
         foreach(i, v; sTan)
         {
             sTan[i] = Vector3f(0.0f, 0.0f, 0.0f);
             tTan[i] = Vector3f(0.0f, 0.0f, 0.0f);
         }
+        /*
+        foreach(ref tri; triangles.data)
+        {
+            uint i0 = tri[0];
+            uint i1 = tri[1];
+            uint i2 = tri[2];
+            
+            Vector3f v0 = vertices[i0];
+            Vector3f v1 = vertices[i1];
+            Vector3f v2 = vertices[i2];
+
+            Vector2f uv0 = texcoords[i0];
+            Vector2f uv1 = texcoords[i1];
+            Vector2f uv2 = texcoords[i2];
+            
+            Vector3f dco1 = v1 - v0;
+            Vector3f dco2 = v2 - v0;
+            
+            Vector2f duv1 = uv1 - uv0;
+            Vector2f duv2 = uv2 - uv0;
+            
+            Vector3f tangent = dco2 * duv1.y - dco1 * duv2.y;
+            Vector3f bitangent = dco2 * duv1.x - dco1 * duv2.x;
+            
+            if (dco2.cross(dco1).dot(bitangent.cross(tangent)) < 0.0f)
+            {
+                tangent = -tangent;
+                bitangent = -bitangent;
+            }
+            
+            sTan[i0] += tangent;
+            tTan[i0] += bitangent;
+
+            sTan[i1] += tangent;
+            tTan[i1] += bitangent;
+
+            sTan[i2] += tangent;
+            tTan[i2] += bitangent;
+        }
+        
+        Vector3f[] tangents = New!(Vector3f[])(vertices.length);
+        
+        foreach(i, v; tangents)
+        {
+            Vector3f n = normals[i];
+            Vector3f t = sTan[i];
+
+            // Gram-Schmidt orthogonalize
+            tangents[i] = (t - n * dot(n, t));
+            tangents[i].normalize();
+        }
+        
+        foreach(ti, ref tri; tris)
+        foreach(i; 0..3)
+        {
+            tri.tg[i] = tangents[triangles.data[ti][i]];
+        }
+        */
 
         foreach(ref tri; triangles.data)
         {
@@ -189,7 +240,7 @@ class Mesh: Drawable
             tTan[i2] += tDir;
         }
 
-        Vector3f[] tangents = New!(Vector3f[])(vertices.length);
+        Vector4f[] tangents = New!(Vector4f[])(vertices.length);
 
         // Calculate vertex tangent
         foreach(i, v; tangents)
@@ -198,12 +249,18 @@ class Mesh: Drawable
             Vector3f t = sTan[i];
 
             // Gram-Schmidt orthogonalize
-            tangents[i] = (t - n * dot(n, t));
-            tangents[i].normalize();
+            Vector3f tangent = (t - n * dot(n, t));
+            tangent.normalize();
+            
+            tangents[i].x = tangent.x;
+            tangents[i].y = tangent.y;
+            tangents[i].z = tangent.z;
 
             // Calculate handedness
-            //if (dot(cross(n, t), tTan[i]) < 0.0f)
-	        //    tangents[i] = -tangents[i];
+            if (dot(cross(n, t), tTan[i]) < 0.0f)
+	            tangents[i].w = -1.0f;
+            else
+                tangents[i].w = 1.0f;
         }
 
         foreach(ti, ref tri; tris)
@@ -221,8 +278,11 @@ class Mesh: Drawable
         triangles.free();
     }
 
-    void genFaceGroups(Scene scene)
+    void genFaceGroups(MaterialLibrary matlib)
     {
+        if (genTangents)
+            generateTangents();
+    
         // Assign tris to corresponding face groups
         foreach(tri; tris)
         {
@@ -236,7 +296,7 @@ class Mesh: Drawable
         foreach(fg; fgroups.data)
         {
             if (fg.materialIndex != -1)
-                fg.material = scene.getMaterialById(fg.materialIndex);
+                fg.material = matlib.getMaterial(fg.materialIndex);
             fg.displayList = glGenLists(1);
             glNewList(fg.displayList, GL_COMPILE);
             drawTris(fg.tris.data);
@@ -260,7 +320,7 @@ class Mesh: Drawable
 
     void drawTris(Triangle[] triangles)
     {
-        glColor4f(1, 1, 1, 1);
+        //glColor4f(1, 1, 1, 1);
         foreach(tri; triangles)
         {
             glBegin(GL_TRIANGLES);
@@ -269,22 +329,22 @@ class Mesh: Drawable
             //glNormal3fv(tri.normal.arrayof.ptr);
 
             glNormal3fv(tri.n[0].arrayof.ptr);
-            if (generateTangentVectors)
-                glColor3fv(tri.tg[0].arrayof.ptr);
+            if (genTangents)
+                glColor4fv(tri.tg[0].arrayof.ptr);
             glMultiTexCoord2fvARB(GL_TEXTURE0_ARB, tri.t1[0].arrayof.ptr);
             glMultiTexCoord2fvARB(GL_TEXTURE1_ARB, tri.t2[0].arrayof.ptr);
             glVertex3fv(tri.v[0].arrayof.ptr);
 
             glNormal3fv(tri.n[1].arrayof.ptr);
-            if (generateTangentVectors)
-                glColor3fv(tri.tg[1].arrayof.ptr);
+            if (genTangents)
+                glColor4fv(tri.tg[1].arrayof.ptr);
             glMultiTexCoord2fvARB(GL_TEXTURE0_ARB, tri.t1[1].arrayof.ptr);
             glMultiTexCoord2fvARB(GL_TEXTURE1_ARB, tri.t2[1].arrayof.ptr);
             glVertex3fv(tri.v[1].arrayof.ptr);
 
             glNormal3fv(tri.n[2].arrayof.ptr);
-            if (generateTangentVectors)
-                glColor3fv(tri.tg[2].arrayof.ptr);
+            if (genTangents)
+                glColor4fv(tri.tg[2].arrayof.ptr);
             glMultiTexCoord2fvARB(GL_TEXTURE0_ARB, tri.t1[2].arrayof.ptr);
             glMultiTexCoord2fvARB(GL_TEXTURE1_ARB, tri.t2[2].arrayof.ptr);
             glVertex3fv(tri.v[2].arrayof.ptr);
@@ -312,14 +372,9 @@ class Mesh: Drawable
         if (name.length)
             Delete(name);
         Delete(tris);
-        foreach(fg; fgroups.data)
-            fg.free();
+        foreach(fg; fgroups)
+            Delete(fg);
         fgroups.free();
-    }
-
-    void free()
-    {
-        Delete(this);
     }
 
     ~this()

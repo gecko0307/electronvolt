@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2015-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -28,174 +28,122 @@ DEALINGS IN THE SOFTWARE.
 
 module dgl.graphics.entity;
 
-import std.string;
-
-import derelict.opengl.gl;
-import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.matrix;
 import dlib.math.affine;
 import dlib.math.quaternion;
-import dlib.geometry.aabb;
+import dgl.core.api;
 import dgl.core.interfaces;
-import dgl.graphics.object3d;
-import dgl.graphics.mesh;
-import dgl.dml.dml;
+import dgl.graphics.material;
+import dgl.graphics.light;
+import dgl.text.dml;
 
-class Entity: Object3D
+class Entity: Drawable
 {
-    int id;
-    string name;
-    uint type = 0;
-    int materialId = -1;
-    int meshId = -1;
-    bool debugDraw = false;
+    Light[maxLightsPerObject] lights;
+    uint numLights = 0;
 
-    Drawable drawable;
-    Modifier modifier;
-
+    Matrix4x4f transformation;
     Vector3f position;
     Quaternionf rotation;
     Vector3f scaling;
+    bool autoUpdateTransformation = true;
 
-    Matrix4x4f transformation;
+    Drawable model;
+    Material material;
+    bool shadeless = false;
+    bool visible = true;
+    bool transparent = false;
 
+    uint id;
+    uint type = 0;
+    uint materialID = -1;
+    uint meshID = -1;
+    uint groupID = 0;
+    
     DMLData props;
 
-    bool visible = true;
-
-    this(Drawable drw, Vector3f pos)
-    {
-        position = pos;
-        rotation = Quaternionf.identity;
-        scaling = Vector3f(1, 1, 1);
-        transformation = translationMatrix(position);
-        drawable = drw;
-    }
-
-    this(Vector3f pos)
-    {
-        position = pos;
-        rotation = Quaternionf.identity;
-        scaling = Vector3f(1, 1, 1);
-        transformation = translationMatrix(position);
-        drawable = null;
-    }
-
-    this()
+    this(Drawable d = null)
     {
         position = Vector3f(0, 0, 0);
         rotation = Quaternionf.identity;
         scaling = Vector3f(1, 1, 1);
-        setTransformation(position, rotation, scaling);
-        drawable = null;
+        transformation = 
+            translationMatrix(position) *
+            rotation.toMatrix4x4 *
+            scaleMatrix(scaling);
+        model = d;
     }
-
+    
+    Vector3f getPosition()
+    {
+        return position;
+    }
+    
+    Quaternionf getRotation()
+    {
+        return rotation;
+    }
+    
+    Vector3f getScaling()
+    {
+        return position;
+    }
+    
+    Matrix4x4f getTransformation()
+    {
+        return transformation;
+    }
+    
+    ~this()
+    {
+        props.free();
+    }
+    
     void setTransformation(Vector3f pos, Quaternionf rot, Vector3f scal)
     {
         position = pos;
         rotation = rot;
         scaling = scal;
-        transformation =
-            translationMatrix(pos) *
-            rot.toMatrix4x4 *
+        
+        transformation = 
+            translationMatrix(position) *
+            rotation.toMatrix4x4 *
             scaleMatrix(scaling);
     }
 
-    override Vector3f getPosition()
+    void update(double dt)
     {
-        return transformation.translation;
+        if (autoUpdateTransformation)
+        {
+            transformation = 
+                translationMatrix(position) *
+                rotation.toMatrix4x4 *
+                scaleMatrix(scaling);
+        }
     }
 
-    Quaternionf getRotation()
-    {
-        //Quaternionf rot;
-        //rot.fromMatrix(transformation);
-        //return rot;
-        return rotation;
-    }
-
-    Vector3f getScaling()
-    {
-        //return transformation.scaling;
-        return scaling;
-    }
-
-    override AABB getAABB()
-    {
-        // TODO: calculate actual size
-        return AABB(transformation.translation, Vector3f(1, 1, 1));
-    }
-
-    override void draw(double dt)
+    void draw(double dt)
     {
         if (visible)
         {
             glPushMatrix();
-            glMultMatrixf(transformation.arrayof.ptr);
-            drawModel(dt);
+            glMultMatrixf(transformation.arrayof.ptr);                    
+            drawModel(dt);                   
             glPopMatrix();
         }
     }
 
     void drawModel(double dt)
     {
-        if (modifier !is null)
-            modifier.bind(dt);
-        if (drawable !is null)
-        {
-            Drawable3D drw3d = cast(Drawable3D)drawable;
-            if (drw3d)
-                drw3d.draw(this, dt);
-            else
-                drawable.draw(dt);
-        }
-        else if (debugDraw)
-        {
-            drawPoint();
-        }
-        if (modifier !is null)
-            modifier.unbind();
-    }
+        if (material)
+            material.bind(dt);
 
-    void drawPoint()
-    {
-        glColor4f(1,1,1,1);
-        glPointSize(5.0f);
-        glBegin(GL_POINTS);
-        glVertex3f(0, 0, 0);
-        glEnd();
-        glPointSize(1.0f);
-    }
+        if (model !is null)
+            model.draw(dt);
 
-    override string toString()
-    {
-        return format(
-            "type = %s\n"
-            "materialId = %s\n"
-            "meshId = %s\n"
-            "position = %s\n"
-            "rotation = %s\n"
-            "scaling = %s",
-            type,
-            materialId,
-            meshId,
-            getPosition(),
-            getRotation(),
-            getScaling()
-        );
-    }
-
-    override void free()
-    {
-        Delete(this);
-    }
-
-    ~this()
-    {
-        // TODO: test if name belongs to GC
-        if (name.length)
-            Delete(name);
-        props.free();
+        if (material)
+            material.unbind();
     }
 }
+

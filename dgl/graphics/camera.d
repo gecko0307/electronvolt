@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Timur Gafarov
+Copyright (c) 2015-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -31,7 +31,8 @@ module dgl.graphics.camera;
 import dlib.math.matrix;
 import dgl.core.interfaces;
 
-interface Camera: Modifier
+interface Camera
 {
-    Matrix4x4f getTransform();
+    Matrix4x4f getTransformation();
+    Matrix4x4f getInvTransformation();
 }

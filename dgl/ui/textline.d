@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2014-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -51,18 +51,16 @@ enum Alignment
 class TextLine: Drawable
 {
     Font font;
-    Vector2f position;
     float scaling;
     Alignment alignment;
     Color4f color;
     string text;
     float textWidth;
 
-    this(Font font, string text, Vector2f position = Vector2f(0, 0))
+    this(Font font, string text)
     {
         this.font = font;
         this.text = text;
-        this.position = position;
         this.scaling = 1.0f;
         this.textWidth = font.textWidth(text);
         this.alignment = Alignment.Left;
@@ -81,7 +79,6 @@ class TextLine: Drawable
         glColor4f(color.r, color.g, color.b, color.a);
 
         glPushMatrix();
-        glTranslatef(position.x, position.y, 0);
         if (alignment == Alignment.Center)
             glTranslatef(-textWidth * 0.5f, 0, 0);
         if (alignment == Alignment.Right)
@@ -107,16 +104,5 @@ class TextLine: Drawable
     {
         this.text = text;
         this.textWidth = font.textWidth(text);
-    }
-
-    void setPosition(Vector2f pos)
-    {
-        this.position = pos;
-    }
-
-    void setPosition(float x, float y)
-    {
-        this.position.x = x;
-        this.position.y = y;
     }
 }

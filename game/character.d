@@ -22,23 +22,22 @@ import dmech.raycast;
  * CharacterController is intended for
  * generic action game character movement.
  */
-class CharacterController: Freeable //, CollisionDispatcher
+class CharacterController: Freeable
 {
     PhysicsWorld world;
     RigidBody rbody;
-    bool collidingWithFloor = false;
     bool onGround = false;
-    bool falling = false;
-    bool jumping = false;
     Vector3f direction = Vector3f(0, 0, 1);
     float speed = 0.0f;
     float jSpeed = 0.0f;
     float maxVelocityChange = 0.75f;
     float artificalGravity = 50.0f;
     Vector3f rotation;
-	float newContactSlopeFactor = 1.0f;
     RigidBody floorBody;
+    Vector3f floorNormal;
     bool flyMode = false;
+    ShapeComponent sensor;
+    float selfTurn = 0.0f;
 
     this(PhysicsWorld world, Vector3f pos, float mass, Geometry geom)
     {
@@ -52,8 +51,14 @@ class CharacterController: Freeable //, CollisionDispatcher
         rbody.raycastable = false;
         world.addShapeComponent(rbody, geom, Vector3f(0, 0, 0), mass);
         rotation = Vector3f(0, 0, 0);
+    }
 
-        //rbody.collisionDispatchers.append(this);
+    ShapeComponent addSensor(Geometry geom, Vector3f point)
+    {
+        auto newSensor = world.addSensor(rbody, geom, point);
+        if (sensor is null)
+            sensor = newSensor;
+        return newSensor;
     }
     
     void enableGravity(bool mode)
@@ -70,18 +75,6 @@ class CharacterController: Freeable //, CollisionDispatcher
         }
     }
 
-    void onNewContact(RigidBody b, Contact c)
-    {
-    /*
-        // FIXME
-	    newContactSlopeFactor = dot((c.point - b.position).normalized, world.gravity.normalized);
-        if (newContactSlopeFactor > 0.0f)
-        {
-            collidingWithFloor = true;
-        }
-    */
-    }
-
     void update(bool clampY = true)
     {
         Vector3f targetVelocity = direction * speed;
@@ -89,24 +82,36 @@ class CharacterController: Freeable //, CollisionDispatcher
         Vector3f velocityChange = targetVelocity - rbody.linearVelocity;
         velocityChange.x = clamp(velocityChange.x, -maxVelocityChange, maxVelocityChange);
         velocityChange.z = clamp(velocityChange.z, -maxVelocityChange, maxVelocityChange);
+        
         if (clampY && !flyMode)
             velocityChange.y = 0;
         else
             velocityChange.y = clamp(velocityChange.y, -maxVelocityChange, maxVelocityChange);
+            
         rbody.linearVelocity += velocityChange;
 
-        falling = rbody.linearVelocity.y < -0.05f;
-        jumping = rbody.linearVelocity.y > 0.05f;
-
-        if (abs(rbody.linearVelocity.y) > 2.0f)
-            collidingWithFloor = false;
-
-        onGround = checkOnGround() || collidingWithFloor;
-
-        if (onGround && floorBody && speed == 0.0f && jSpeed == 0.0f)
-            rbody.linearVelocity = floorBody.linearVelocity;
         if (!flyMode)
         {
+            onGround = checkOnGround();
+        
+            if (onGround)
+                rbody.gravity = Vector3f(0.0f, -artificalGravity * 0.1f, 0.0f);
+            else
+                rbody.gravity = Vector3f(0.0f, -artificalGravity, 0.0f);
+                
+            selfTurn = 0.0f;
+            if (onGround && floorBody && speed == 0.0f && jSpeed == 0.0f)
+            {
+                Vector3f relPos = rbody.position - floorBody.position;
+                Vector3f rotVel = cross(floorBody.angularVelocity, relPos);
+                rbody.linearVelocity = floorBody.linearVelocity;
+                //if (!floorBody.dynamic)
+                {
+                    rbody.linearVelocity += rotVel;
+                    selfTurn = -floorBody.angularVelocity.y;
+                }
+            }
+            
             speed = 0.0f;
             jSpeed = 0.0f;
         }
@@ -124,12 +129,16 @@ class CharacterController: Freeable //, CollisionDispatcher
         bool hit = world.raycast(rbody.position, Vector3f(0, -1, 0), 10, cr, true, true);
         if (hit)
         {
-            if (distance(cr.point, rbody.position) <= 1.1f) //1.1f
-            {
-                floorBody = cr.rbody;
-                return true;
-            }
+            floorBody = cr.rbody;
+            floorNormal = cr.normal;
         }
+    
+        if (sensor)
+        {
+            if (sensor.numCollisions > 0)
+                return true;
+        }
+        
         return false;
     }
 
@@ -150,7 +159,6 @@ class CharacterController: Freeable //, CollisionDispatcher
         {
             jSpeed = jumpSpeed(height);
             rbody.linearVelocity.y = jSpeed;
-            collidingWithFloor = false;
         }
     }
 

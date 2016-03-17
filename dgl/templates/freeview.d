@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2014-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -26,116 +26,111 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module dgl.templates.freeview;
-
-import derelict.sdl.sdl;
-import derelict.opengl.gl;
+module gdl.templates.freeview;
 
 import dlib.core.memory;
-import dlib.image.color;
+import dlib.math.vector;
+import dlib.math.matrix;
 
+import dgl.core.api;
 import dgl.core.event;
-import dgl.core.layer;
 import dgl.graphics.tbcamera;
+import dgl.templates.app3d;
 
-class FreeviewLayer: Layer
+class Freeview: EventListener
 {
     TrackballCamera camera;
-    int tempMouseX = 0;
-    int tempMouseY = 0;
-
-    bool grabMouse = true;
+    int prevMouseX;
+    int prevMouseY;
 
     this(EventManager emngr)
     {
-        super(emngr, LayerType.Layer3D);
-
+        super(emngr);
         camera = New!TrackballCamera();
         camera.pitch(45.0f);
         camera.turn(45.0f);
         camera.setZoom(20.0f);
-        addModifier(camera);
-    }
-
-    override void free()
-    {
-        Delete(this);
     }
 
     ~this()
     {
-        camera.free();
+        Delete(camera);
     }
 
     override void onMouseButtonDown(int button)
     {
-        if (grabMouse)
+        if (button == SDL_BUTTON_MIDDLE)
         {
-            if (button == SDL_BUTTON_RIGHT)
-            {
-                tempMouseX = eventManager.mouseX;
-                tempMouseY = eventManager.mouseY;
-                eventManager.setMouseToCenter();
-            }
-            else if (button == SDL_BUTTON_MIDDLE)
-            {
-                tempMouseX = eventManager.mouseX;
-                tempMouseY = eventManager.mouseY;
-                eventManager.setMouseToCenter();
-            }
-            else if (button == SDL_BUTTON_WHEELUP)
-            {
-                camera.zoomSmooth(-2.0f, 16.0f);
-            }
-            else if (button == SDL_BUTTON_WHEELDOWN)
-            {
-                camera.zoomSmooth(2.0f, 16.0f);
-            }
+            prevMouseX = eventManager.mouseX;
+            prevMouseY = eventManager.mouseY;
+        }
+        else if (button == SDL_BUTTON_WHEELUP)
+        {
+            camera.zoom(1.0f);
+        }
+        else if (button == SDL_BUTTON_WHEELDOWN)
+        {
+            camera.zoom(-1.0f);
         }
     }
 
-    override void onMouseButtonUp(int button)
+    void update()
     {
-        if (grabMouse)
+        processEvents();
+
+        if (eventManager.mouseButtonPressed[SDL_BUTTON_MIDDLE] && eventManager.keyPressed[SDLK_LSHIFT])
         {
-            if (button == SDL_BUTTON_RIGHT)
-            {
-                eventManager.setMouse(tempMouseX, tempMouseY);
-            }
-            else if (button == SDL_BUTTON_MIDDLE)
-            {
-                eventManager.setMouse(tempMouseX, tempMouseY);
-            }
+            float shift_x = (eventManager.mouseX - prevMouseX) * 0.1f;
+            float shift_y = (eventManager.mouseY - prevMouseY) * 0.1f;
+            Vector3f trans = camera.getUpVector * shift_y + camera.getRightVector * shift_x;
+            camera.translateTarget(trans);
         }
+        else if (eventManager.mouseButtonPressed[SDL_BUTTON_MIDDLE] && eventManager.keyPressed[SDLK_LCTRL])
+        {
+            float shift_x = (eventManager.mouseX - prevMouseX);
+            float shift_y = (eventManager.mouseY - prevMouseY);
+            camera.zoom((shift_x + shift_y) * 0.1f);
+        }
+        else if (eventManager.mouseButtonPressed[SDL_BUTTON_MIDDLE])
+        {                
+            float turn_m = (eventManager.mouseX - prevMouseX);
+            float pitch_m = -(eventManager.mouseY - prevMouseY);
+            camera.pitch(pitch_m);
+            camera.turn(turn_m);
+        }
+
+        prevMouseX = eventManager.mouseX;
+        prevMouseY = eventManager.mouseY;
+        
+        camera.update();
     }
 
-    override void draw(double dt)
+    Matrix4x4f getCameraMatrix()
     {
-        if (grabMouse)
-        {
-            if (eventManager.mouseButtonPressed[SDL_BUTTON_RIGHT])
-            {
-                float turn_m = (cast(float)eventManager.windowWidth/2 - eventManager.mouseX)/8.0f;
-                float pitch_m = -(cast(float)eventManager.windowHeight/2 - eventManager.mouseY)/8.0f;
-                camera.pitchSmooth(pitch_m, 16.0f);
-                camera.turnSmooth(turn_m, 16.0f);
-                eventManager.setMouseToCenter();
-                eventManager.showCursor(false);
-            }
-            else if (eventManager.mouseButtonPressed[SDL_BUTTON_MIDDLE] ||
-                    (eventManager.mouseButtonPressed[SDL_BUTTON_LEFT] && eventManager.keyPressed[SDLK_LSHIFT]))
-            {
-                float shift_x = (cast(float)eventManager.windowWidth/2 - eventManager.mouseX)/16.0f;
-                float shift_y = (cast(float)eventManager.windowHeight/2 - eventManager.mouseY)/16.0f;
-                camera.moveSmooth(shift_y, 16.0f);
-                camera.strafeSmooth(-shift_x, 16.0f);
-                eventManager.setMouseToCenter();
-                eventManager.showCursor(false);
-            }
-            else
-                eventManager.showCursor(true);
-        }
-
-        super.draw(dt);
+        return camera.getInvTransformation();
     }
 }
+
+class FreeviewApplication: Application3D
+{
+    Freeview freeview;
+
+    this()
+    {
+        super();
+        freeview = New!Freeview(eventManager);
+    }
+    
+    ~this()
+    {
+        Delete(freeview);
+    }
+    
+    override void onUpdate(double dt)
+    {
+        super.onUpdate(dt);
+        freeview.update();
+        setCameraMatrix(freeview.getCameraMatrix());
+    }
+}
+

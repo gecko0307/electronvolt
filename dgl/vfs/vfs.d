@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2014-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -35,7 +35,7 @@ import dlib.container.array;
 import dlib.filesystem.filesystem;
 import dlib.filesystem.stdfs;
 
-class StdDirFileSystem: ReadOnlyFileSystem, Freeable
+class StdDirFileSystem: ReadOnlyFileSystem
 {
     StdFileSystem stdfs;
     string rootDir;
@@ -68,14 +68,9 @@ class StdDirFileSystem: ReadOnlyFileSystem, Freeable
     {
         Delete(stdfs);
     }
-
-    void free()
-    {
-        Delete(this);
-    }
 }
 
-class VirtualFileSystem: ReadOnlyFileSystem, Freeable
+class VirtualFileSystem: ReadOnlyFileSystem
 {
     DynamicArray!StdDirFileSystem mounted;
 
@@ -123,12 +118,7 @@ class VirtualFileSystem: ReadOnlyFileSystem, Freeable
     ~this()
     {
         foreach(i, fs; mounted.data)
-            fs.free();
+            Delete(fs);
         mounted.free();
-    }
-
-    void free()
-    {
-        Delete(this);
     }
 }

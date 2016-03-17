@@ -1,33 +1,26 @@
 ﻿module game.weapon;
 
-import derelict.opengl.gl;
-
 import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.matrix;
 import dlib.math.affine;
 import dlib.geometry.aabb;
 
+import dgl.core.api;
 import dgl.core.event;
 import dgl.core.interfaces;
 import dgl.graphics.entity;
 
 import game.fpcamera;
 
-abstract class Weapon: Entity, Modifier
+class Weapon: Entity, Modifier
 {
     FirstPersonCamera camera;
-    bool gravity = true;
     
     this(FirstPersonCamera camera, Drawable model)
     {
-        super(model, Vector3f(0, 0, 0));
+        super(model);
         this.camera = camera;
-    }
-    
-    void enableGravity(bool mode)
-    {
-        gravity = mode;
     }
     
     override Vector3f getPosition()
@@ -35,10 +28,20 @@ abstract class Weapon: Entity, Modifier
         return transformation.translation;
     }
     
-    void bind(double dt)
+    override void update(double dt)
     {
         transformation = camera.gunTransformation;
         transformation *= translationMatrix(position);
+        //transformation *= rotation.toMatrix4x4;
+    }
+    
+    Matrix4x4f getTransformation()
+    {
+        return camera.gunTransformation;
+    }
+    
+    void bind(double dt)
+    {
         glPushMatrix();
         glMultMatrixf(transformation.arrayof.ptr);
     }
@@ -53,11 +56,6 @@ abstract class Weapon: Entity, Modifier
         bind(dt);
         drawModel(dt);
         unbind();
-    }
-    
-    override void free()
-    {
-        Delete(this);
     }
 
     void shoot() {}

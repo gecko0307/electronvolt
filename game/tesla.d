@@ -2,8 +2,6 @@
 
 import std.random;
 
-import derelict.opengl.gl;
-
 import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.matrix;
@@ -11,14 +9,15 @@ import dlib.math.affine;
 import dlib.image.color;
 import dlib.geometry.aabb;
 
-import dgl.graphics.object3d;
+import dgl.core.api;
+import dgl.graphics.entity;
 import dgl.graphics.texture;
 import dgl.graphics.light;
-import dgl.graphics.billboard;
+//import dgl.graphics.billboard;
 
 import game.weapon;
 
-class TeslaEffect: Object3D
+class TeslaEffect
 {
     Vector3f[20] points;
     float length = 1.0f;
@@ -29,15 +28,13 @@ class TeslaEffect: Object3D
     float width = 1.0f;
     Vector3f start;
     Color4f color = Color4f(1, 1, 1, 1);
-    Texture glowTex;
     Light light;
     
-    this(Weapon weapon, Texture glowTex, Light light)
+    this(Weapon weapon, Light light)
     {
         this.weapon = weapon;
         this.transformation = Matrix4x4f.identity;
         this.start = Vector3f(0,0,0);
-        this.glowTex = glowTex;
         this.light = light;
         
         foreach(i, ref p; points)
@@ -73,7 +70,7 @@ class TeslaEffect: Object3D
             calcPoints(mid, right, midh, rh, comp);
     }
     
-    override void draw(double dt)
+    void draw(double dt)
     {
         light.enabled = visible;
         
@@ -84,24 +81,27 @@ class TeslaEffect: Object3D
         calcPoints(0, points.length-1, 0, 0, 1);
         
         transformation = 
-              weapon.transformation 
-            * translationMatrix(weapon.position + start);
-            
+              weapon.getTransformation() *
+              translationMatrix(start);
+           
         Vector3f currentDir = transformation.forward;
         Vector3f targetDir = (target - transformation.translation).normalized;
         auto rot = rotationBetweenVectors(-currentDir, targetDir);
         transformation *= rot;
-        transformation *= scaleMatrix(Vector3f(length, length,length));
+        transformation *= scaleMatrix(Vector3f(length, length, length));
         
-        light.position = transformation.translation;
+        light.position = target;
+        
+        Vector3f startPoint = transformation.translation;
         
         glDisable(GL_LIGHTING);
+        //glDisable(GL_DEPTH_TEST);
         
         glPushMatrix();
-        glMultMatrixf(transformation.arrayof.ptr);       
-        // Draw lightning
+        glMultMatrixf(transformation.arrayof.ptr);
+        // Draw lightning        
         glLineWidth(width);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
         glBegin(GL_LINE_STRIP);
         foreach(i, ref p; points)
         {
@@ -115,8 +115,11 @@ class TeslaEffect: Object3D
 	    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glLineWidth(1.0f);
         glPopMatrix();
+        
+        //glEnable(GL_DEPTH_TEST);
 
         // Draw glow
+        /*
         glPushMatrix();
         glDepthMask(GL_FALSE);
         glowTex.bind(dt);
@@ -129,22 +132,18 @@ class TeslaEffect: Object3D
         glowTex.unbind();
         glDepthMask(GL_TRUE);
         glPopMatrix();
-		
+		*/
+        
         glEnable(GL_LIGHTING);
     }
     
-    override Vector3f getPosition()
+    Vector3f getPosition()
     {
         return transformation.translation;
     }
 
-    override AABB getAABB()
+    AABB getAABB()
     {
         return AABB(transformation.translation, Vector3f(1, 1, 1));
-    }
-    
-    override void free()
-    {
-        Delete(this);
     }
 }

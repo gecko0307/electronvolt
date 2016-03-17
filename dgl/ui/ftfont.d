@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2014-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -32,11 +32,13 @@ import std.stdio;
 
 import std.string;
 import std.ascii;
-import std.range;
+import std.utf;
 import std.file;
 
 import dlib.core.memory;
-import dlib.container.bst;
+//import dlib.container.bst;
+import dlib.container.dict;
+import dlib.text.utf8;
 
 import derelict.opengl.gl;
 import derelict.freetype.ft;
@@ -60,6 +62,7 @@ int nextPowerOfTwo(int a)
     return rval;
 }
 
+/*
 class CharStorage(T): BST!(T)
 {
     this()
@@ -98,13 +101,15 @@ class CharStorage(T): BST!(T)
         return len;
     }
 }
+*/
 
 final class FreeTypeFont: Font
 {
     FT_Face ftFace;
     FT_Library ftLibrary;
 
-    CharStorage!Glyph glyphs;
+    //CharStorage!Glyph glyphs;
+    Dict!(Glyph, dchar) glyphs;
 
     this(string filename, uint height)
     {
@@ -122,7 +127,7 @@ final class FreeTypeFont: Font
 
         FT_Set_Char_Size(ftFace, height << 6, height << 6, 96, 96);
 
-        glyphs = New!(CharStorage!Glyph)();
+        glyphs = New!(Dict!(Glyph, dchar));
 
         foreach(i; 0..ASCII_CHARS)
         {
@@ -255,10 +260,18 @@ final class FreeTypeFont: Font
         return cast(int)(glyph.advanceX >> 6);
     }
 
+    import std.stdio;
+
     override void draw(string str)
     {
-        foreach(ch; stride(str, 1))
+        UTF8Decoder dec = UTF8Decoder(str);
+        //foreach(ch; /*stride(str, 1)*/ byDchar(str))
+        int ch;
+        do
         {
+            ch = dec.decodeNext();
+            //writeln(ch);
+            if (ch == 0 || ch == UTF8_END || ch == UTF8_ERROR) break;
             dchar code = ch;
             if (code.isASCII)
             {
@@ -267,14 +280,19 @@ final class FreeTypeFont: Font
             }
             else
                 renderGlyph(code);
-        }
+        } while(ch != UTF8_END && ch != UTF8_ERROR);
     }
 
     override float textWidth(string str)
     {
         float width = 0.0f;
-        foreach(ch; stride(str, 1))
+        UTF8Decoder dec = UTF8Decoder(str);
+        //foreach(ch;  /*stride(str, 1)*/ byDchar(str))
+        int ch;
+        do
         {
+            ch = dec.decodeNext();
+            if (ch == 0 || ch == UTF8_END || ch == UTF8_ERROR) break;
             dchar code = ch;
             if (code.isASCII)
             {
@@ -283,7 +301,7 @@ final class FreeTypeFont: Font
             }
             else
                 width += glyphAdvance(code);
-        }
+        } while(ch != UTF8_END && ch != UTF8_ERROR);
 
         return width;
     }

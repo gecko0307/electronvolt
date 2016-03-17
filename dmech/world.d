@@ -172,6 +172,18 @@ class PhysicsWorld: Freeable
         return shape;
     }
 
+    ShapeComponent addSensor(RigidBody b, Geometry geom, Vector3f position)
+    {
+        auto shape = New!ShapeComponent(geom, position, 0.0f);
+        shape.raycastable = false;
+        shape.solve = false;
+        shapeComponents.append(shape);
+        shape.id = maxShapeId;
+        maxShapeId++;
+        b.addShapeComponent(shape);
+        return shape;
+    }
+
     Constraint addConstraint(Constraint c)
     {
         constraints.append(c);
@@ -250,6 +262,7 @@ class PhysicsWorld: Freeable
         foreach(b; chain(staticBodies.data, dynamicBodies.data))
         if (b.active && b.raycastable)
         foreach(shape; b.shapes.data)
+        if (shape.active && shape.raycastable)
         {
             bool hit = convexRayCast(shape, rayStart, rayDir, maxRayDist, cr);
             if (hit)
@@ -303,12 +316,14 @@ class PhysicsWorld: Freeable
             auto body1 = dynamicBodiesArray[i];
             if (body1.active)
             foreach(shape1; body1.shapes.data)
+            if (shape1.active)
             {
                 for (int j = i + 1; j < dynamicBodiesArray.length; j++)
                 {
                     auto body2 = dynamicBodiesArray[j];
                     if (body2.active)
                     foreach(shape2; body2.shapes.data)
+                    if (shape2.active)
                     {
                         Contact c;
                         c.body1 = body1;
@@ -328,12 +343,14 @@ class PhysicsWorld: Freeable
             auto body1 = dynamicBodiesArray[i];
             if (body1.active)
             foreach(shape1; body1.shapes.data)
+            if (shape1.active)
             {
                 for (int j = i + 1; j < dynamicBodiesArray.length; j++)
                 {
                     auto body2 = dynamicBodiesArray[j];
                     if (body2.active)
                     foreach(shape2; body2.shapes.data)
+                    if (shape2.active)
                     if (shape1.boundingBox.intersectsAABB(shape2.boundingBox))
                     {
                         Contact c;
@@ -354,11 +371,13 @@ class PhysicsWorld: Freeable
         {
             if (body1.active)
             foreach(shape1; body1.shapes.data)
+            if (shape1.active)
             {
                 foreach(body2; staticBodiesArray)
                 {
                     if (body2.active)
                     foreach(shape2; body2.shapes.data)
+                    if (shape2.active)
                     {
                         Contact c;
                         c.body1 = body1;
@@ -383,6 +402,7 @@ class PhysicsWorld: Freeable
         foreach(rb; dynamicBodies.data)
         if (rb.active)
         foreach(shape; rb.shapes.data)
+        if (shape.active)
         {
             // There may be more than one contact at a time
             Contact[5] contacts;
@@ -465,6 +485,8 @@ class PhysicsWorld: Freeable
 
                     //c.body1.contactEvent(c);
                     //c.body2.contactEvent(c);
+
+                    shape.numCollisions++;
                 }
                 else
                 {
@@ -488,6 +510,8 @@ class PhysicsWorld: Freeable
 
                     c.body1.numContacts -= m.numContacts;
                     c.body2.numContacts -= m.numContacts;
+
+                    shape.numCollisions--;
                 }
             }
         }
@@ -514,6 +538,9 @@ class PhysicsWorld: Freeable
 
                 c.body1.contactEvent(c);
                 c.body2.contactEvent(c);
+
+                shape1.numCollisions++;
+                shape2.numCollisions++;
             }
             else
             {
@@ -532,6 +559,9 @@ class PhysicsWorld: Freeable
 
                 c.body1.numContacts -= m.numContacts;
                 c.body2.numContacts -= m.numContacts;
+
+                shape1.numCollisions--;
+                shape2.numCollisions--;
             }
         }
     }

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2014-2016 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -230,7 +230,7 @@ class EventManager
                     break;
 
                 case SDL_VIDEORESIZE:
-                    writefln("Window resized to %s : %s", event.resize.w, event.resize.h);
+                    //writefln("Window resized to %s : %s", event.resize.w, event.resize.h);
                     windowWidth = event.resize.w;
                     windowHeight = event.resize.h;
                     e = Event(EventType.Resize);
@@ -307,7 +307,7 @@ class EventManager
             FPSCounter = 0;
             FPSTickCounter = 0;
             averageDelta = 1.0 / cast(double)(fps);
-	    }
+        }
     }
 
     void setMouse(int x, int y)
@@ -332,7 +332,7 @@ class EventManager
     }
 }
 
-abstract class EventListener: Freeable
+abstract class EventListener
 {
     EventManager eventManager;
     bool enabled = true;
@@ -420,13 +420,9 @@ abstract class EventListener: Freeable
     void onFocusGain() {}
     void onQuit() {}
     void onUserEvent(int code) {}
-
-    void free()
-    {
-        Delete(this);
-    }
 }
 
+/*
 import std.conv;
 
 class TextListener: EventListener
@@ -470,9 +466,5 @@ class TextListener: EventListener
     {
         return to!string(arr[0..pos]);
     }
-
-    override void free()
-    {
-        Delete(this);
-    }
 }
+*/

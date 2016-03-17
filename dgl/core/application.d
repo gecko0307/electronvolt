@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov
+Copyright (c) 2014-2016 Timur Gafarov, Andrew Benton, Tanel Tagavali
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -32,6 +32,7 @@ import std.stdio;
 import std.conv;
 import std.process;
 import std.string;
+import std.file;
 
 import dlib.core.memory;
 import dlib.image.color;
@@ -43,26 +44,35 @@ import derelict.freetype.ft;
 
 import dgl.core.interfaces;
 import dgl.core.event;
+import dgl.text.dml;
+import dgl.text.stringconv;
+import dgl.graphics.material;
 
 /*
  * Basic SDL/OpenGL application.
  * GC-free, but may throw on initialization failure
  */
-class Application: EventListener
+abstract class Application: EventListener
 {
-    Color4f clearColor;
-    bool exitOnEscapePress = true;
-
-    // TODO: configuration manager
-    this(
-        uint width,
-        uint height,
-        string caption = "DGL application",
-        bool unicodeInput = true,
-        bool showCursor = true,
-        bool resizableWindow = true)
+    static
     {
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0)
+        uint passWidth;
+        uint passHeight;
+        bool passMaterialsActive = true;
+    }
+
+    this()
+    {
+        uint width = config["videoWidth"].toUInt;
+        uint height = config["videoHeight"].toUInt;
+        string caption = config["windowCaption"].toString;
+        bool unicodeInput = true;
+        bool resizableWindow = config["windowResizable"].toBool;
+        bool fullscreen = !config["videoWindowed"].toBool;
+        bool vsync = config["videoVSync"].toBool;
+        bool aa = config["videoAntialiasing"].toBool;
+        
+        if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
             throw new Exception("Failed to init SDL: " ~ to!string(SDL_GetError()));
 
         SDL_EnableUNICODE(unicodeInput);
@@ -73,22 +83,36 @@ class Application: EventListener
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
         SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+        if (vsync)
+            SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
+        else
+            SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 0);
+        if (aa)
+        {
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+        }
 
-        environment["SDL_VIDEO_WINDOW_POS"] = "";
-        environment["SDL_VIDEO_CENTERED"] = "1";
-
-        auto screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL | SDL_RESIZABLE); // | SDL_FULLSCREEN
+        if (!fullscreen)
+        {
+            environment["SDL_VIDEO_WINDOW_POS"] = "";
+            environment["SDL_VIDEO_CENTERED"] = "1";
+        }
+        
+        SDL_Surface* screen;
+        if (fullscreen)
+            screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL | SDL_FULLSCREEN);
+        else if (resizableWindow)
+            screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL | SDL_RESIZABLE);
+        else
+            screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL);
         if (screen is null)
             throw new Exception("Failed to set video mode: " ~ to!string(SDL_GetError()));
 
         SDL_WM_SetCaption(toStringz(caption), null);
-        SDL_ShowCursor(showCursor);
 
         DerelictGL.loadClassicVersions(GLVersion.GL12);
-        DerelictGL.loadBaseExtensions();
-        //DerelictGL.loadExtensions();
-
-        clearColor = Color4f(0, 0, 0);
+        DerelictGL.loadBasicExtensions();
 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
@@ -98,8 +122,20 @@ class Application: EventListener
         glEnable(GL_ALPHA_TEST);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
-        //glDepthFunc(GL_LESS);
         glEnable(GL_CULL_FACE);
+        glEnable(GL_SCISSOR_TEST);
+        
+        if (aa)
+        {
+            glEnable(GL_MULTISAMPLE);
+            glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+            glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+            glEnable(GL_LINE_SMOOTH);
+            glEnable(GL_POLYGON_SMOOTH);
+        }
+
+        glViewport(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         EventManager emngr = New!EventManager(width, height);
         super(emngr);
@@ -111,13 +147,14 @@ class Application: EventListener
         {
             eventManager.update();
             processEvents();
-            glViewport(0, 0, eventManager.windowWidth, eventManager.windowHeight);
-            glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glLoadIdentity();
 
-            onUpdate();
-            onRedraw();
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glViewport(0, 0, windowWidth, windowHeight);
+            glScissor(0, 0, windowWidth, windowHeight);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            onUpdate(eventManager.deltaTime);
+            onRedraw(eventManager.deltaTime);
 
             SDL_GL_SwapBuffers();
         }
@@ -126,20 +163,10 @@ class Application: EventListener
     }
 
     // Override me
-    void onUpdate() {}
+    void onUpdate(double dt) {}
 
     // Override me
-    void onRedraw() {}
-
-    // Override me
-    override void onKeyDown(int key)
-    {
-        if (key == SDLK_ESCAPE && exitOnEscapePress)
-        {
-            eventManager.running = false;
-            onQuit();
-        }
-    }
+    void onRedraw(double dt) {}
 
     void exit()
     {
@@ -149,7 +176,6 @@ class Application: EventListener
 
     override void onResize(int width, int height)
     {
-        writefln("Application resized to %s, %s", width, height);
         SDL_Surface* screen = SDL_SetVideoMode(width,
                                                height,
                                                0, SDL_OPENGL | SDL_RESIZABLE);
@@ -157,18 +183,25 @@ class Application: EventListener
             throw new Exception("failed to set video mode: " ~ to!string(SDL_GetError()));
     }
 
+    uint windowWidth()
+    {
+        return eventManager.windowWidth;
+    }
+
+    uint windowHeight()
+    {
+        return eventManager.windowHeight;
+    }
+
     ~this()
     {
         Delete(eventManager);
     }
-
-    override void free()
-    {
-        Delete(this);
-    }
 }
 
-void loadLibraries()
+DMLData config;
+
+void initDGL()
 {
     import core.stdc.stdlib : getenv;
 
@@ -206,6 +239,39 @@ void loadLibraries()
         DerelictSDL.load();
         DerelictFT.load();
     }
+    
+    string defaultConfig = q{
+        videoWidth = "1280";
+        videoHeight = "720";
+        videoWindowed = "1";
+        videoVSync = "0";
+        videoAntialiasing = "1";
+        
+        windowCaption = "DGL application";
+        windowResizable = "1";
+
+        fxShadersEnabled = "1";
+        fxShadowEnabled = "1";
+        fxShadowMapSize = "512";
+        fxShadersEnabled = "1";
+    };
+    parseDML(defaultConfig, &config);
+
+    
+    if (exists("game.conf"))
+    {
+        if (!parseDML(readText("game.conf"), &config))
+	        writeln("Failed to read config \"game.conf\"");
+    }
+    else
+        writeln("Failed to read config \"game.conf\"");
+}
+
+void deinitDGL() 
+{
+    config.free();
+    freeGlobalStringArray();
+    Material.deleteUberShader();
 }
 
 bool envVarIsTrue(string var)

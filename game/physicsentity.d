@@ -1,45 +1,39 @@
 module game.physicsentity;
 
-import dlib;
-import dgl;
-import dmech;
+import dlib.math.vector;
+import dlib.math.affine;
+import dgl.core.interfaces;
+import dgl.graphics.entity;
+import dmech.rigidbody;
+import dmech.shape;
 
 class PhysicsEntity: Entity
 {
-    RigidBody rbody;
     ShapeComponent shape;
-    Light light;
-    bool highlight = false;
+    RigidBody rbody;
     
-    this(Drawable d, RigidBody b, ShapeComponent s)
+    this(Drawable d, RigidBody rb, uint shapeIndex = 0)
     {
-        if (s)
-            super(d, s.position);
-        else
-            super(d, Vector3f(0, 0, 0));
-        rbody = b;
-        shape = s;
+        super(d);
+       
+        rbody = rb;
+        
+        if (rbody.shapes.length > shapeIndex)
+        {
+            shape = rbody.shapes[shapeIndex];
+        }
     }
     
-    override void draw(double dt)
+    override Vector3f getPosition()
+    {
+        return transformation.translation;
+    }
+    
+    override void update(double dt)
     {
         if (shape !is null)
             transformation = shape.transformation;
         else
-            transformation = Matrix4x4f.identity;
-        // TODO: local transformation
-        if (light)
-            light.position = getPosition();
-        super.draw(dt);
-    }
-    
-    override void drawModel(double dt)
-    {
-        super.drawModel(dt);
-    }
-    
-    override void free()
-    {
-        Delete(this);
+            super.update(dt);
     }
 }
