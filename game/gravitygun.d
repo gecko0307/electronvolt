@@ -68,7 +68,10 @@ class GravityGun: Weapon
         sparks.primaryColor = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
         sparks.secondaryColor = Color4f(1.0f, 0.0f, 0.0f, 0.0f);
         
-        this.shootFX = shootFX;
+        if (shootFX)
+            this.shootFX = shootFX;
+        else
+            this.shootFX = null;
     }
     /*
     void enableGravity(bool mode)
@@ -153,7 +156,8 @@ class GravityGun: Weapon
                         {
                             tesla.length = distance(camPos, cr.point);
                             tesla.visible = true;
-                            shootFX.visible = true;
+                            if (shootFX)
+                                shootFX.visible = true;
                             tesla.target = cr.point;
                             forceTesla = true;
                             forceTeslaTimer = 0.1f;
@@ -179,7 +183,8 @@ class GravityGun: Weapon
                     {
                         tesla.length = distance(camPos, cr.point);
                         tesla.visible = true;
-                        shootFX.visible = true;
+                        if (shootFX)
+                            shootFX.visible = true;
                         tesla.target = cr.point;
                         forceTesla = true;
                         forceTeslaTimer = 0.1f;
@@ -217,7 +222,8 @@ class GravityGun: Weapon
         if (!forceTesla)
         {
             tesla.visible = false;
-            shootFX.visible = false;
+            if (shootFX)
+                shootFX.visible = false;
         }
         else
         {
@@ -276,7 +282,8 @@ class GravityGun: Weapon
             tesla.length = d1;
             tesla.visible = true;
             tesla.target = b.position;
-            shootFX.visible = true;
+            if (shootFX)
+                shootFX.visible = true;
 
             bool isec = world.raycast(camPos, objDir, 100.0f, cr, true, true);
             if (isec)

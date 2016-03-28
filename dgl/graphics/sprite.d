@@ -28,10 +28,10 @@ DEALINGS IN THE SOFTWARE.
 
 module dgl.graphics.sprite;
 
-import derelict.opengl.gl;
 import dlib.core.memory;
 import dlib.image.color;
 import dlib.math.vector;
+import dgl.core.api;
 import dgl.core.event;
 import dgl.core.interfaces;
 import dgl.graphics.texture;
@@ -53,6 +53,7 @@ class ScreenSprite: EventListener, Drawable
 
     override void draw(double dt)
     {
+        glDisable(GL_MULTISAMPLE_ARB);
         material.bind(dt);
         glBegin(GL_QUADS);
         glTexCoord2f(0, 0); glVertex2f(0, 0);
@@ -61,6 +62,7 @@ class ScreenSprite: EventListener, Drawable
         glTexCoord2f(0, 1); glVertex2f(0, eventManager.windowHeight);
         glEnd();
         material.unbind();
+        glEnable(GL_MULTISAMPLE_ARB);
     }
 
     ~this()

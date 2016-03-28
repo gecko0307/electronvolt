@@ -211,7 +211,7 @@ void main(void)
     total /= radius * radius * 4.0;
         
     gl_FragColor = total;
-    gl_FragColor.a = 1.0;
+    gl_FragColor.a = 0.8;
 }
     ";
     
@@ -236,12 +236,14 @@ void main(void)
     {
         mat.bind(dt);
         glColor4f(1, 1, 1, 1);
+        glDisable(GL_MULTISAMPLE_ARB);
         glBegin(GL_QUADS);
         glTexCoord2f(0, 0); glVertex2f(0, 0);
         glTexCoord2f(1, 0); glVertex2f(size, 0);
         glTexCoord2f(1, 1); glVertex2f(size, size);
         glTexCoord2f(0, 1); glVertex2f(0, size);
         glEnd();
+        glEnable(GL_MULTISAMPLE_ARB);
         mat.unbind();
     }
 }
@@ -387,7 +389,7 @@ class TestApp: Application3D
         
         string level = "level.dgl2";
         string box = "box.dgl2";
-        string gravityGun = "gravity-gun.dgl2";
+        string gravityGun = "manipulator.dgl2";
 
         addModelResource(level);
         addModelResource(box);
@@ -512,11 +514,11 @@ class TestApp: Application3D
         fpsView.camera.turn = 90.0f;
         
         auto eGG = getEntity(gravityGun, "eWeapon");
-        auto eGGFX = getEntity(gravityGun, "eShootFX");
-        auto bulletStart = getEntity(gravityGun, "eBulletStart");
+        //auto eGGFX = getEntity(gravityGun, "eShootFX");
+        //auto bulletStart = getEntity(gravityGun, "eBulletStart");
         Vector3f bulletStartPos = Vector3f(0, 0, 0);
-        bulletStartPos = bulletStart.position;
-        auto eGravityGun = New!GravityGun(eGG, eGGFX, fpsView.camera, eventManager, lightManager, world, bulletStartPos);
+        //bulletStartPos = bulletStart.position;
+        auto eGravityGun = New!GravityGun(eGG, /*eGGFX*/ null, fpsView.camera, eventManager, lightManager, world, bulletStartPos);
         weapon = eGravityGun;
         registerObject("eGravityGun", eGravityGun);
         eGravityGun.transparent = true;
