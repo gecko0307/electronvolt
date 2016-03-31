@@ -26,7 +26,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module gdl.templates.freeview;
+module dgl.templates.freeview;
 
 import dlib.core.memory;
 import dlib.math.vector;

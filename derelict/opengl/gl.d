@@ -147,7 +147,7 @@ public:
         extLoadAll();
     }
     
-    void loadBaseExtensions()
+    void loadBasicExtensions()
     {
         if(!hasValidContext())
             throw new DerelictException("An OpenGL context must be created and activated before attempting to load extensions.");
