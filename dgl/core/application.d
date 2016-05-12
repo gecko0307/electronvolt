@@ -234,7 +234,7 @@ void initDGL()
             }
         }
     }
-    version(BSD)
+    version(FreeBSD)
     {
         DerelictSDL.load();
         DerelictFT.load();
