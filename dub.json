@@ -15,7 +15,7 @@
     "buildRequirements":[
         "allowWarnings"
     ],
-    "libs-posix": ["dl"],
+    "libs-linux": ["dl"],
     "configurations": [
         {
             "name": "atrium",
