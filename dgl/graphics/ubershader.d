@@ -113,7 +113,7 @@ private string _uberFragmentShader = q{
         //float z = texture2DProj(depths, vec4(v.x, v.y, coord.z, coord.w)).z;
         //return (z < coord.z)? 0.0 : 1.0;
         float z = shadow2DProj(depths, coord + vec4(v.x, v.y, 0.0, 0.0)).z;
-        return z + shadowBrightness;
+        return z;
 	}
     
     float edgeBias(float value, float b)
@@ -160,12 +160,24 @@ private string _uberFragmentShader = q{
                 */
                 
                 // Poisson disk
+                /*
                 int i;
                 for (i = 0; i < 8; i++)
                 {
                     shadow += lookup(dgl_Texture7, shadowCoord, poissonDisk[i] * 5.0);
                 }
                 shadow /= 8.0;
+                */
+                float x, y;
+                const float size = 4.0;
+		        for (y = -size ; y < size ; y += 1.0)
+		        for (x = -size ; x < size ; x += 1.0)
+                {
+			        shadow += lookup(dgl_Texture7, shadowCoord, vec2(x, y));
+                }
+			
+		        shadow /= size * size * 4.0;
+                shadow += shadowBrightness;
                 
                 // Hard shadow
                 // shadow = lookup(dgl_Texture7, shadowCoord, vec2(0, 0));
