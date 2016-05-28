@@ -3,6 +3,7 @@ module atrium;
 import std.stdio;
 import std.math;
 import std.random;
+import std.string;
 
 import dlib.core.memory;
 import dlib.container.array;
@@ -362,7 +363,7 @@ class TestApp: Application3D
     
     AudioPlayer player;
 
-    this()
+    this(string levelDir)
     {    
         super();
         
@@ -426,7 +427,7 @@ class TestApp: Application3D
         animlsrc = New!AnimLoadingScreen(eventManager, defaultLoadingScreen.loadingTexture, animTex);
         loadingScreen = animlsrc;
         
-        mountDirectory("data/levels/001");
+        mountDirectory(format("data/levels/%s", levelDir));
         mountDirectory("data/models");
         
         string level = "level.dgl2";
@@ -934,7 +935,10 @@ void main(string[] args)
 {
     version(Debug) writefln("Allocated memory at start: %s", allocatedMemory);  
     initDGL();
-    auto app = New!TestApp();
+    string level = "001";
+    if (args.length > 1)
+        level = args[1];
+    auto app = New!TestApp(level);
     app.run();
     Delete(app);
     deinitDGL();
