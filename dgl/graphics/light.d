@@ -100,7 +100,7 @@ Light pointLight(
         quadraticAttenuation);
 }
 
-enum maxLightsPerObject = 4;
+enum maxLightsPerObject = 5;
 
 class LightManager
 {
@@ -180,7 +180,7 @@ class LightManager
         {
             Vector3f d = (light.position.xyz - objPos);
             float distSqr = d.lengthsqr;
-            if (light.highPriority && distSqr < 50)
+            if (light.highPriority && distSqr < 150) // 100 50
                 light.brightness = float.max;
             else
                 light.brightness = 1.0f / distSqr;

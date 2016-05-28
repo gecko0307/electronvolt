@@ -56,14 +56,27 @@ import game.physicsentity;
 import game.kinematic;
 import game.weapon;
 import game.gravitygun;
+import game.audio;
 
 class BoxEntity: PhysicsEntity
 {
     Light light;
+    
+    AudioPlayer player;
+    ALuint hitSoundBuf;
+    ALuint hitShound;
+    bool playHitSound = false;
 
     this(Drawable d, RigidBody rb, uint shapeIndex = 0)
     {
         super(d, rb, shapeIndex);
+    }
+    
+    void setHitSound(AudioPlayer player, ALuint buf)
+    {
+        this.player = player;
+        hitShound = player.addSource(buf, Vector3f(0, 0, 0));
+        playHitSound = true;
     }
     
     override void update(double dt)
@@ -71,6 +84,20 @@ class BoxEntity: PhysicsEntity
         super.update(dt);
         if (light)
             light.position = transformation.translation;
+    }
+    
+    override void onHardCollision(float velProj)
+    {
+        if (playHitSound)
+        {
+            if (!player.isSourcePlaying(hitShound))
+            {
+                player.setSourcePosition(hitShound, getPosition());
+                float volume = clamp(velProj / 8.0f, 0.0f, 1.0f);
+                player.setSourceVolume(hitShound, volume);
+                player.playSource(hitShound);
+            }
+        }
     }
 }
 
@@ -211,7 +238,7 @@ void main(void)
     total /= radius * radius * 4.0;
         
     gl_FragColor = total;
-    gl_FragColor.a = 0.8;
+    gl_FragColor.a = 0.9;
 }
     ";
     
@@ -290,7 +317,7 @@ class TestApp: Application3D
     FreeTypeFont font;
     Freeview freeview;
     
-    Entity player;
+    //Entity player;
     
     ShadowMapPass shadow;
     
@@ -332,10 +359,25 @@ class TestApp: Application3D
     Sprite crosshairSprite;
     
     Material glowingMaterial;
+    
+    AudioPlayer player;
 
     this()
     {    
         super();
+        
+        player = new AudioPlayer();
+        
+        player.setListener(Vector3f(0, 0, 0), Vector3f(0, 0, 1), Vector3f(0, 1, 0));
+        
+        GenericSound footstep1 = loadWAV("data/sounds/footstep1.wav");
+        GenericSound footstep2 = loadWAV("data/sounds/footstep2.wav");
+        GenericSound hitMetal = loadWAV("data/sounds/metal-hit.wav");
+        footstepBuffer[0] = player.addBuffer(footstep1);
+        footstepBuffer[1] = player.addBuffer(footstep2);
+        metalHitBuffer = player.addBuffer(hitMetal);
+        footstepSound = player.addSource(footstepBuffer[0], Vector3f(0, 0, 0));
+        //metalHitSound = player.addSource(hitMetalBuf, Vector3f(0, 0, 0));
 
         pass3d.clearColor = envColor;
         Quaternionf sunRotation = rotationQuaternion(0, degtorad(-120.0f));
@@ -355,7 +397,7 @@ class TestApp: Application3D
         //LightManager.sunDirection.w = 0.0f;
         //LightManager.sunEnabled = true;
                 
-        Material.setFogColor(Color4f(0.05, 0.2, 0.2, 1)); 
+        Material.setFogColor(Color4f(0.3, 0.2, 0.1, 1)); 
         Material.setFogDistance(10.0f, 30.0f);
         Material.setFogEnabled(true);
 
@@ -418,7 +460,7 @@ class TestApp: Application3D
         }
         else
         {
-            glowingMaterial = getMaterial(level, "mGlowing");
+            //glowingMaterial = getMaterial(level, "mGlowing");
         }
 
         scene3d.transparentSort = true;
@@ -498,7 +540,7 @@ class TestApp: Application3D
         ccPlayer.rotation.y = 90.0f;
         characterGravity = ccPlayer.rbody.gravity;
         ccPlayer.addSensor(gSensor, Vector3f(0.0f, -0.75f, 0.0f));
-
+/*
         gPlatform = New!GeomBox(Vector3f(2.0f, 0.25f, 2.0f));
         platform = New!KinematicController(world, Vector3f(5, 2, 10), gPlatform);
         auto sPlatform = New!ShapeBox(Vector3f(2.0f, 0.25f, 2.0f));
@@ -507,7 +549,7 @@ class TestApp: Application3D
         pePlatform.groupID = SHADOW_GROUP;
         addEntity3D(pePlatform);
         registerObject("pePlatform", pePlatform);
-
+*/
         fpsView = New!FirstPersonView(eventManager, playerPos);
         fpsView.camera.eyePosition = Vector3f(0, 0, 0);
         fpsView.camera.gunPosition = Vector3f(0.15f, -0.2f, -0.2f);
@@ -518,7 +560,7 @@ class TestApp: Application3D
         //auto bulletStart = getEntity(gravityGun, "eBulletStart");
         Vector3f bulletStartPos = Vector3f(0, 0, 0);
         //bulletStartPos = bulletStart.position;
-        auto eGravityGun = New!GravityGun(eGG, /*eGGFX*/ null, fpsView.camera, eventManager, lightManager, world, bulletStartPos);
+        auto eGravityGun = New!GravityGun(eGG, /*eGGFX*/ null, fpsView.camera, eventManager, lightManager, world, bulletStartPos, player);
         weapon = eGravityGun;
         registerObject("eGravityGun", eGravityGun);
         eGravityGun.transparent = true;
@@ -549,7 +591,14 @@ class TestApp: Application3D
         ePause.visible = false;
         
         scene3d.sortByTransparency();
+        
+        Material.uberShader.shadowEnabled = true;
     }
+    
+    ALuint footstepBuffer[2];
+    uint footstepIndex = 0;
+    ALuint footstepSound;
+    ALuint metalHitBuffer;
     
     void scatterObject(Vector3f center, Vector3f aabb, int num, Drawable drw)
     {
@@ -608,9 +657,9 @@ class TestApp: Application3D
 
         Delete(gSphere);
         Delete(gSensor);
-        Delete(gPlatform);
+        //Delete(gPlatform);
         Delete(ccPlayer);
-        Delete(platform);
+        //Delete(platform);
         Delete(fpsView);
         
         Delete(animlsrc);
@@ -623,6 +672,8 @@ class TestApp: Application3D
         regions.free();
         
         bvh.free();
+        
+        player.close();
     }
     
     PhysicsEntity addPhysicsEntity(Vector3f pos, Drawable model, Geometry geom, string name, bool addLight = true)
@@ -630,6 +681,7 @@ class TestApp: Application3D
         auto rb = world.addDynamicBody(pos, 0.0f);
         auto sc = world.addShapeComponent(rb, geom, Vector3f(0, 0, 0), 50.0f);
         BoxEntity pe = New!BoxEntity(model, rb);
+        pe.setHitSound(player, metalHitBuffer);
 
         if (addLight)
         {
@@ -649,6 +701,11 @@ class TestApp: Application3D
         super.onResize(width, height);
         
         crosshairSprite.position = Vector2f(width/2 - 32, height/2 - 32);
+    }
+    
+    override void onMouseButtonDown(int button)
+    {
+        super.onMouseButtonDown(button);
     }
 
     override void onKeyDown(int key)
@@ -706,8 +763,9 @@ class TestApp: Application3D
             gunSwayTime = 0.0f;
         if (camSwayTime >= 2.0f * PI)
             camSwayTime = 0.0f;
-            
-        Vector2f gunSway = lissajousCurve(gunSwayTime) / 10.0f;
+        
+        Vector2f gunSway = Vector2f(0, 0);
+        gunSway = lissajousCurve(gunSwayTime) / 10.0f;
                 
         weapon.position = Vector3f(gunSway.x * 0.1f, gunSway.y * 0.1f, 0.0f);
         
@@ -732,7 +790,7 @@ class TestApp: Application3D
     {
         swayControl();
         
-        fpsView.update();
+        fpsView.update(dt);
         setCameraMatrix(fpsView.getCameraMatrix());
     
         super.onUpdate(dt);
@@ -753,9 +811,9 @@ class TestApp: Application3D
                 platformDir = !platformDir;
 
             //Vector3f platformPos = lerp(Vector3f(5, 2, 10), Vector3f(5, 2, -10), t);
-            platform.rbody.angularVelocity = Vector3f(0, 0.2, 0);
+            //platform.rbody.angularVelocity = Vector3f(0, 0.2, 0);
             //platform.position = platformPos;
-            platform.update(fixedTimeStep);
+            //platform.update(fixedTimeStep);
             ccPlayer.update();
             world.update(fixedTimeStep);
             
@@ -775,17 +833,6 @@ class TestApp: Application3D
             shadow.update(dt);
         }
         
-        if (player)
-        {
-            float speed = 5.0f;
-            if (eventManager.keyPressed[SDLK_RIGHT]) player.position += Vector3f(1, 0, 0) * speed * dt;
-            if (eventManager.keyPressed[SDLK_LEFT]) player.position += Vector3f(-1, 0, 0) * speed * dt;
-            if (eventManager.keyPressed[SDLK_UP]) player.position += Vector3f(0, 0, 1) * speed * dt;
-            if (eventManager.keyPressed[SDLK_DOWN]) player.position += Vector3f(0, 0, -1) * speed * dt;
-            if (eventManager.keyPressed[SDLK_PAGEUP]) player.position += Vector3f(0, 1, 0) * speed * dt;
-            if (eventManager.keyPressed[SDLK_PAGEDOWN]) player.position += Vector3f(0, -1, 0) * speed * dt;
-        }
-        
         if (glowingMaterial)
         {
             glowingMaterial.emissionColor.w = cos(anim) * 0.5f + 0.5f;
@@ -793,6 +840,21 @@ class TestApp: Application3D
             if (anim >= PI * 2.0f)
                 anim = 0.0f;
         }
+        
+        if (playerWalking && !ccPlayer.flyMode)
+        {
+            if (!player.isSourcePlaying(footstepSound))
+            {
+                player.setSourceBuffer(footstepSound, footstepBuffer[footstepIndex]);
+                footstepIndex = !footstepIndex;
+                player.playSource(footstepSound);
+            }
+        }
+        
+        player.setListener(
+            fpsView.camera.position,
+            -fpsView.camera.transformation.forward, 
+            fpsView.camera.transformation.up);
     }
     
     void handleGravity()

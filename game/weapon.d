@@ -16,6 +16,7 @@ import game.fpcamera;
 class Weapon: Entity, Modifier
 {
     FirstPersonCamera camera;
+    bool shooting = false;
     
     this(FirstPersonCamera camera, Drawable model)
     {

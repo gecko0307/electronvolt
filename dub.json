@@ -21,8 +21,7 @@
             "name": "atrium",
             "targetType": "executable",
             "sourcePaths": ["."],
-            "mainSourceFile": "atrium.d",
-            "excludedSourceFiles": ["editor.d", "gui/*"]
+            "mainSourceFile": "atrium.d"
         }
     ]
 }

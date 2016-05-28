@@ -5,8 +5,10 @@ import derelict.opengl.gl;
 import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.matrix;
+import dlib.math.quaternion;
 import dlib.math.affine;
 import dlib.math.utils;
+import dlib.math.interpolation;
 
 import dgl.core.interfaces;
 import dgl.core.event;
@@ -17,6 +19,7 @@ class FirstPersonCamera: Camera
     Matrix4x4f transformation;
     Matrix4x4f gunTransformation;
     Vector3f position;
+    Vector3f jumpVel = Vector3f(0, 0, 0);
     Vector3f eyePosition = Vector3f(0, 0, 0);
     Vector3f gunPosition = Vector3f(0, 0, 0);
     float turn = 0.0f;
@@ -50,7 +53,7 @@ class FirstPersonCamera: Camera
         return worldTransInv;
     }
     
-    void update()
+    void update(double dt)
     {
         transformation = worldTrans();
         
@@ -110,7 +113,7 @@ class FirstPersonView: EventListener
         }
     }
 
-    void update()
+    void update(double dt)
     {
         processEvents();
         
@@ -140,7 +143,7 @@ class FirstPersonView: EventListener
         }
         
         eventManager.setMouseToCenter();
-        camera.update();
+        camera.update(dt);
     }
 
     Matrix4x4f getCameraMatrix()

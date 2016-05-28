@@ -28,6 +28,7 @@ import game.weapon;
 import game.tesla;
 import game.particles;
 import game.fpcamera;
+import game.audio;
 
 class GravityGun: Weapon
 {
@@ -36,6 +37,10 @@ class GravityGun: Weapon
     TeslaEffect tesla;
     ParticleSystem sparks;
     Entity shootFX;
+    AudioPlayer player;
+    
+    ALuint[2] electricSoundBuffer;
+    ALuint electricSound;
 
     this(Drawable model, 
          Entity shootFX,
@@ -43,7 +48,8 @@ class GravityGun: Weapon
          EventManager eventManager,
          LightManager lightManager,
          PhysicsWorld world, 
-         Vector3f bulletStartPos)
+         Vector3f bulletStartPos,
+         AudioPlayer player)
     {
         super(camera, model);
         this.eventManager = eventManager;
@@ -72,6 +78,15 @@ class GravityGun: Weapon
             this.shootFX = shootFX;
         else
             this.shootFX = null;
+        
+        this.player = player;
+        GenericSound sound1 = loadWAV("data/sounds/electric001.wav");
+        GenericSound sound2 = loadWAV("data/sounds/electric002.wav");
+        //GenericSound sound3 = loadWAV("data/sounds/electric003.wav");
+        electricSoundBuffer[0] = player.addBuffer(sound1);
+        electricSoundBuffer[1] = player.addBuffer(sound2);
+        //electricSoundBuffer[2] = player.addBuffer(sound3);
+        electricSound = player.addSource(electricSoundBuffer[0], Vector3f(0, 0, 0));
     }
     /*
     void enableGravity(bool mode)
@@ -129,6 +144,14 @@ class GravityGun: Weapon
     bool forceTesla = false;
     float forceTeslaTimer = 0.0f;
     
+    void playElectricSound(Vector3f pos, uint ind)
+    {
+        //uint ind = dice(50, 50);
+        player.setSourceBuffer(electricSound, electricSoundBuffer[ind]);
+        player.setSourcePosition(electricSound, pos);
+        player.playSource(electricSound);
+    }
+    
     override void shoot()
     {
         Vector3f camPos = camera.transformation.translation;
@@ -142,7 +165,7 @@ class GravityGun: Weapon
             {
                 canShoot = false;
                 if (shootedBody is null)
-                {
+                {                
                     CastResult cr;
                     if (world.raycast(camPos, camDir, 100.0f, cr, true, true))
                     {
@@ -151,6 +174,8 @@ class GravityGun: Weapon
                         {
                             setShootedBody(cr.rbody);
                             sparks.reset(objPos, cr.normal);
+                            
+                            playElectricSound(camPos, 0);
                         }
                         else
                         {
@@ -162,6 +187,8 @@ class GravityGun: Weapon
                             forceTesla = true;
                             forceTeslaTimer = 0.1f;
                             sparks.reset(cr.point, cr.normal);
+                            
+                            playElectricSound(camPos, 1);
                         }
                     }
                 }
@@ -177,7 +204,7 @@ class GravityGun: Weapon
             {
                 canShoot = false;
                 if (shootedBody is null)
-                {
+                {                
                     CastResult cr;
                     if (world.raycast(camPos, camDir, 100.0f, cr, true, true))
                     {
@@ -197,6 +224,12 @@ class GravityGun: Weapon
                             if (d > 1.0f)
                                 impulseMag *= 1.0f / d;
                             cr.rbody.applyImpulse(camDir * impulseMag, cr.rbody.position);
+                            
+                            playElectricSound(camPos, 0);
+                        }
+                        else
+                        {
+                            playElectricSound(camPos, 1);
                         }
                     }
                 }
@@ -306,6 +339,8 @@ class GravityGun: Weapon
         }
         
         sparks.update(1.0 / 60.0);
+        
+        shooting = (shootedBody !is null);
     }
     
     ~this()

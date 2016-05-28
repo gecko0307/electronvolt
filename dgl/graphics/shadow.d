@@ -73,12 +73,20 @@ class ShadowMapPass: Pass3D
         
         Color4f col = Color4f(1.0f, 1.0f, 1.0f, 1.0f);
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, col.arrayof.ptr);
+        
+        
+        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	    glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
 
         glTexImage2D(GL_TEXTURE_2D, 0,
            GL_DEPTH_COMPONENT, viewWidth, viewHeight, 0,
            GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null);
            
         glBindTexture(GL_TEXTURE_2D, 0);
+
+        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
         
         glGenFramebuffers(1, &fbo);
 	    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -127,7 +135,13 @@ class ShadowMapPass: Pass3D
         
         glCullFace(GL_FRONT);
         
+        //glDisable   ( GL_DEPTH_TEST );
+    //glDepthMask ( GL_FALSE );
+        
         super.draw(dt);
+        
+       // glEnable    ( GL_DEPTH_TEST );
+    //glDepthMask ( GL_TRUE );
         
         glCullFace(GL_BACK);
         glShadeModel(GL_SMOOTH);

@@ -17,7 +17,7 @@ Atrium will provide high level of interactivity, featuring fully dynamic world w
 
 Tech details
 ------------
-Atrium uses OpenGL for rendering, thus (theoretically) supporting all platforms that provide OpenGL API. Main target platforms for now are Windows and Linux. Currently Atrium is tested and known to work on Ubuntu 8.10, Windows XP, Windows Vista, Windows 7 and Windows 8 (32-bit).
+Atrium uses OpenGL for rendering, thus (theoretically) supporting all platforms that provide OpenGL API. Main target platforms are Windows and Linux. Currently Atrium is tested and known to work on Linux, Windows (XP and above), OSX and FreeBSD, both 32 and 64 bit.
 
 Download
 --------
