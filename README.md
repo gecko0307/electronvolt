@@ -8,8 +8,8 @@ Also visit our [IndieDB page](http://www.indiedb.com/games/atrium) and follow th
 
 Screenshots
 -----------
-[![Screenshot1](/screenshots/010_thumb.jpg)](/screenshots/010.jpg)
 [![Screenshot1](/screenshots/011_thumb.jpg)](/screenshots/011.jpg)
+[![Screenshot1](/screenshots/012_thumb.jpg)](/screenshots/012.jpg)
 
 Gameplay
 --------
