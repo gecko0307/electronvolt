@@ -593,7 +593,8 @@ class TestApp: Application3D
         
         scene3d.sortByTransparency();
         
-        Material.uberShader.shadowEnabled = true;
+        if (Material.isShadersEnabled && Material.uberShader)
+            Material.uberShader.shadowEnabled = true;
     }
     
     ALuint footstepBuffer[2];
