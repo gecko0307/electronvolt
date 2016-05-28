@@ -3,21 +3,14 @@ module game.audio;
 import std.stdio;
 import std.conv;
 import std.string;
+import std.process;
 import std.c.stdio;
 import std.c.stdlib;
 public import derelict.openal.al;
 import dlib.math.vector;
 public import dlib.audio.sound;
 public import dlib.audio.io.wav;
-
-version(linux)
-{
-    enum sharedLibAL = "./lib/libopenal.so.1.14.0";
-}
-version (Windows)
-{
-    enum sharedLibAL = "lib/OpenAL32.dll";
-}
+import dgl.core.application;
 
 class AudioPlayer
 {
@@ -27,7 +20,36 @@ class AudioPlayer
 
     this()
     {
-        DerelictAL.load(sharedLibAL);
+        version(Windows)
+        {
+            DerelictAL.load("lib/OpenAL32.dll");
+        }
+        version(linux)
+        {
+            if(envVarIsTrue(getenv("USE_SYSTEM_LIBS").to!string))
+            {
+                DerelictAL.load();
+            }
+            else
+            {
+                version(X86)
+                {
+                    DerelictAL.load("./lib/libopenal.so.1.14.0");
+                }
+                version(X86_64)
+                {
+                    DerelictAL.load();
+                }
+            }
+        }
+        version(FreeBSD)
+        {
+            DerelictAL.load();
+        }
+        version(OSX)
+        {
+            DerelictAL.load();
+        }
 
         ALCchar* defaultDevice = cast(ALCchar*)alcGetString(null, ALC_DEFAULT_DEVICE_SPECIFIER);
         auto device = alcOpenDevice(defaultDevice);
