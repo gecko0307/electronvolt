@@ -43,20 +43,27 @@ import dgl.graphics.pass;
 import dgl.graphics.scene;
 import dgl.graphics.material;
 
+/*
+ * Shadow map implementation.
+ * Uses FBO and depth buffer
+ */
+
 class ShadowMapPass: Pass3D
 {
+    protected:
     GLuint depthBuffer;
     GLuint fbo;
-    
-    Matrix4x4f lightProjectionMatrix;
-    Matrix4x4f lightViewMatrix;
-    Vector3f lightPosition = Vector3f(0.0f, 0.0f, 0.0f);
-    Quaternionf lightRotation;
+    float projSize;   
     Material mat;
     
-    this(uint w, uint h, Scene castScene, uint group, EventManager emngr)
+    public:
+    Vector3f lightPosition;
+    Quaternionf lightRotation;
+    
+    public:
+    this(uint res, Scene castScene, uint group, EventManager emngr)
     {
-        super(0, 0, w, h, castScene, emngr);
+        super(0, 0, res, res, castScene, emngr);
         alignToWindow = false;
         shadeless = true;
         groupID = group;
@@ -73,9 +80,7 @@ class ShadowMapPass: Pass3D
         
         Color4f col = Color4f(1.0f, 1.0f, 1.0f, 1.0f);
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, col.arrayof.ptr);
-        
-        
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 	    glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
@@ -85,8 +90,6 @@ class ShadowMapPass: Pass3D
            GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null);
            
         glBindTexture(GL_TEXTURE_2D, 0);
-
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
         
         glGenFramebuffers(1, &fbo);
 	    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -98,10 +101,25 @@ class ShadowMapPass: Pass3D
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
-        float size = 10;
-        projectionMatrix = orthoMatrix(-size, size, -size, size, -20.0f, 100.0f);
+        projSize = 10;
+        projectionMatrix = orthoMatrix(-projSize, projSize, -projSize, projSize, -20.0f, 100.0f);
         
+        lightPosition = Vector3f(0.0f, 0.0f, 0.0f);
         lightRotation = rotationQuaternion(0, degtorad(-90.0f));
+    }
+    
+    @property
+    {
+        float projectionSize()
+        {
+            return projectionSize;
+        }
+    
+        void projectionSize(float size)
+        {
+            projSize = size;
+            projectionMatrix = orthoMatrix(-projSize, projSize, -projSize, projSize, -20.0f, 100.0f);
+        }
     }
     
     static bool supported()
@@ -135,19 +153,14 @@ class ShadowMapPass: Pass3D
         
         glCullFace(GL_FRONT);
         
-        //glDisable   ( GL_DEPTH_TEST );
-    //glDepthMask ( GL_FALSE );
-        
         super.draw(dt);
         
-       // glEnable    ( GL_DEPTH_TEST );
-    //glDepthMask ( GL_TRUE );
-        
         glCullFace(GL_BACK);
+        
         glShadeModel(GL_SMOOTH);
         glColorMask(1, 1, 1, 1);
         
-        glBindFramebuffer(GL_FRAMEBUFFER,0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     
     void bind(Matrix4x4f invCameraMatrix)

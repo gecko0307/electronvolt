@@ -30,6 +30,7 @@ module dgl.graphics.scene;
 
 import dlib.core.memory;
 import dlib.container.array;
+import dlib.image.color;
 import dgl.core.interfaces;
 import dgl.graphics.entity;
 import dgl.graphics.material;
@@ -45,6 +46,13 @@ class Scene
     this()
     {
         defaultMaterial = New!Material();
+        defaultMaterial.ambientColor = Color4f(0.1f, 0.1f, 0.1f, 1.0f);
+        defaultMaterial.diffuseColor = Color4f(0.9f, 0.9f, 0.9f, 1.0f);
+        defaultMaterial.specularColor = Color4f(0.0f, 0.0f, 0.0f, 1.0f);
+        defaultMaterial.bump = false;
+        defaultMaterial.parallax = false;
+        defaultMaterial.glowMap = false;
+        defaultMaterial.useTextures = false;
     }
 
     Entity createEntity(Drawable d)

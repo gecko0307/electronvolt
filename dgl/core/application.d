@@ -35,6 +35,7 @@ import std.string;
 import std.file;
 
 import dlib.core.memory;
+import dlib.container.dict;
 import dlib.image.color;
 
 import derelict.opengl.gl;
@@ -44,8 +45,9 @@ import derelict.freetype.ft;
 
 import dgl.core.interfaces;
 import dgl.core.event;
-import dgl.text.dml;
-import dgl.text.stringconv;
+//import dgl.text.dml;
+//import dgl.text.stringconv;
+import dgl.asset.props;
 import dgl.graphics.material;
 
 /*
@@ -199,7 +201,7 @@ abstract class Application: EventListener
     }
 }
 
-DMLData config;
+__gshared Properties config;
 
 void initDGL()
 {
@@ -244,38 +246,38 @@ void initDGL()
         DerelictSDL.load();
         DerelictFT.load();
     }
-    
+
     string defaultConfig = q{
-        videoWidth = "1280";
-        videoHeight = "720";
-        videoWindowed = "1";
-        videoVSync = "0";
-        videoAntialiasing = "1";
+        videoWidth: 1280;
+        videoHeight: 720;
+        videoWindowed: 1;
+        videoVSync: 0;
+        videoAntialiasing: 1;
         
-        windowCaption = "DGL application";
-        windowResizable = "1";
+        windowCaption: "DGL application";
+        windowResizable: 1;
 
-        fxShadersEnabled = "1";
-        fxShadowEnabled = "1";
-        fxShadowMapSize = "512";
-        fxShadersEnabled = "1";
+        fxShadersEnabled: 1;
+        fxShadowEnabled: 1;
+        fxShadowMapSize: 512;
     };
-    parseDML(defaultConfig, &config);
 
-    
+    config = New!Properties;
+    config.parse(defaultConfig);
+
     if (exists("game.conf"))
     {
-        if (!parseDML(readText("game.conf"), &config))
-	        writeln("Failed to read config \"game.conf\"");
+        if (!config.parse(readText("game.conf")))
+            writeln("Failed to read config \"game.conf\"");
     }
     else
-        writeln("Failed to read config \"game.conf\"");
+        writeln("Failed to read config \"game.conf\"");
 }
 
 void deinitDGL() 
 {
-    config.free();
-    freeGlobalStringArray();
+    Delete(config);
+    //freeGlobalStringArray();
     Material.deleteUberShader();
 }
 

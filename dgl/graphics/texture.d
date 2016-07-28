@@ -47,6 +47,7 @@ class Texture: Modifier
     int width;
     int height;
     Vector2f scroll;
+    bool filtering = true;
 
     this()
     {
@@ -89,7 +90,7 @@ class Texture: Modifier
 
         if (genMipmaps)
         {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -130,6 +131,10 @@ class Texture: Modifier
         glEnable(GL_TEXTURE_2D);
         if (glIsTexture(tex))
             glBindTexture(GL_TEXTURE_2D, tex);
+        if (!filtering)
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        }
         glMatrixMode(GL_TEXTURE);
         glPushMatrix();
         glLoadIdentity();
@@ -142,7 +147,10 @@ class Texture: Modifier
         glMatrixMode(GL_TEXTURE);
         glPopMatrix();
         glMatrixMode(GL_MODELVIEW);
-
+        if (!filtering)
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        }
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_2D);
     }

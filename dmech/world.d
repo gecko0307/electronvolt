@@ -39,6 +39,7 @@ import dlib.math.affine;
 import dlib.geometry.triangle;
 import dlib.geometry.sphere;
 import dlib.geometry.ray;
+import dlib.geometry.plane;
 
 import dmech.rigidbody;
 import dmech.geometry;
@@ -202,8 +203,10 @@ class PhysicsWorld: Freeable
             m.update();
         }
 
-        foreach(b; dynamicBodiesArray)
+        //foreach(b; dynamicBodiesArray)
+        for (size_t i = 0; i < dynamicBodiesArray.length; i++)
         {
+            auto b = dynamicBodiesArray[i];
             b.updateInertia();
             if (b.useGravity)
             {
@@ -225,8 +228,10 @@ class PhysicsWorld: Freeable
 
         solveConstraints(dt);
 
-        foreach(b; dynamicBodiesArray)
+        //foreach(b; dynamicBodiesArray)
+        for (size_t i = 0; i < dynamicBodiesArray.length; i++)
         {
+            auto b = dynamicBodiesArray[i];
             b.integrateVelocities(dt);
         }
 
@@ -238,8 +243,10 @@ class PhysicsWorld: Freeable
             solvePositionError(c, m.numContacts);
         }
 
-        foreach(b; dynamicBodiesArray)
+        //foreach(b; dynamicBodiesArray)
+        for (size_t i = 0; i < dynamicBodiesArray.length; i++)
         {
+            auto b = dynamicBodiesArray[i];
             b.integratePseudoVelocities(dt);
             b.updateShapeComponents();
         }
@@ -437,6 +444,12 @@ class PhysicsWorld: Freeable
                         c.shape1 = shape;
                         c.shape2 = proxyTriShape;
                         c.shape2pos = tri.barycenter;
+                        //Plane plane;
+                        //plane.fromPointAndNormal(tri.barycenter, tri.normal);
+                        //if (plane.distance(c.body1.worldCenterOfMass) < 0.0f)
+                        //    c.normal = -tri.normal;
+                        //else
+                        //    c.normal = tri.normal;
                         contacts[numContacts] = c;
                         contactTris[numContacts] = tri;
                         numContacts++;

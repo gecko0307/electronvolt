@@ -1,0 +1,15 @@
+name: "mGravityGun";
+ambientColor: [0.1, 0.1, 0.1, 1.0];
+diffuseColor: [0.7, 0.7, 0.7, 1.0];
+specularColor: [1.0, 1.0, 1.0, 1.0];
+emissionColor: [0.0, 0.0, 0.0, 1.0];
+roughness: 0.1;
+specularity: 1.0;
+metallic: 0.1;
+diffuseTexture: "gravitygun-albedo.png";
+normalTexture: "gravitygun-normal.png";
+emissionTexture: "gravitygun-emit.png";
+metallicTexture: "gravitygun-metallic.png";
+roughnessTexture: "gravitygun-roughness.png";
+
+

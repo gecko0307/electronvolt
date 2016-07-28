@@ -45,17 +45,21 @@ import dgl.graphics.entity;
 import dgl.graphics.light;
 import dgl.graphics.texture;
 import dgl.graphics.material;
-import dgl.graphics.mesh;
+import dgl.graphics.shadow;
 import dgl.asset.resource;
-import dgl.asset.dgl2;
+import dgl.asset.trimesh;
+import dgl.asset.dgl3;
+import dgl.asset.entity;
 
 class LoadingScreen: EventListener, Drawable
 {
+    ResourceManager resourceManager;
     Texture loadingTexture;
     
-    this(EventManager emngr)
+    this(EventManager emngr, ResourceManager resman)
     {
         super(emngr);
+        resourceManager = resman;
     }
     
     this(EventManager emngr, Texture loadingtex)
@@ -84,14 +88,24 @@ class LoadingScreen: EventListener, Drawable
 
         if (loadingTexture)
             loadingTexture.unbind();
+            
+        glColor4f(1, 1, 1, 1);
+        float margin = 2.0f;
+        float w = resourceManager.loadingPercentage * eventManager.windowWidth;
+        
+        glBegin(GL_QUADS);
+        glVertex2f(margin, 16);
+        glVertex2f(margin, margin);
+        glVertex2f(w - margin, margin);
+        glVertex2f(w - margin, 16);
+        glEnd();
+        glPopAttrib();
     }
 }
 
 class Application3D: PassApplication
 {
     ResourceManager resourceManager;
-    DynamicArray!Object objectsToDelete;
-    Dict!(Object, string) objectsByName;
     Scene scene3d;
     Scene scene2d;
     Pass pass3d;
@@ -105,22 +119,35 @@ class Application3D: PassApplication
     {
         super();
 
-        resourceManager = New!ResourceManager();
-
-        scene3d = New!Scene(); // TODO: shadows
+        scene3d = New!Scene();
         scene2d = New!Scene();
+
+        resourceManager = New!ResourceManager(scene3d.defaultMaterial);
 
         pass3d = addPass3D(scene3d);
         pass3d.clear = true;
 
         pass2d = addPass2D(scene2d);
-
-        objectsByName = New!(Dict!(Object, string));
         
         lightManager = New!LightManager();
         
-        defaultLoadingScreen = New!LoadingScreen(eventManager);
+        defaultLoadingScreen = New!LoadingScreen(eventManager, resourceManager);
         loadingScreen = defaultLoadingScreen;
+        
+        if (useShaders)
+            scene3d.defaultMaterial.setShader();
+    }
+    
+    static bool useShadows()
+    {
+        return ShadowMapPass.supported && 
+               ShadowMapPass.isShadowsEnabled &&
+               Material.isShadersEnabled;
+    }
+
+    static bool useShaders()
+    {
+        return Material.isShadersEnabled;
     }
     
     Light addPointLight(Vector3f pos)
@@ -133,39 +160,7 @@ class Application3D: PassApplication
         pass3d.modelViewMatrix = m;
     }
 
-    void registerReference(string name, Object obj)
-    {
-        if (obj !is null)
-        {
-            objectsByName[name] = obj;
-        }
-    }
-
-    void registerObject(string name, Object obj)
-    {
-        if (obj !is null)
-        {
-            registerReference(name, obj);
-            objectsToDelete.append(obj);
-        }
-    }
-
-    bool haveObject(string name)
-    {
-        return !!(name in objectsByName);
-    }
-
-    Object getObject(string name)
-    {
-        return objectsByName[name];
-    }
-
-    T get(T)(string name)
-    {
-        auto obj = name in objectsByName;
-        return (obj is null)? null : cast(T)obj;
-    }
-    
+    /*
     void addEntitiesFromModel(string model)
     {
         foreach(name, e; getModel(model).entitiesByName)
@@ -173,7 +168,8 @@ class Application3D: PassApplication
             addEntity3D(e);
         }
     }
-    
+    */
+    /*
     void addLightsFromModel(string model)
     {
         foreach(name, e; getModel(model).entitiesByName)
@@ -188,10 +184,11 @@ class Application3D: PassApplication
             }
         }
     }
-    
+    */
+
     Entity addEntity3D(string model, string name)
     {
-        DGLResource r = getModel(model);
+        DGL3Resource r = getModel(model);
         Entity e = r.entitiesByName[name];
         scene3d.addEntity(e);
         return e;
@@ -229,15 +226,10 @@ class Application3D: PassApplication
         return scene2d.entities.length;
     }
 
-    void freeContent()
+    void freeResources()
     {
         scene3d.free(); 
         scene2d.free();
-
-        foreach(obj; objectsToDelete)
-            Delete(obj);
-        objectsToDelete.free();
-        Delete(objectsByName);
         
         lightManager.freeLights();
 
@@ -251,11 +243,6 @@ class Application3D: PassApplication
         Delete(scene3d);
         Delete(scene2d);
 
-        foreach(obj; objectsToDelete)
-            Delete(obj);
-        objectsToDelete.free();
-        Delete(objectsByName);
-        
         Delete(lightManager);
 
         if (defaultLoadingScreen.loadingTexture !is null)
@@ -297,41 +284,75 @@ class Application3D: PassApplication
         }
     }
 
-    Resource addTexureResource(string filename)
+    TextureResource addTexureResource(string filename)
     {
         return resourceManager.addTextureResource(filename);
     }
    
-    Resource addModelResource(string filename)
+    DGL3Resource addModelResource(string filename)
     {
-        return resourceManager.addDGL2Resource(filename);
+        return resourceManager.addDGL3Resource(filename);
     }
     
     // TODO: existance check for resources
+
+    bool textureExists(string name)
+    {
+        return resourceManager.textureExists(name);
+    }
 
     Texture getTexture(string name)
     {
         return resourceManager.getTexture(name);
     }
-    
-    DGLResource getModel(string filename)
+
+    bool modelExists(string name)
     {
-        return (cast(DGLResource)resourceManager.resources[filename]);
+        return resourceManager.DGLResourceExists(name);
     }
     
-    Mesh getMesh(string model, string name)
+    DGL3Resource getModel(string filename)
     {
-        return (cast(DGLResource)resourceManager.resources[model]).meshesByName[name];
+        return (cast(DGL3Resource)resourceManager.resources[filename]);
+    }
+
+    bool meshExists(string model, string name)
+    {
+        if (modelExists(model))
+            return (name in getModel(model).meshesByName) !is null;
+        else
+            return false;
+    }
+    
+    Trimesh getMesh(string model, string name)
+    {
+        return (cast(DGL3Resource)resourceManager.resources[model]).meshesByName[name];
+    }
+
+    bool materialExists(string model, string name)
+    {
+        if (modelExists(model))
+            return (name in getModel(model).materialsByName) !is null;
+        else
+            return false;
     }
     
     Material getMaterial(string model, string name)
     {
-        return (cast(DGLResource)resourceManager.resources[model]).materialLib.materialsByName[name];
+        return (cast(DGL3Resource)resourceManager.resources[model]).materialsByName[name];
+    }
+
+    bool entityExists(string model, string name)
+    {
+        if (modelExists(model))
+            return (name in getModel(model).entitiesByName) !is null;
+        else
+            return false;
     }
     
-    Entity getEntity(string model, string name)
+    DGL3Entity getEntity(string model, string name)
     {
-        return (cast(DGLResource)resourceManager.resources[model]).entitiesByName[name];
+        return (cast(DGL3Resource)resourceManager.resources[model]).entitiesByName[name];
     }
 
     void setDefaultLoadingImage(string filename)

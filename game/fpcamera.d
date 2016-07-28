@@ -122,8 +122,8 @@ class FirstPersonView: EventListener
 
         int hWidth = eventManager.windowWidth / 2;
         int hHeight = eventManager.windowHeight / 2;
-        float turn_m = -(hWidth - eventManager.mouseX) * 0.1f;
-        float pitch_m = (hHeight - eventManager.mouseY) * 0.1f;
+        float turn_m = -(hWidth - eventManager.mouseX) * 0.2f;
+        float pitch_m = (hHeight - eventManager.mouseY) * 0.2f;
         camera.pitch += pitch_m;
         camera.turn += turn_m;
         float gunPitchCoef = 0.95f;

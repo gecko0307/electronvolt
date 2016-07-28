@@ -54,7 +54,7 @@ class GravityGun: Weapon
         super(camera, model);
         this.eventManager = eventManager;
         this.world = world;
-        Color4f teslaColor = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
+        Color4f teslaColor = Color4f(0.3f, 1.0f, 1.0f, 1.0f);
         auto light = pointLight(
             Vector3f(0,0,0), 
             teslaColor,
@@ -71,8 +71,8 @@ class GravityGun: Weapon
         
         sparks = New!ParticleSystem(world, Vector3f(0, 0, 0));
         sparks.collisions = true;
-        sparks.primaryColor = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
-        sparks.secondaryColor = Color4f(1.0f, 0.0f, 0.0f, 0.0f);
+        sparks.primaryColor = Color4f(0.0f, 1.0f, 1.0f, 1.0f);
+        sparks.secondaryColor = Color4f(0.0f, 0.0f, 1.0f, 0.0f);
         
         if (shootFX)
             this.shootFX = shootFX;
@@ -147,9 +147,12 @@ class GravityGun: Weapon
     void playElectricSound(Vector3f pos, uint ind)
     {
         //uint ind = dice(50, 50);
-        player.setSourceBuffer(electricSound, electricSoundBuffer[ind]);
-        player.setSourcePosition(electricSound, pos);
-        player.playSource(electricSound);
+        if (player)
+        {
+            player.setSourceBuffer(electricSound, electricSoundBuffer[ind]);
+            player.setSourcePosition(electricSound, pos);
+            player.playSource(electricSound);
+        }
     }
     
     override void shoot()

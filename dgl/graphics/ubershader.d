@@ -34,12 +34,26 @@ import dgl.core.event;
 import dgl.graphics.material;
 import dgl.graphics.shader;
 
+/*
+ * Uber-shader can handle any type of material that can be
+ * defined by Material object.
+ * It supports up to 6 light sources, 
+ * including directional and point lights.
+ * It also supports normal mapping, parallax mapping,
+ * normalized Blinn-Phong specular term,
+ * soft shadows, self-illumination and fog.
+ *
+ * Uber-shader requires GLSL version 1.2.
+ */
+
 private string _uberVertexShader = q{
     varying vec4 shadowCoord;
     varying vec3 position;
     varying vec3 n, t, b;
     varying vec3 E;
-    uniform bool bumpEnabled;
+    varying vec2 spheremapTexcoord;
+    
+    uniform bool dgl_NormalMapping;
         
     void main(void)
     {
@@ -47,18 +61,26 @@ private string _uberVertexShader = q{
         gl_TexCoord[1] = gl_MultiTexCoord1;
 
         n = normalize(gl_NormalMatrix * gl_Normal);
-        t = normalize(gl_NormalMatrix * gl_Color.xyz);
+        t = normalize(gl_NormalMatrix * gl_MultiTexCoord2.xyz);
         b = cross(n, t);
         position = (gl_ModelViewMatrix * gl_Vertex).xyz;
         
         E = position;
-        if (bumpEnabled)
+        if (dgl_NormalMapping)
         {
             E.x = dot(position, t);
             E.y = dot(position, b);
             E.z = dot(position, n);
         }
         E = -normalize(E);
+        
+        vec3 r = reflect(normalize(position), n);
+        float m = 2.0 * sqrt( 
+            pow(r.x, 2.0) + 
+            pow(r.y, 2.0) + 
+            pow(r.z + 1.0, 2.0) 
+        );
+        spheremapTexcoord = r.xy / m + 0.5;
         
         shadowCoord = gl_TextureMatrix[7] * (gl_ModelViewMatrix * gl_Vertex);
         
@@ -68,31 +90,41 @@ private string _uberVertexShader = q{
 
 private string _uberFragmentShader = q{
     #version 120
+    #define PI 3.141592
+    #define ST_BOXBLUR 0
+    #define ST_POISSONDISK 1
+    #define ST_HARDEDGES 2
+    
     varying vec4 shadowCoord;
     varying vec3 position;
     varying vec3 n, t, b;
     varying vec3 E;
+    varying vec2 spheremapTexcoord;
         
     uniform sampler2D dgl_Texture0;
     uniform sampler2D dgl_Texture1;
     uniform sampler2D dgl_Texture2;
+    //uniform sampler2D dgl_Texture3;
     uniform sampler2DShadow dgl_Texture7;
     
-    uniform bool shadeless;
-    uniform bool shadowEnabled;
-    uniform bool textureEnabled;
-    uniform bool bumpEnabled;
-    uniform bool parallaxEnabled;
-    uniform bool glowMapEnabled;
-    uniform bool rimLightEnabled;
-    uniform bool fogEnabled;
+    uniform bool dgl_Shadeless;
+    uniform bool dgl_Shadow;
+    uniform bool dgl_Textures;
+    uniform bool dgl_NormalMapping;
+    uniform bool dgl_ParallaxMapping;
+    uniform bool dgl_GlowMap;
+    uniform bool dgl_Fog;
+    uniform bool dgl_Matcap;
+    uniform int dgl_ShadowType;
+    uniform float dgl_Specularity;
+    
     uniform float dgl_ShadowMapSize;
     
-    const float parallaxScale = 0.06;
-    const float parallaxBias = -0.03;
-    const float lightRadiusSqr = 11.0; //9.0;
-    const float shadowBrightness = 0.2; //0.4;
-    //const float edgeWidth = 0.2;
+    const float parallaxScale = 0.03;
+    const float parallaxBias = -0.01;
+    const float lightRadiusSqr = 16.0; //11.0
+    
+    const float oneOverPI8 = 1.0 / (8.0 * PI);
     
     vec2 poissonDisk[8] = vec2[](
         vec2(-0.4913322, 0.5801218),
@@ -107,85 +139,79 @@ private string _uberFragmentShader = q{
         
     float lookup(sampler2DShadow depths, vec4 coord, vec2 offset)
 	{
-        //vec2 c = floor(coord.xy * dgl_ShadowMapSize + 0.5) / dgl_ShadowMapSize;
         vec2 texelSize = vec2(1.0) / dgl_ShadowMapSize;
         vec2 v = offset * texelSize * coord.w;
-        //float z = texture2DProj(depths, vec4(v.x, v.y, coord.z, coord.w)).z;
-        //return (z < coord.z)? 0.0 : 1.0;
-        float z = shadow2DProj(depths, coord + vec4(v.x, v.y, 0.0, 0.0)).z;
-        return z;
+        vec4 res = shadow2DProj(depths, coord + vec4(v.x, v.y, 0.001, 0.0));
+        return res.z;
 	}
     
     float edgeBias(float value, float b)
     {
         return (b > 0.0)? pow(value, log2(b) / log2(0.5)) : 0.0;
     }
+    
+    float shadowBoxBlur(vec4 coord)
+    {
+        float shadow = 0.0;
+        float x, y;
+        const float size = 2.0;
+        for (y = -size; y < size; y += 1.0)
+        for (x = -size; x < size; x += 1.0)
+            shadow += lookup(dgl_Texture7, coord, vec2(x, y));
+        return shadow / (size * size * 4.0);
+    }
+    
+    float shadowPoissonDisk(vec4 coord)
+    {
+        float shadow = 0.0;
+        int i;
+        for (i = 0; i < 8; i++)
+        {
+            shadow += lookup(dgl_Texture7, coord, poissonDisk[i] * 5.0);
+        }
+        return shadow / 8.0;
+    }
 
     void main(void) 
     {
-        vec2 texCoords = gl_TexCoord[0].st;
-        
-        if (shadeless)
-        {
-            gl_FragColor = textureEnabled? texture2D(dgl_Texture0, texCoords) : gl_FrontMaterial.diffuse;
-            return;
-        }
+        vec2 texCoords = dgl_Matcap? -spheremapTexcoord : gl_TexCoord[0].st;
         
         // Fog term
         float fogDistance = gl_FragCoord.z / gl_FragCoord.w;
-        float fogFactor = fogEnabled? 
+        float fogFactor = dgl_Fog? 
             clamp((gl_Fog.end - fogDistance) / (gl_Fog.end - gl_Fog.start), 0.0, 1.0) :
             1.0;
         
         // Shadow term
         float shadow = 1.0;
 
-        if (shadowEnabled)
+        if (dgl_Shadow)
         {
-            //vec4 shadowCoordinateWdivide = shadowCoord / shadowCoord.w;
             if (shadowCoord.w > 0.0)
-            {
-                //shadowCoordinateWdivide.z *= 1.01;
-                //shadow = texture2DShadowLerp(dgl_Texture7, shadowCoordinateWdivide.st, shadowCoordinateWdivide.z);
-                
+            {                
                 shadow = 0.0;
-                
-                /*
-                float x, y;
-                const float size = 4.0;
-			    for (y = -size ; y <= size ; y += 2.0)
-				for (x = -size ; x <= size ; x += 2.0)
-					shadow += lookup(dgl_Texture7, shadowCoord, vec2(x, y));
-                shadow /= 16.0;
-                */
-                
-                // Poisson disk
-                /*
-                int i;
-                for (i = 0; i < 8; i++)
-                {
-                    shadow += lookup(dgl_Texture7, shadowCoord, poissonDisk[i] * 5.0);
-                }
-                shadow /= 8.0;
-                */
-                float x, y;
-                const float size = 4.0;
-		        for (y = -size ; y < size ; y += 1.0)
-		        for (x = -size ; x < size ; x += 1.0)
-                {
-			        shadow += lookup(dgl_Texture7, shadowCoord, vec2(x, y));
-                }
-			
-		        shadow /= size * size * 4.0;
-                shadow += shadowBrightness;
-                
-                // Hard shadow
-                // shadow = lookup(dgl_Texture7, shadowCoord, vec2(0, 0));
+                if (dgl_ShadowType == ST_BOXBLUR)
+                    shadow = shadowBoxBlur(shadowCoord);
+                else if (dgl_ShadowType == ST_POISSONDISK)
+                    shadow = shadowPoissonDisk(shadowCoord);
+                else if (dgl_ShadowType == ST_HARDEDGES)
+                    shadow = lookup(dgl_Texture7, shadowCoord, vec2(0, 0));
+                else
+                    shadow = 1.0; // Unknown shadow type
             }
         }
         
-        // Parallax mapping
-        if (parallaxEnabled)
+        if (dgl_Shadeless)
+        {
+            vec4 tex = dgl_Textures? texture2D(dgl_Texture0, texCoords) : gl_FrontMaterial.diffuse;
+            vec4 finalColor = tex * gl_FrontMaterial.ambient + tex * shadow;
+            
+            gl_FragColor = mix(gl_Fog.color, finalColor, fogFactor);
+            gl_FragColor.a = dgl_Textures? tex.a : mix(1.0, gl_FrontMaterial.diffuse.a, fogFactor);
+            return;
+        }
+
+        if (dgl_ParallaxMapping)
         {
             vec2 eye2 = vec2(E.x, -E.y);
             float height = texture2D(dgl_Texture1, texCoords).a; 
@@ -198,17 +224,15 @@ private string _uberFragmentShader = q{
         vec3 bn = normalize(b);
         
         // Normal mapping
-        vec3 N = bumpEnabled? normalize(2.0 * texture2D(dgl_Texture1, texCoords).rgb - 1.0) : nn;
+        vec3 N = dgl_NormalMapping? normalize(2.0 * texture2D(dgl_Texture1, texCoords).rgb - 1.0) : nn;
     
         // Texture
-        vec4 tex = textureEnabled? texture2D(dgl_Texture0, texCoords) : vec4(1.0, 1.0, 1.0, 1.0);
+        vec4 tex = dgl_Textures? texture2D(dgl_Texture0, texCoords) : vec4(1.0, 1.0, 1.0, 1.0);
         
         // Emission term
-        vec4 emit = glowMapEnabled?
+        vec4 emit = dgl_GlowMap?
             texture2D(dgl_Texture2, texCoords) * gl_FrontMaterial.emission.w :
             vec4(0.0, 0.0, 0.0, 1.0);
-            
-        //float alpha = textureEnabled? tex.a : gl_FrontMaterial.diffuse.a;
         
         vec3 directionToLight;
         float distanceToLight;
@@ -222,20 +246,12 @@ private string _uberFragmentShader = q{
         float diffuse;
         float specular;
         
+        vec3 positionToLightSource;
         vec3 H;
         float NL;
         float NH;
-        
-        //float edgeScale;
-        //float rim = 0.0;
 
-        const vec4 one = vec4(1.0, 1.0, 1.0, 1.0);
-        
-        float fresnel = 1.0 - max(dot(E, N), 0.0);
-        
-        //float shadowLighted = shadow;
-
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 6; i++)
         {
             if (gl_LightSource[i].position.w < 2.0)
             {
@@ -246,7 +262,7 @@ private string _uberFragmentShader = q{
             
                 if (gl_LightSource[i].position.w > 0.0)
                 {
-                    vec3 positionToLightSource = vec3(gl_LightSource[i].position.xyz - position);
+                    positionToLightSource = vec3(gl_LightSource[i].position.xyz - position);
                     distanceToLight = length(positionToLightSource);
                     directionToLight = normalize(positionToLightSource);
             
@@ -254,11 +270,11 @@ private string _uberFragmentShader = q{
                 }
                 else
                 {
-                    directionToLight = gl_LightSource[i].position.xyz;
+                    directionToLight = normalize(vec3(gl_LightSource[i].position));
                     attenuation = 1.0;
                 }
                 
-                L = bumpEnabled? 
+                L = dgl_NormalMapping? 
                     vec3(dot(directionToLight, tn),
                          dot(directionToLight, bn),
                          dot(directionToLight, nn)) : 
@@ -271,54 +287,24 @@ private string _uberFragmentShader = q{
                 H = normalize(L + E);
                 NH = dot(N, H);
                 specular = pow(max(NH, 0.0), 3.0 * gl_FrontMaterial.shininess); // Blinn-Phong
-                
-                //diffuse -= specular;
-                //diffuse *= 1.0 - specular;
+                specular *= (gl_FrontMaterial.shininess + 2.0) * oneOverPI8; // Normalization
 
                 col_d += Md*Ld*diffuse*attenuation;
-                col_s += Ms*Ls*specular*attenuation;
+                col_s += Ms*Ls*specular*attenuation*dgl_Specularity;
             }
         }
 
         vec4 finalColor = emit + tex * gl_FrontMaterial.ambient + (tex * col_d + col_s) * shadow;
         
         gl_FragColor = mix(gl_Fog.color, finalColor, fogFactor);
-        gl_FragColor.a = textureEnabled? tex.a : mix(1.0, gl_FrontMaterial.diffuse.a, fogFactor);
+        gl_FragColor.a = dgl_Textures? tex.a : mix(1.0, gl_FrontMaterial.diffuse.a, fogFactor);
     }
 };
 
 class UberShader: Shader
-{   
-    bool shadeless = false;
-    bool textureEnabled = false;
-    bool bumpEnabled = false;
-    bool parallaxEnabled = false;
-    bool glowMapEnabled = false;
-    bool rimLightEnabled = false;
-    bool fogEnabled = false;
-    bool shadowEnabled = false;
-    float shininess = 32.0f;
-    
+{       
     this()
     {
         super(_uberVertexShader, _uberFragmentShader);
-    }
-    
-    override void bind(double dt)
-    {
-        super.bind(dt);
-        glUniform1i(glGetUniformLocation(shaderProg, "shadeless"), shadeless);
-        glUniform1i(glGetUniformLocation(shaderProg, "textureEnabled"), textureEnabled);
-        glUniform1i(glGetUniformLocation(shaderProg, "bumpEnabled"), bumpEnabled);
-        glUniform1i(glGetUniformLocation(shaderProg, "parallaxEnabled"), parallaxEnabled);
-        glUniform1i(glGetUniformLocation(shaderProg, "glowMapEnabled"), glowMapEnabled);
-        glUniform1i(glGetUniformLocation(shaderProg, "rimLightEnabled"), rimLightEnabled);
-        glUniform1i(glGetUniformLocation(shaderProg, "fogEnabled"), fogEnabled);
-        glUniform1i(glGetUniformLocation(shaderProg, "shadowEnabled"), shadowEnabled);
-    }
-    
-    override void unbind()
-    {
-        super.unbind();
     }
 }

@@ -36,7 +36,7 @@ import dgl.core.api;
 import dgl.core.interfaces;
 import dgl.graphics.material;
 import dgl.graphics.light;
-import dgl.text.dml;
+//import dgl.text.dml;
 
 class Entity: Drawable
 {
@@ -61,7 +61,7 @@ class Entity: Drawable
     uint meshID = -1;
     uint groupID = 0;
     
-    DMLData props;
+    //DMLData props;
 
     this(Drawable d = null)
     {
@@ -97,7 +97,7 @@ class Entity: Drawable
     
     ~this()
     {
-        props.free();
+        //props.free();
     }
     
     void setTransformation(Vector3f pos, Quaternionf rot, Vector3f scal)

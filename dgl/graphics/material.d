@@ -29,6 +29,7 @@ DEALINGS IN THE SOFTWARE.
 module dgl.graphics.material;
 
 import std.string;
+import std.math;
 
 import dlib.core.memory;
 import dlib.image.color;
@@ -41,7 +42,7 @@ import dgl.graphics.texture;
 import dgl.graphics.state;
 import dgl.graphics.shader;
 import dgl.graphics.ubershader;
-import dgl.text.stringconv;
+import dgl.asset.props;
 
 enum
 {
@@ -57,6 +58,13 @@ enum
     CMagenta = Color4f(1.0f, 0.0f, 1.0f, 1.0f)
 }
 
+enum ShadowType: int
+{
+    BoxBlur = 0,
+    PoissonDisk = 1,
+    HardEdges = 2
+}
+
 class Material: Modifier
 {
     int id;
@@ -70,7 +78,10 @@ class Material: Modifier
     Color4f diffuseColor;
     Color4f specularColor;
     Color4f emissionColor;
-    float shininess = 64.0f;
+    float specularity = 0.9f;
+    float roughness = 0.4f;
+    float fresnel = 0.3f;
+    float metallic = 0.01f;
     
     bool shadeless = false;
     bool useTextures = true;
@@ -81,8 +92,11 @@ class Material: Modifier
     bool bump = true;
     bool parallax = true;
     bool glowMap = true;
-    bool rimLight = false;
-    bool useFog = false;
+    bool useFog = true;
+    bool matcap = false;
+    bool receiveShadows = true;
+    
+    ShadowType shadowType = ShadowType.BoxBlur;
     
     this()
     {
@@ -108,8 +122,6 @@ class Material: Modifier
             
         if (!isShadersEnabled())
             return;
-            
-        //useGLSL = true;
         
         shader = sh;
     }
@@ -124,8 +136,6 @@ class Material: Modifier
             
         if (!isShadersEnabled())
             return;
-            
-        //useGLSL = true;
         
         if (uberShader is null)
             uberShader = New!UberShader();
@@ -170,6 +180,7 @@ class Material: Modifier
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseColor.arrayof.ptr);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specularColor.arrayof.ptr);
         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissionColor.arrayof.ptr);
+        float shininess = pow(2.0f, (1.0f - roughness) * 10.0f);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, &shininess);
         
         if (additiveBlending)
@@ -196,41 +207,8 @@ class Material: Modifier
         }
 
         if (shader)
-        {
-            if (uberShader)
-            {
-                uberShader.shadeless = false;
-                uberShader.textureEnabled = false;
-                uberShader.bumpEnabled = false;
-                uberShader.parallaxEnabled = false;
-                uberShader.glowMapEnabled = false;
-                uberShader.rimLightEnabled = false;
-                uberShader.fogEnabled = useFog || useFogGlobal;
-
-                if (shadeless)
-                    uberShader.shadeless = true;
-
-                if (useTextures && textures[0])
-                    uberShader.textureEnabled = true;
-
-                if (useTextures && textures[1] && bump)
-                {
-                    uberShader.bumpEnabled = true;
-                    if (textures[1].format == GL_RGBA || textures[1].format == GL_LUMINANCE_ALPHA)
-                        if (parallax)
-                            uberShader.parallaxEnabled = true;
-                }
-              
-                if (useTextures && textures[2] && glowMap)
-                {
-                    uberShader.glowMapEnabled = true;
-                    
-                }
-                
-                uberShader.rimLightEnabled = rimLight;
-            }
-            
-            shader.bind(dt);
+        {            
+            shader.bind(this);
         }
     }
     
@@ -281,12 +259,6 @@ class Material: Modifier
         );
     }
     
-    static bool useFogGlobal = false;
-    static void setFogEnabled(bool mode)
-    {
-        useFogGlobal = mode;
-    }
-    
     static void setFogDistance(float minDist, float maxDist)
     {
         glFogf(GL_FOG_START, minDist);
@@ -299,6 +271,7 @@ class Material: Modifier
     }
 }
 
+/*
 class MaterialLibrary
 {
     Dict!(Material, int) materialsById;
@@ -349,3 +322,4 @@ class MaterialLibrary
         Delete(materialsById);
     }
 }
+*/

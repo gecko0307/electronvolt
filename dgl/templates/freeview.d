@@ -52,6 +52,17 @@ class Freeview: EventListener
         camera.setZoom(20.0f);
     }
 
+    void reset()
+    {
+        camera.reset();
+        camera.pitch(45.0f);
+        camera.turn(45.0f);
+        camera.setZoom(20.0f);
+        camera.update();
+        //prevMouseX = 0;
+        //prevMouseY = 0;
+    }
+
     ~this()
     {
         Delete(camera);

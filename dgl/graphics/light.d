@@ -113,7 +113,7 @@ class LightManager
     float updateThreshold = 400.0f;
     
     static bool sunEnabled = false;
-    static Vector4f sunDirection = Vector4f(0, -1, 0, 0);
+    static Vector4f sunPosition = Vector4f(0, 1, 0, 0);
     static Color4f sunColor = Color4f(1, 1, 1, 1);
     static Color4f blackColor = Color4f(0, 0, 0, 1);
 
@@ -219,6 +219,12 @@ class LightManager
     static void bindLighting(Entity e)
     {
         glEnable(GL_LIGHTING);
+        foreach(i; 0..maxLightsPerObject+1)
+        {
+            Vector4f p = Vector4f(0, 0, 0, 2);
+            glLightfv(GL_LIGHT0 + i, GL_POSITION, p.arrayof.ptr);
+        }
+        
         foreach(i; 0..maxLightsPerObject)
         if (i < e.numLights)
         {
@@ -244,7 +250,7 @@ class LightManager
         if (sunEnabled)
         {
             glEnable(GL_LIGHT0 + maxLightsPerObject);
-            glLightfv(GL_LIGHT0 + maxLightsPerObject, GL_POSITION, sunDirection.arrayof.ptr);
+            glLightfv(GL_LIGHT0 + maxLightsPerObject, GL_POSITION, sunPosition.arrayof.ptr);
             glLightfv(GL_LIGHT0 + maxLightsPerObject, GL_DIFFUSE, sunColor.arrayof.ptr);
             glLightfv(GL_LIGHT0 + maxLightsPerObject, GL_SPECULAR, sunColor.arrayof.ptr);
         }

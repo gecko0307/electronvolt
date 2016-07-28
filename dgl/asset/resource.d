@@ -29,6 +29,8 @@ DEALINGS IN THE SOFTWARE.
 module dgl.asset.resource;
 
 import std.stdio;
+import std.path;
+import std.string;
 
 import dlib.core.memory;
 import dlib.core.stream;
@@ -41,9 +43,9 @@ import dlib.image.unmanaged;
 import dlib.image.io.png;
 
 import dgl.vfs.vfs;
-import dgl.graphics.scene;
+import dgl.graphics.material;
 import dgl.graphics.texture;
-import dgl.asset.dgl2;
+import dgl.asset.dgl3;
 
 interface Resource
 {
@@ -52,6 +54,46 @@ interface Resource
 }
 
 import core.memory;
+
+class ImageResource: Resource
+{
+    SuperImage image;
+    UnmanagedImageFactory imageFactory;
+    
+    this(UnmanagedImageFactory imgfac)
+    {
+        imageFactory = imgfac;
+    }
+    
+    bool loadThreadSafePart(InputStream istrm)
+    {
+        if (image !is null)
+            return true;
+        
+        auto res = loadPNG(istrm, imageFactory);
+        image = res[0];
+        if (image !is null)
+        {
+            return true;
+        }
+        else
+        {
+            writeln(res[1]);
+            return false;
+        }
+    }
+    
+    bool loadThreadUnsafePart()
+    {
+        return true;
+    }
+    
+    ~this()
+    {
+        if (image !is null)
+            Delete(image);
+    }
+}
 
 class TextureResource: Resource
 {
@@ -114,7 +156,7 @@ class TextureResource: Resource
 enum ResourceType
 {
     Texture,
-    DGL2
+    DGL3
 }
 
 class ResourceManager
@@ -123,27 +165,40 @@ class ResourceManager
     UnmanagedImageFactory imageFactory;
     Dict!(Resource, string) resources;
     Thread loadingThread;
-    // TODO: loading percentage
+    Material defaultMaterial;
     
-    this()
+    float loadingPercentage;
+    
+    this(Material defaultMat)
     {
         fs = New!VirtualFileSystem();
-        fs.mount("./");
+        fs.mount(".");
         
         imageFactory = New!UnmanagedImageFactory();
         resources = New!(Dict!(Resource, string));
         loadingThread = New!Thread(&threadFunc);
+
+        defaultMaterial = defaultMat;
+        
+        loadingPercentage = 0.0f;
     }
 
     void mountDirectory(string dir)
     {
         fs.mount(dir);
     }
-
+/*
+    void umountDirectory(string dir)
+    {
+        fs.umount(dir);
+    }
+*/
     Texture loadTexture(string filename)
     {
         Texture tex = null;
+
         auto fstrm = fs.openForInput(filename);
+        assert(fstrm !is null, format("error operning %s", filename));
         auto res = loadPNG(fstrm, imageFactory);
         auto image = res[0];
         if (image !is null)
@@ -152,6 +207,7 @@ class ResourceManager
             Delete(image);
         }
         Delete(fstrm);
+
         return tex;
     }
     
@@ -176,11 +232,11 @@ class ResourceManager
                 return resources[filename];
             }
         }
-        else if (type == ResourceType.DGL2)
+        else if (type == ResourceType.DGL3)
         {
             if (!(filename in resources))
             {
-                DGLResource res = New!DGLResource(this);
+                DGL3Resource res = New!DGL3Resource(this, defaultMaterial);
                 resources[filename] = res;
                 return res;
             }
@@ -193,18 +249,19 @@ class ResourceManager
             assert(0);
     }
     
-    Resource addTextureResource(string filename)
+    TextureResource addTextureResource(string filename)
     {
-        return addResource(filename, ResourceType.Texture);
+        return cast(TextureResource)addResource(filename, ResourceType.Texture);
     }
     
-    Resource addDGL2Resource(string filename)
+    DGL3Resource addDGL3Resource(string filename)
     {
-        return addResource(filename, ResourceType.DGL2);
+        return cast(DGL3Resource)addResource(filename, ResourceType.DGL3);
     }
     
     void loadThreadSafePart()
     {
+        loadingPercentage = 0.0f;
         loadingThread.start();
     }
     
@@ -231,9 +288,11 @@ class ResourceManager
 
     void threadFunc()
     {
+        //float part = 1.0f / resources.length;
         foreach(filename, resource; resources)
         {
             loadResourceThreadSafePart(resource, filename);
+            loadingPercentage += 1.0f / resources.length;
         }
     }
     
@@ -257,6 +316,22 @@ class ResourceManager
     Texture getTexture(string name)
     {
         return (cast(TextureResource)resources[name]).texture;
+    }
+
+    bool textureExists(string name)
+    {
+        if (name in resources)
+            return (cast(TextureResource)resources[name]) !is null;
+        else
+            return false;
+    }
+
+    bool DGLResourceExists(string name)
+    {
+        if (name in resources)
+            return (cast(DGL3Resource)resources[name]) !is null;
+        else
+            return false;
     }
     
     void freeResources()

@@ -99,6 +99,40 @@ final class TrackballCamera: Camera
         target_translate = Vector3f(0.0f, 0.0f, 0.0f);
     }
 
+    void reset()
+    {
+        center = Vector3f(0.0f, 0.0f, 0.0f);
+        rotPitch = rotationQuaternion(Vector3f(1.0f,0.0f,0.0f), 0.0f);
+        rotTurn = rotationQuaternion(Vector3f(0.0f,1.0f,0.0f), 0.0f);
+        rotRoll = rotationQuaternion(Vector3f(0.0f,0.0f,1.0f), 0.0f);
+        transform = Matrix4x4f.identity;
+        invTransform = Matrix4x4f.identity;
+        distance = 10.0f;
+        
+        current_translate = Vector3f(0.0f, 0.0f, 0.0f);
+        target_translate = Vector3f(0.0f, 0.0f, 0.0f);
+
+        rotPitchTheta = 0.0f;
+        rotTurnTheta = 0.0f;
+        rotRollTheta = 0.0f;
+
+        pitch_current_theta = 0.0f;
+        pitch_target_theta = 0.0f;
+        turn_current_theta = 0.0f;
+        turn_target_theta = 0.0f;
+        roll_current_theta = 0.0f;
+        roll_target_theta = 0.0f;
+
+        current_move = 0.0f;
+        target_move = 0.0f;
+
+        current_strafe = 0.0f;
+        target_strafe = 0.0f;
+
+        current_zoom = 0.0f;
+        target_zoom = 0.0f;
+    }
+
     void update()
     {
         if (current_zoom < target_zoom)

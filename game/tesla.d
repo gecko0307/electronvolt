@@ -90,9 +90,10 @@ class TeslaEffect
         transformation *= rot;
         transformation *= scaleMatrix(Vector3f(length, length, length));
         
-        light.position = target;
-        
         Vector3f startPoint = transformation.translation;
+        
+        auto lightTrans = weapon.getTransformation() * translationMatrix(start + Vector3f(0, 0.5, 0));
+        light.position = lightTrans.translation; //target
         
         glDisable(GL_LIGHTING);
         //glDisable(GL_DEPTH_TEST);
