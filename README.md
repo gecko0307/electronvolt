@@ -1,6 +1,6 @@
 Atrium
 ======
-The goal of this project is to create a first-person shooter with physics based puzzles, entirely in [D language](http://dlang.org).
+The goal of this project is to create a first-person game with physics based puzzles, entirely in [D language](http://dlang.org).
 
 Visit the project site at http://gecko0307.github.io/atrium
 
@@ -19,7 +19,7 @@ Tech details
 ------------
 Atrium uses OpenGL for rendering, thus (theoretically) supporting all platforms that provide OpenGL API. Main target platforms are Windows and Linux. Currently Atrium is tested and known to work on Linux, Windows (XP and above), OSX and FreeBSD, both 32 and 64 bit.
 
-The game features [modern graphics engine](https://github.com/gecko0307/dgl) with soft shadows, dynamic shader-based lighting and material system, anti-aliasing and Full HD rendering. Atrium also utilizes [its own physics engine](https://github.com/gecko0307/dmech), that was specifically written for this project.
+The game features [modern graphics engine](https://github.com/gecko0307/dgl) with soft shadows, dynamic shader-based lighting, PBR, anti-aliasing and Full HD rendering. Atrium also utilizes [its own physics engine](https://github.com/gecko0307/dmech), that was specifically written for this project.
 
 Download
 --------
