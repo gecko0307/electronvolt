@@ -23,7 +23,7 @@ The game features [modern graphics engine](https://github.com/gecko0307/dgl) wit
 
 Download
 --------
-The project is still far from being finished, but you already can give it a shot: download a recent tech demo for your OS from [here](https://www.dropbox.com/sh/mmh9qod4x2nsuyi/66ZW6KX7N6).
+The project is still far from being finished, but you already can give it a shot: download a recent build from [here](https://www.dropbox.com/sh/mmh9qod4x2nsuyi/66ZW6KX7N6).
 
 Build from source
 -----------------
