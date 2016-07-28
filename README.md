@@ -25,6 +25,3 @@ Download
 --------
 The project is still far from being finished, but you already can give it a shot: download a recent build from [here](https://www.dropbox.com/sh/mmh9qod4x2nsuyi/66ZW6KX7N6).
 
-Build from source
------------------
-The project is written in D2 using Phobos and requires up-to-date D compiler (DMD or LDC). To build Atrium, follow the instructions in the INSTALL file.
