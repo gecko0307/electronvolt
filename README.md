@@ -9,7 +9,7 @@ Also visit our [IndieDB page](http://www.indiedb.com/games/atrium) and follow th
 Screenshots
 -----------
 [![Screenshot1](/screenshots/013_thumb.jpg)](/screenshots/013.jpg)
-[![Screenshot1](/screenshots/014_thumb.jpg)](/screenshots/014.jpg)
+[![Screenshot1](/screenshots/015_thumb.jpg)](/screenshots/015.jpg)
 
 Gameplay
 --------
