@@ -337,6 +337,8 @@ class GravityGun: Weapon
                     sparks.reset(objPos, -camDir);
                     shootedBody.applyImpulse(camDir * 1000.0f, shootedBody.position);
                     unsetShootedBody();
+                    
+                    playElectricSound(camPos, 0);
                 }
             }
         }

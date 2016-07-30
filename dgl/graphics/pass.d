@@ -63,6 +63,7 @@ class Pass: EventListener, Drawable
     bool clear = false;
     bool overrideMaterials = false;
     bool shadeless = false;
+    bool active = true;
 
     this(uint x, uint y, uint w, uint h, Scene s, EventManager emngr)
     {
@@ -114,7 +115,10 @@ class Pass: EventListener, Drawable
             glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
-
+        
+        if (!active)
+            return;
+        
         glMatrixMode(GL_PROJECTION);
         glLoadMatrixf(projectionMatrix.arrayof.ptr);
         glMatrixMode(GL_MODELVIEW);

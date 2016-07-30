@@ -29,6 +29,7 @@ DEALINGS IN THE SOFTWARE.
 module dgl.graphics.rtt;
 
 import dlib.core.memory;
+import dlib.math.vector;
 import dlib.math.affine;
 import dgl.core.api;
 import dgl.core.event;
@@ -37,6 +38,28 @@ import dgl.graphics.pass;
 import dgl.graphics.material;
 import dgl.graphics.texture;
 
+class DepthTexture: Texture
+{
+    this(uint w, uint h)
+    {
+        scroll = Vector2f(0, 0);
+
+        width = w;
+        height = h;
+        
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glTexImage2D(GL_TEXTURE_2D, 0,
+           GL_DEPTH_COMPONENT, w, h, 0,
+           GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+}
+
 /*
  * Render to texture using FBO
  */
@@ -44,7 +67,8 @@ class RTTPass: Pass
 {
     GLuint fbo;
     GLuint rbDepth;
-    Texture tex;
+    Texture texture;
+    DepthTexture depthTexture;
     bool type3d;
 
     // type2d: true - 3D pass, false - 2D pass
@@ -67,22 +91,25 @@ class RTTPass: Pass
             projectionMatrix = orthoMatrix(0.0f, w, 0.0f, h, 0.0f, 1.0f);
         }
         
-        tex = New!Texture(w, h);
-        
+        texture = New!Texture(w, h);
+        depthTexture = New!DepthTexture(w, h);
+
         // Create the FBO
-        glGenFramebuffersEXT(1, &fbo);        
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);  
+        glGenFramebuffers(1, &fbo);        
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);  
         
-        glGenRenderbuffersEXT(1, &rbDepth);
-        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, rbDepth);
-        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT, w, h);
-        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+        //glGenRenderbuffers(1, &rbDepth);
+        //glBindRenderbuffer(GL_RENDERBUFFER, rbDepth);
+        //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h);
+        //glBindRenderbuffer(GL_RENDERBUFFER, 0);
         
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, tex.tex, 0); 
-        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, rbDepth);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.tex, 0); 
+        //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbDepth);
         
-        GLenum fboStatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);       
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture.tex, 0);
+        
+        GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);       
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     
     override void onResize(int width, int height)
@@ -101,10 +128,11 @@ class RTTPass: Pass
     
     ~this()
     {
-        glDeleteRenderbuffersEXT(1, &rbDepth);
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-        glDeleteFramebuffersEXT(1, &fbo);
-        Delete(tex);
+        //glDeleteRenderbuffers(1, &rbDepth);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &fbo);
+        Delete(texture);
+        Delete(depthTexture);
     }
     
     override void draw(double dt)

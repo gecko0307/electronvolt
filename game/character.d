@@ -16,11 +16,9 @@ import dmech.contact;
 import dmech.raycast;
 
 /*
- * CharacterController implements kinematic body
- * on top of dmech dynamics: it allows direct
- * velocity changes for a RigidBody.
- * CharacterController is intended for
- * generic action game character movement.
+ * CharacterController implements kinematic body on top of dmech dynamics: it allows direct
+ * velocity changes for a RigidBody. CharacterController is intended for generic action game
+ * character movement.
  */
 class CharacterController: Freeable
 {
@@ -53,12 +51,11 @@ class CharacterController: Freeable
         rotation = Vector3f(0, 0, 0);
     }
 
-    ShapeComponent addSensor(Geometry geom, Vector3f point)
+    ShapeComponent createSensor(Geometry geom, Vector3f point)
     {
-        auto newSensor = world.addSensor(rbody, geom, point);
         if (sensor is null)
-            sensor = newSensor;
-        return newSensor;
+            sensor = world.addSensor(rbody, geom, point);
+        return sensor;
     }
     
     void enableGravity(bool mode)

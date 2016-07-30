@@ -24,6 +24,7 @@ BVHTree!Triangle modelBVH(DGL3Resource model)
         if (e.model)
         {
         /*
+            // TODO
             if ("ghost" in e.props)
             {
                 if (e.props["ghost"].toBool)
@@ -37,13 +38,12 @@ BVHTree!Triangle modelBVH(DGL3Resource model)
             if (mesh is null)
                 continue;
 
-            //foreach(fgroup; mesh.fgroups.data)
             foreach(tri; mesh.triangles)
             {
                 Triangle tri2;
-                tri2.v[0] = mesh.vertices[tri[0]] * mat; //tri.v[0] * mat;
-                tri2.v[1] = mesh.vertices[tri[1]] * mat; //tri.v[1] * mat;
-                tri2.v[2] = mesh.vertices[tri[2]] * mat; //tri.v[2] * mat;
+                tri2.v[0] = mesh.vertices[tri[0]] * mat;
+                tri2.v[1] = mesh.vertices[tri[1]] * mat;
+                tri2.v[2] = mesh.vertices[tri[2]] * mat;
                 tri2.normal = Vector3f(0, 0, 0);
                 tri2.normal += mesh.normals[tri[0]];
                 tri2.normal += mesh.normals[tri[1]];

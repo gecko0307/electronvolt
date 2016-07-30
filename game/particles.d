@@ -50,7 +50,7 @@ class ParticleSystem: Drawable
     
     bool haveParticlesToDraw = false;
     
-    this(PhysicsWorld world, Vector3f src, uint num = 10)
+    this(PhysicsWorld world, Vector3f src, uint num = 15)
     {
         this.world = world;
         source = src;

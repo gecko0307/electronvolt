@@ -165,7 +165,7 @@ void solvePositionError(Contact* c, uint numContacts)
     if (c.penetration <= 0.0f)
         return;
     
-    float ERP = (1.0f / numContacts) * 0.94f; //0.94f;
+    float ERP = (1.0f / numContacts) * 0.94f;
     float pc = c.penetration * ERP;
     //c.penetration -= pc;
     c.penetration = 0.0f;

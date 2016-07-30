@@ -5,7 +5,7 @@ specularColor: [0.8, 0.8, 0.8, 1.0];
 emissionColor: [0.0, 0.0, 0.0, 1.0];
 roughness: 0.3;
 specularity: 1.0;
-metallic: 0.6;
+metallic: 0.7;
 diffuseTexture: "floor002-diffuse.png";
 normalTexture: "floor002-normal.png";
 emissionTexture: "floor002-emission.png";

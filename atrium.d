@@ -60,6 +60,10 @@ import dgl.graphics.shadow;
 import dgl.graphics.state;
 import dgl.graphics.light;
 import dgl.graphics.pbrshader;
+import dgl.graphics.sprite;
+import dgl.graphics.rtt;
+import dgl.graphics.postprocessing;
+import dgl.graphics.scene;
 
 import dgl.asset.dgl3;
 import dgl.asset.envtexture;
@@ -160,35 +164,6 @@ class EnvironmentSphere: Drawable
     }
 }
 
-class ContactRenderer: Drawable
-{
-    PhysicsWorld world;
-    
-    this(PhysicsWorld w)
-    {
-        world = w;
-    }
-
-    void draw(double dt)
-    {
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_LIGHTING);
-        glPointSize(5.0f);
-        //glColor4f(1.0f, 0.5f, 0.0f, 1.0f);
-        glBegin(GL_POINTS);
-        foreach(ref m; world.manifolds)
-        foreach(i; 0..m.numContacts)
-        {
-            auto c = &m.contacts[i];
-            glVertex3fv(c.point.arrayof.ptr);
-        }
-        glEnd();
-        glPointSize(1.0f);
-        glEnable(GL_LIGHTING);
-        glEnable(GL_DEPTH_TEST);
-    }
-}
-
 enum SHADOW_GROUP = 100;
 
 class Simple3DApp: Application3D
@@ -199,6 +174,10 @@ class Simple3DApp: Application3D
     DGL3Resource boxModel;
     
     ShadowMapPass shadow; 
+    
+    RTTPass rtt3d;
+    RTTPass fxPass;
+    LensDistortionFX ldfx;
     
     PBRShader pbrShader;
     
@@ -215,9 +194,6 @@ class Simple3DApp: Application3D
     GeomBox gBox;
     
     DynamicArray!BoxEntity pEntities;
-    
-    ContactRenderer cr;
-    Entity crEntity;
     
     GeomEllipsoid gSphere;
     GeomBox gSensor;
@@ -247,7 +223,6 @@ class Simple3DApp: Application3D
         footstepBuffer[1] = player.addBuffer(footstep2);
         metalHitBuffer = player.addBuffer(hitMetal);
         footstepSound = player.addSource(footstepBuffer[0], Vector3f(0, 0, 0));
-        //metalHitSound = player.addSource(hitMetalBuf, Vector3f(0, 0, 0));
 
         Quaternionf sunLightRot = 
             rotationQuaternion(1, degtorad(0.0f)) *
@@ -261,6 +236,13 @@ class Simple3DApp: Application3D
             shadow.lightRotation = sunLightRot;
             shadow.projectionSize = 20;
         }
+
+        rtt3d = New!RTTPass(eventManager.windowWidth, eventManager.windowHeight, true, scene3d, eventManager);
+        rtt3d.clearColor = pass3d.clearColor;
+        addPass3D(rtt3d);
+        ldfx = New!LensDistortionFX(rtt3d);
+        createEntity2D(ldfx);
+        pass3d.active = false; // We don't want to render scene3d twice
 
         LightManager.sunEnabled = true;
         LightManager.sunPosition = Vector4f(sunLightRot.rotate(Vector3f(0, 0, 1)));
@@ -308,9 +290,6 @@ class Simple3DApp: Application3D
         addEntitiesFromModel(level);
         applyPBR(boxModel.entitiesByName["eBox"]);
         
-        //cr = New!ContactRenderer(world);
-        //crEntity = createEntity3D(cr);
-        
         // Create character
         Vector3f playerPos = Vector3f(0, 2, 12);
         //if (getModel(level).entitiesByName["spawnPos"])
@@ -320,7 +299,7 @@ class Simple3DApp: Application3D
         ccPlayer = New!CharacterController(world, playerPos, 80.0f, gSphere);
         ccPlayer.rotation.y = 0.0f;
         //characterGravity = ccPlayer.rbody.gravity;
-        ccPlayer.addSensor(gSensor, Vector3f(0.0f, -0.75f, 0.0f));
+        ccPlayer.createSensor(gSensor, Vector3f(0.0f, -0.75f, 0.0f));
         
         fpsView = New!FirstPersonView(eventManager, playerPos);
         fpsView.camera.eyePosition = Vector3f(0, 0, 0);
@@ -328,16 +307,13 @@ class Simple3DApp: Application3D
         fpsView.camera.turn = 0.0f;
         
         auto eGG = gunModel.entitiesByName["eWeapon"];
-        //auto eGGFX = getEntity(gravityGun, "eShootFX");
         //auto bulletStart = getEntity(gravityGun, "eBulletStart");
         Vector3f bulletStartPos = Vector3f(0, 0, -0.5);
         //bulletStartPos = bulletStart.position;
         eGravityGun = New!GravityGun(eGG, /*eGGFX*/ null, fpsView.camera, eventManager, lightManager, world, bulletStartPos, player);
         weapon = eGravityGun;
-        //registerObject("eGravityGun", eGravityGun);
         eGravityGun.transparent = true;
         addEntity3D(eGravityGun);
-        //eGravityGun.material = level.materialsByName["metal.mat"];
         applyPBR(eGG);
 
         auto light = addPointLight(Vector3f(0, 4, 4));
@@ -349,37 +325,10 @@ class Simple3DApp: Application3D
     {
         auto bBox = world.addDynamicBody(pos, 0.0f);
         auto scBox = world.addShapeComponent(bBox, gBox, Vector3f(0, 0, 0), 50.0f);
-        BoxEntity peBox = New!BoxEntity(boxModel.entitiesByName["eBox"], bBox); //New!PhysicsEntity(boxModel.entitiesByName["eBox"], bBox);
+        BoxEntity peBox = New!BoxEntity(boxModel.entitiesByName["eBox"], bBox);
         peBox.setHitSound(player, metalHitBuffer);
         if (useShadows && shadow)
             peBox.groupID = SHADOW_GROUP;
-        //peBox.rbody.useFriction = false;
-        /*
-        peBox.material = boxModel.entitiesByName["eBox"].material; //scene3d.defaultMaterial;
-        pEntities.append(peBox);
-        //applyPBR(peBox);
-        if (useShadows && shadow)
-            peBox.groupID = SHADOW_GROUP;
-        if (peBox.material)
-        {
-            if (!useShadows || shadow is null)
-                peBox.material.receiveShadows = false;
-  
-            //if (useShaders && pbrShader.supported)
-            {
-                peBox.material.setShader(pbrShader);                    
-                ambTexRes.applyToMaterial(peBox.material);
-            }
-            //else
-            {
-                //peBox.material.textures[1] = null;
-               // peBox.material.textures[2] = null;
-                //peBox.material.textures[3] = null;
-                //peBox.material.textures[4] = null;
-            }
-
-        }
-        */
         pEntities.append(peBox);
         addEntity3D(peBox);
         return peBox;
@@ -415,6 +364,8 @@ class Simple3DApp: Application3D
         Delete(fpsView);
         
         Delete(eGravityGun);
+        
+        Delete(ldfx);
         
         player.close();
     }
@@ -495,10 +446,10 @@ class Simple3DApp: Application3D
             
             fpsView.camera.position = ccPlayer.rbody.position;
             //fpsView.camera.turn += ccPlayer.selfTurn;
-        }        
+        }
 
-        //freeview.update();
-        //setCameraMatrix(freeview.getCameraMatrix());
+        if (rtt3d)
+            rtt3d.modelViewMatrix = pass3d.modelViewMatrix;     
 
         if (Material.uberShader)
             Material.uberShader.setViewMatrix(fpsView.camera);
@@ -538,9 +489,6 @@ class Simple3DApp: Application3D
         if (useShadows && shadow)
             e.groupID = SHADOW_GROUP;
 
-        //e.scaling = Vector3f(30, 30, 30);
-        //e.rotation = rotationQuaternion(1, degtorad(180.0f));
-
         if (e.material)
         {
             if (!useShadows || shadow is null)
@@ -565,8 +513,6 @@ class Simple3DApp: Application3D
     {
         foreach(e; model.entities)
         {
-            //e.scaling = Vector3f(30, 30, 30);
-            //e.rotation = rotationQuaternion(1, degtorad(180.0f));
             addEntity3D(e);
             applyPBR(e);
         }
