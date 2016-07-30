@@ -4,7 +4,7 @@ The goal of this project is to create a first-person game with physics based puz
 
 Visit the project site at http://gecko0307.github.io/atrium
 
-Also visit our [IndieDB page](http://www.indiedb.com/games/atrium) and follow the development blog (in Russian) at http://dlanggamedev.blogspot.ru
+Also visit our [GameJolt page](http://gamejolt.com/games/action/atrium/46185) and follow the development blog (in Russian) at http://dlanggamedev.blogspot.ru
 
 Screenshots
 -----------
