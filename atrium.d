@@ -81,6 +81,7 @@ import game.fpcamera;
 import game.weapon;
 import game.gravitygun;
 import game.audio;
+import game.kinematic;
 
 class BoxEntity: PhysicsEntity
 {
@@ -201,7 +202,12 @@ class Simple3DApp: Application3D
     FirstPersonView fpsView;
     
     Weapon weapon;
-    GravityGun eGravityGun;    
+    GravityGun eGravityGun;  
+
+    GeomBox gPlatform;
+    KinematicController platform; 
+    ShapeBox sPlatform;
+    PhysicsEntity pePlatform; 
     
     AudioPlayer player;
     ALuint footstepBuffer[2];
@@ -216,8 +222,8 @@ class Simple3DApp: Application3D
         player = new AudioPlayer();
         player.setListener(Vector3f(0, 0, 0), Vector3f(0, 0, 1), Vector3f(0, 1, 0));
         
-        GenericSound footstep1 = loadWAV("data/sounds/footstep1.wav");
-        GenericSound footstep2 = loadWAV("data/sounds/footstep2.wav");
+        GenericSound footstep1 = loadWAV("data/sounds/footstep-metal1.wav");
+        GenericSound footstep2 = loadWAV("data/sounds/footstep-metal2.wav");
         GenericSound hitMetal = loadWAV("data/sounds/metal-hit.wav");
         footstepBuffer[0] = player.addBuffer(footstep1);
         footstepBuffer[1] = player.addBuffer(footstep2);
@@ -235,11 +241,13 @@ class Simple3DApp: Application3D
             addPass3D(shadow);
             shadow.lightRotation = sunLightRot;
             shadow.projectionSize = 20;
+            shadow.depth = 1;
         }
 
         rtt3d = New!RTTPass(eventManager.windowWidth, eventManager.windowHeight, true, scene3d, eventManager);
         rtt3d.clearColor = pass3d.clearColor;
         addPass3D(rtt3d);
+        rtt3d.depth = 0;
         ldfx = New!LensDistortionFX(rtt3d);
         createEntity2D(ldfx);
         pass3d.active = false; // We don't want to render scene3d twice
@@ -315,10 +323,25 @@ class Simple3DApp: Application3D
         eGravityGun.transparent = true;
         addEntity3D(eGravityGun);
         applyPBR(eGG);
+        
+        gPlatform = New!GeomBox(Vector3f(2.0f, 0.25f, 2.0f));
+        platform = New!KinematicController(world, Vector3f(0, 2, 25), gPlatform);
+        sPlatform = New!ShapeBox(Vector3f(2.0f, 0.25f, 2.0f));
+        //registerObject("sPlatform", sPlatform);
+        pePlatform = New!PhysicsEntity(sPlatform, platform.rbody);
+        pePlatform.material = level.materialsByName["redpaint.mat"];
+        pePlatform.groupID = SHADOW_GROUP;
+        addEntity3D(pePlatform);
+        //pEntities.append(pePlatform);
+        //registerObject("pePlatform", pePlatform);
 
         auto light = addPointLight(Vector3f(0, 4, 4));
         light.diffuseColor = Color4f(1, 0.5, 0);
         light.highPriority = true;
+        
+        auto light2 = addPointLight(Vector3f(0, 6, 25));
+        light2.diffuseColor = Color4f(1, 0, 0);
+        light2.highPriority = true;
     }
     
     BoxEntity addBoxEntity(Vector3f pos)
@@ -362,6 +385,11 @@ class Simple3DApp: Application3D
         Delete(gSensor);
         Delete(ccPlayer);
         Delete(fpsView);
+        
+        Delete(gPlatform);
+        Delete(platform);
+        Delete(sPlatform);
+        Delete(pePlatform);
         
         Delete(eGravityGun);
         
@@ -428,12 +456,7 @@ class Simple3DApp: Application3D
     override void onUpdate(double dt)
     {
         swayControl();
-    
-        fpsView.update(dt);
-        setCameraMatrix(fpsView.getCameraMatrix());
-        
-        super.onUpdate(dt);
-        
+                   
         time += dt;
         if (time >= fixedTimeStep)
         {
@@ -441,15 +464,22 @@ class Simple3DApp: Application3D
             
             playerControl();
             
+            platform.rbody.angularVelocity = Vector3f(0, 0.2, 0);
+            //platform.position = platformPos;
+            platform.update(fixedTimeStep);
+            
             ccPlayer.update();
             world.update(fixedTimeStep);
             
             fpsView.camera.position = ccPlayer.rbody.position;
-            //fpsView.camera.turn += ccPlayer.selfTurn;
+            fpsView.camera.turn += ccPlayer.selfTurn;
         }
+        
+        fpsView.update(dt);
+        setCameraMatrix(fpsView.getCameraMatrix());
 
         if (rtt3d)
-            rtt3d.modelViewMatrix = pass3d.modelViewMatrix;     
+            rtt3d.modelViewMatrix = fpsView.getCameraMatrix(); 
 
         if (Material.uberShader)
             Material.uberShader.setViewMatrix(fpsView.camera);
@@ -457,7 +487,13 @@ class Simple3DApp: Application3D
             pbrShader.setViewMatrix(fpsView.camera);
         
         if (shadow)
+        {
+            Vector3f pos = fpsView.camera.position - fpsView.camera.transformation.forward * 7.0f;
+            shadow.lightPosition = pos;
             shadow.update(dt);
+        }
+        
+        super.onUpdate(dt); 
             
         if (playerWalking && !ccPlayer.flyMode)
         {
