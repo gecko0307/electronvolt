@@ -10,15 +10,6 @@ import dlib.math.vector;
 public import dlib.audio.sound;
 public import dlib.audio.io.wav;
 
-version(linux)
-{
-    enum sharedLibAL = "./lib/libopenal.so.1.14.0";
-}
-version (Windows)
-{
-    enum sharedLibAL = "lib/OpenAL32.dll";
-}
-
 class AudioPlayer
 {
     ALCcontext* context;
@@ -27,8 +18,6 @@ class AudioPlayer
 
     this()
     {
-        DerelictAL.load(sharedLibAL);
-
         ALCchar* defaultDevice = cast(ALCchar*)alcGetString(null, ALC_DEFAULT_DEVICE_SPECIFIER);
         auto device = alcOpenDevice(defaultDevice);
         assert(device !is null, "Failed to open audio device");
@@ -44,7 +33,7 @@ class AudioPlayer
         assert(s.bitDepth == 8 || s.bitDepth == 16);
     
         ALuint buffer;
-        ALsizei size = s.data.length;
+        ALsizei size = cast(int)s.data.length;
         ALsizei frequency = s.sampleRate;
         ALenum format;
     

@@ -184,7 +184,7 @@ class DGL3MaterialResource: Resource
     
     Texture makePBRTexture(SuperImage spec, SuperImage rough, SuperImage met)
     {
-        size_t width, height;
+        uint width, height;
         if (spec)
         {
             width = spec.width;

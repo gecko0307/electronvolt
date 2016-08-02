@@ -308,6 +308,8 @@ class BVHTree(T)
         root.free();
         Delete(this);
     }
+    
+    import std.stdio;
 
     BVHNode!T construct(
          DynamicArray!T objects, 
@@ -322,7 +324,7 @@ class BVHTree(T)
         }
         
         AABB box = enclosingAABB(node.objects.data);
-        
+
         SplitPlane sp;
         if (splitHeuristic == Heuristic.HMA)
             sp = getHalfMainAxisSplitPlane(node.objects.data, box);
@@ -330,12 +332,12 @@ class BVHTree(T)
             sp = getSAHSplitPlane(node.objects.data, box);
         else
             assert(0, "BVH: unsupported split heuristic");
-            
+
         auto boxes = boxSplitWithPlane(box, sp);
 
         DynamicArray!T leftObjects;
         DynamicArray!T rightObjects;
-    
+        
         foreach(obj; node.objects.data)
         {
             if (boxes[0].intersectsAABB(obj.boundingBox))
@@ -343,7 +345,7 @@ class BVHTree(T)
             else if (boxes[1].intersectsAABB(obj.boundingBox))
                 rightObjects.append(obj);
         }
-        
+
         if (leftObjects.data.length > 0 || rightObjects.data.length > 0)
             node.objects.free();
 
@@ -351,12 +353,12 @@ class BVHTree(T)
             node.child[0] = construct(leftObjects, maxObjectsPerNode, splitHeuristic);
         else
             node.child[0] = null;
-    
+
         if (rightObjects.data.length > 0)
             node.child[1] = construct(rightObjects, maxObjectsPerNode, splitHeuristic);
         else
             node.child[1] = null;
-            
+
         leftObjects.free();
         rightObjects.free();
 

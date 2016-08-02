@@ -274,8 +274,11 @@ class Simple3DApp: Application3D
         loadResources();
         
         world = New!PhysicsWorld(1000);
+        
         world.positionCorrectionIterations = 20;
+        
         bvh = modelBVH(level);
+        
         world.bvhRoot = bvh.root;
         
         gBox = New!GeomBox(Vector3f(0.5, 0.5, 0.5)); // Physical shape

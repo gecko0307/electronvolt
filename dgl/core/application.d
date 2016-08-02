@@ -42,6 +42,7 @@ import derelict.opengl.gl;
 import derelict.opengl.glu;
 import derelict.sdl.sdl;
 import derelict.freetype.ft;
+import derelict.openal.al;
 
 import dgl.core.interfaces;
 import dgl.core.event;
@@ -212,8 +213,18 @@ void initDGL()
 
     version(Windows)
     {
-        DerelictSDL.load("lib/SDL.dll");
-        DerelictFT.load("lib/freetype.dll");
+        version(X86)
+        {
+            DerelictSDL.load("lib/SDL.dll");
+            DerelictFT.load("lib/freetype.dll");
+            DerelictAL.load("lib/OpenAL32.dll");
+        }
+        version(X86_64)
+        {
+            DerelictSDL.load("lib64/SDL64.dll");
+            DerelictFT.load("lib64/freetype64.dll");
+            DerelictAL.load("lib64/OpenAL64.dll");
+        }
     }
     version(linux)
     {
@@ -221,6 +232,7 @@ void initDGL()
         {
             DerelictSDL.load();
             DerelictFT.load();
+            DerelictAL.load();
         }
         else
         {
@@ -228,11 +240,13 @@ void initDGL()
             {
                 DerelictSDL.load("./lib/libsdl.so");
                 DerelictFT.load("./lib/libfreetype.so");
+                DerelictAL.load("./lib/libopenal.so.1.14.0");
             }
             version(X86_64)
             {
-                DerelictSDL.load("./lib/libsdl_64.so");
-                DerelictFT.load("./lib/libfreetype_64.so");
+                DerelictSDL.load("./lib64/libsdl_64.so");
+                DerelictFT.load("./lib64/libfreetype_64.so");
+                DerelictAL.load();
             }
         }
     }
@@ -240,11 +254,13 @@ void initDGL()
     {
         DerelictSDL.load();
         DerelictFT.load();
+        DerelictAL.load();
     }
     version(OSX)
     {
         DerelictSDL.load();
         DerelictFT.load();
+        DerelictAL.load();
     }
 
     string defaultConfig = q{

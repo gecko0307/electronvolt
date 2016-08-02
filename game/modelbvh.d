@@ -1,5 +1,7 @@
 module game.modelbvh;
 
+import std.stdio;
+
 import dlib.core.memory;
 import dlib.container.array;
 import dlib.math.vector;
@@ -56,8 +58,8 @@ BVHTree!Triangle modelBVH(DGL3Resource model)
         }
     }
 
-    assert(tris.length);
-    BVHTree!Triangle bvh = New!(BVHTree!Triangle)(tris, 4);
+    //assert(tris.length);
+    BVHTree!Triangle bvh = New!(BVHTree!Triangle)(tris, 100);
     tris.free();
     return bvh;
 }
