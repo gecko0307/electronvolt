@@ -1,6 +1,7 @@
 ﻿module game.tesla;
 
 import std.random;
+import std.math;
 
 import dlib.core.memory;
 import dlib.math.vector;
@@ -80,29 +81,28 @@ class TeslaEffect
         calcPoints(0, points.length-1, 0, 0, 0);
         calcPoints(0, points.length-1, 0, 0, 1);
         
-        transformation = 
-              weapon.getTransformation() *
-              translationMatrix(start);
-           
-        Vector3f currentDir = transformation.forward;
-        Vector3f targetDir = (target - transformation.translation).normalized;
-        auto rot = rotationBetweenVectors(-currentDir, targetDir);
-        transformation *= rot;
-        transformation *= scaleMatrix(Vector3f(length, length, length));
         
-        Vector3f startPoint = transformation.translation;
+        auto wTrans = weapon.getTransformation() * translationMatrix(start);
+        Vector3f targetDir = -(target - wTrans.translation).normalized;
+        Vector3f up = cross(targetDir, wTrans.up);
+        Vector3f right = cross(targetDir, up);
+
+        Vector3f startPoint = wTrans.translation;
         
-        auto lightTrans = weapon.getTransformation() * translationMatrix(start + Vector3f(0, 0.5, 0));
-        light.position = lightTrans.translation; //target
+        float d = distance(startPoint, target);
+        
+        auto lightTrans = weapon.getTransformation() * translationMatrix(start + Vector3f(0, 1, 0));
+        light.position = lightTrans.translation;
         
         glDisable(GL_LIGHTING);
         //glDisable(GL_DEPTH_TEST);
         
         glPushMatrix();
-        glMultMatrixf(transformation.arrayof.ptr);
+        //glTranslatef(startPoint.x, startPoint.y, startPoint.z);
         // Draw lightning        
         glLineWidth(width);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        float coef = (1.0f / cast(float)(points.length - 1)) * PI;
         glBegin(GL_LINE_STRIP);
         foreach(i, ref p; points)
         {
@@ -110,7 +110,23 @@ class TeslaEffect
 			if (i > 15)
 			    a = (points.length - cast(float)i)/points.length;
             glColor4f(color.r, color.g, color.b, a);
-            glVertex3fv(p.arrayof.ptr);
+            Vector3f v = startPoint + up * 0.12f;
+            v += (targetDir * p.z * d + right * p.x * d + up * p.y * d);
+            v += (up) * 0.5f * sin(cast(float)i * coef) * 0.5f;
+            glVertex3fv(v.arrayof.ptr);
+        }
+        glEnd();
+        glBegin(GL_LINE_STRIP);
+        foreach(i, ref p; points)
+        {
+		    float a = 1.0f;
+			if (i > 15)
+			    a = (points.length - cast(float)i)/points.length;
+            glColor4f(color.r, color.g, color.b, a);
+            Vector3f v = startPoint - up * 0.12f;
+            v += (targetDir * p.z * d + right * p.x * d + up * p.y * d);
+            v += (-up) * 0.5f * sin(cast(float)i * coef) * 0.5f;
+            glVertex3fv(v.arrayof.ptr);
         }
         glEnd();
 	    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

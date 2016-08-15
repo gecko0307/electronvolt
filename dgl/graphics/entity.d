@@ -58,7 +58,7 @@ class Entity: Drawable
     uint id;
     uint type = 0;
     uint materialID = -1;
-    uint meshID = -1;
+    int meshID = -1;
     uint groupID = 0;
     
     //DMLData props;

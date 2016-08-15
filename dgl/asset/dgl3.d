@@ -95,6 +95,8 @@ class DGL3MaterialResource: Resource
             material.matcap = props["matcap"].toBool;
         if ("receiveShadows" in props)
             material.receiveShadows = props["receiveShadows"].toBool;
+        if ("castShadows" in props)
+            material.castShadows = props["castShadows"].toBool;
         if ("doubleSided" in props)
             material.doubleSided = props["doubleSided"].toBool;
             
@@ -238,9 +240,11 @@ class DGL3Resource: Resource
     ubyte[] metadata;
     Trimesh[] meshes;
     DGL3Entity[] entities;
+    DGL3Light[] lights;
 
     Dict!(Trimesh, string) meshesByName;
     Dict!(DGL3Entity, string) entitiesByName;
+    Dict!(DGL3Light, string) lightsByName;
     Dict!(Material, string) materialsByName;
 
     Material defaultMaterial;
@@ -252,6 +256,7 @@ class DGL3Resource: Resource
 
         this.meshesByName = New!(Dict!(Trimesh, string));
         this.entitiesByName = New!(Dict!(DGL3Entity, string));
+        this.lightsByName = New!(Dict!(DGL3Light, string));
         this.materialsByName = New!(Dict!(Material, string));
     }
 
@@ -277,16 +282,23 @@ class DGL3Resource: Resource
 
         Delete(meshesByName);
         Delete(entitiesByName);
+        Delete(lightsByName);
         Delete(materialsByName);
 
         foreach(mesh; meshes)
             Delete(mesh);
         if (meshes.length)
             Delete(meshes);
+            
         foreach(entity; entities)
             Delete(entity);
         if (entities.length)
             Delete(entities);
+            
+        foreach(light; lights)
+            Delete(light);
+        if (lights.length)
+            Delete(lights);
     }
 }
 
@@ -460,6 +472,46 @@ void readEntity(InputStream istrm, DGL3Entity entity)
     }
 }
 
+void readLight(InputStream istrm, DGL3Light light)
+{
+    light.id = istrm.read!int;
+    int lightNameSize = istrm.read!int;  
+    string lightName = istrm.readString(lightNameSize);
+    light.name = lightName;
+
+    version(DGL3Debug)
+    {
+        writefln("light.id: %s", light.id);
+        writefln("lightNameSize: %s", lightNameSize);
+        writefln("lightName: %s", lightName);
+    }
+    
+    int lightType = istrm.read!int; 
+    
+    version(DGL3Debug)
+    {
+        writefln("lightType: %s", lightType);
+    }
+
+    Vector3f position = istrm.readVector3f;
+    Quaternionf rotation = istrm.readQuaternionf;
+
+    light.position = Vector4f(position.x, position.y, position.z, 1.0f);
+
+    version(DGL3Debug)
+    {
+        writefln("light.position: %s", light.position);
+    }
+
+    Color4f color = istrm.readVector4f;
+    light.diffuseColor = color;
+    
+    version(DGL3Debug)
+    {
+        writefln("light.diffuseColor: %s", light.diffuseColor);
+    }
+}
+
 void readDGL3(ResourceManager resman, InputStream istrm, DGL3Resource scene)
 {
     // Read magic string
@@ -555,9 +607,25 @@ void readDGL3(ResourceManager resman, InputStream istrm, DGL3Resource scene)
 
         DGL3Entity entity = New!DGL3Entity;
         readEntity(istrm, entity);
-        entity.model = scene.meshes[entity.meshID];
+        if (entity.meshID > -1)
+            entity.model = scene.meshes[entity.meshID];
         scene.entities[i] = entity;
         scene.entitiesByName[entity.name] = entity;
+    }
+    
+    // Read lights
+    scene.lights = New!(DGL3Light[])(numLights);
+    foreach(i; 0..numLights)
+    {
+        version(DGL3Debug)
+        {
+            writeln("-----");
+        }
+
+        DGL3Light light = New!DGL3Light;
+        readLight(istrm, light);
+        scene.lights[i] = light;
+        scene.lightsByName[light.name] = light;
     }
     
     foreach(e; scene.entities)

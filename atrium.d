@@ -61,6 +61,7 @@ import dgl.graphics.state;
 import dgl.graphics.light;
 import dgl.graphics.pbrshader;
 import dgl.graphics.sprite;
+import dgl.graphics.pass;
 import dgl.graphics.rtt;
 import dgl.graphics.postprocessing;
 import dgl.graphics.scene;
@@ -169,6 +170,8 @@ enum SHADOW_GROUP = 100;
 
 class Simple3DApp: Application3D
 {
+    DynamicArray!Object objects;
+
     Freeview freeview;
     DGL3Resource level;
     DGL3Resource gunModel;
@@ -176,8 +179,8 @@ class Simple3DApp: Application3D
     
     ShadowMapPass shadow; 
     
-    RTTPass rtt3d;
-    RTTPass fxPass;
+    RenderToTexture rtt1;
+    RenderToTexture rtt2;
     LensDistortionFX ldfx;
     
     PBRShader pbrShader;
@@ -203,6 +206,8 @@ class Simple3DApp: Application3D
     
     Weapon weapon;
     GravityGun eGravityGun;  
+    
+    GeomSphere gSphere2;
 
     GeomBox gPlatform;
     KinematicController platform; 
@@ -214,6 +219,21 @@ class Simple3DApp: Application3D
     uint footstepIndex = 0;
     ALuint footstepSound;
     ALuint metalHitBuffer;
+    
+    Pass2D opaquePass;
+    Scene opaqueScene;
+    
+    Pass3D distortionPass;
+    Scene distortionScene;
+    
+    Pass3D weaponPass;
+    Scene weaponScene;
+    
+    ScreenSprite rttSpr;
+    Material mRendered;
+    Shader distortionShader;
+    
+    ScreenSprite finalImage;
     
     this()
     {
@@ -244,13 +264,13 @@ class Simple3DApp: Application3D
             shadow.depth = 1;
         }
 
-        rtt3d = New!RTTPass(eventManager.windowWidth, eventManager.windowHeight, true, scene3d, eventManager);
-        rtt3d.clearColor = pass3d.clearColor;
-        addPass3D(rtt3d);
-        rtt3d.depth = 0;
-        ldfx = New!LensDistortionFX(rtt3d);
-        createEntity2D(ldfx);
-        pass3d.active = false; // We don't want to render scene3d twice
+        opaqueScene = New!Scene;
+        distortionScene = New!Scene;
+        weaponScene = New!Scene;
+
+        rtt1 = New!RenderToTexture(eventManager.windowWidth, eventManager.windowHeight);
+        pass3d.renderTarget = rtt1;
+        pass3d.depth = 0;
 
         LightManager.sunEnabled = true;
         LightManager.sunPosition = Vector4f(sunLightRot.rotate(Vector3f(0, 0, 1)));
@@ -270,21 +290,20 @@ class Simple3DApp: Application3D
         level = addModelResource("level.dgl3");
         gunModel = addModelResource("gravitygun.dgl3");
         boxModel = addModelResource("box.dgl3");
+        auto texRes = addTextureResource("dist.png");
+        auto texRes2 = addTextureResource("distmask.png");
         
         loadResources();
         
         world = New!PhysicsWorld(1000);
-        
         world.positionCorrectionIterations = 20;
-        
         bvh = modelBVH(level);
-        
         world.bvhRoot = bvh.root;
         
         gBox = New!GeomBox(Vector3f(0.5, 0.5, 0.5)); // Physical shape
         sBox = New!ShapeBox(Vector3f(0.25, 0.25, 0.25)); // Graphical shape
         
-        foreach(i; 0..5)
+        foreach(i; 0..8)
             addBoxEntity(Vector3f(0, 2 + i * 1.6, 4));
         
         freeview = New!Freeview(eventManager);
@@ -295,61 +314,185 @@ class Simple3DApp: Application3D
         envMat.textures[0] = ambTexRes.texture;
         envSphereEntity.material = envMat;
         
-        pbrShader = New!PBRShader;
-        scene3d.defaultMaterial.setShader(pbrShader);
+        if (useShaders) 
+        { 
+            pbrShader = New!PBRShader;
+            scene3d.defaultMaterial.setShader(pbrShader);
+        }
                 
-        addEntitiesFromModel(level);
-        applyPBR(boxModel.entitiesByName["eBox"]);
-        
+        addObjectsFromModel(level);
+        applyShader(boxModel.entitiesByName["eBox"]);
+
         // Create character
         Vector3f playerPos = Vector3f(0, 2, 12);
-        //if (getModel(level).entitiesByName["spawnPos"])
-        //    playerPos = getModel(level).entitiesByName["spawnPos"].position;
-        gSphere = New!GeomEllipsoid(Vector3f(0.9f, 1.0f, 0.9f)); //New!GeomSphere(1.0f);
+        Vector3f playerRot = Vector3f(0, 0, 0);
+        if ("spawnPos" in level.entitiesByName)
+        {
+            playerPos = level.entitiesByName["spawnPos"].position;
+            playerRot = -level.entitiesByName["spawnPos"].rotation.toEulerAngles;
+            
+        }
+        
+        gSphere = New!GeomEllipsoid(Vector3f(0.9f, 1.0f, 0.9f));
         gSensor = New!GeomBox(Vector3f(0.5f, 0.5f, 0.5f));
         ccPlayer = New!CharacterController(world, playerPos, 80.0f, gSphere);
-        ccPlayer.rotation.y = 0.0f;
-        //characterGravity = ccPlayer.rbody.gravity;
+        ccPlayer.rotation = playerRot;
         ccPlayer.createSensor(gSensor, Vector3f(0.0f, -0.75f, 0.0f));
         
         fpsView = New!FirstPersonView(eventManager, playerPos);
         fpsView.camera.eyePosition = Vector3f(0, 0, 0);
         fpsView.camera.gunPosition = Vector3f(0.15f, -0.2f, -0.2f);
-        fpsView.camera.turn = 0.0f;
+        fpsView.camera.pitch = radtodeg(playerRot.x);
+        fpsView.camera.turn = radtodeg(playerRot.y);
+        fpsView.camera.roll = radtodeg(playerRot.z);
+                
+        gSphere2 = New!GeomSphere(0.25f);
+        auto se2 = addSphereEntity(Vector3f(0, 20, 4));
+        se2.material = level.materialsByName["redpaint.mat"];
+        
+        gPlatform = New!GeomBox(Vector3f(1.0f, 1.0f, 1.0f));
+        platform = New!KinematicController(world, Vector3f(0, 1, -3), gPlatform);
+        sPlatform = New!ShapeBox(Vector3f(1.0f, 1.0f, 1.0f));
+        pePlatform = New!PhysicsEntity(sPlatform, platform.rbody);
+        distortionScene.addEntity(pePlatform);
+
+        mRendered = New!Material();
+        mRendered.textures[0] = rtt1.texture;
+        mRendered.textures[1] = texRes.texture;
+        mRendered.textures[2] = texRes2.texture;
+        mRendered.textures[3] = rtt1.depthTexture;
+        mRendered.shadeless = true;
+        
+    string vp = q{
+        void main()
+        {	
+            gl_Position = ftransform();		
+            gl_TexCoord[0] = gl_MultiTexCoord0;
+        }
+    };
+    
+    string fp = q{
+        uniform sampler2D dgl_Texture0;
+        uniform sampler2D dgl_Texture1;
+        uniform sampler2D dgl_Texture2;
+        uniform sampler2D dgl_Texture3; // depth texture
+        uniform vec2 dgl_WindowSize;
+        const float dgl_Time = 1.0;
+        
+        const float distortionFactor = 0.05; // Factor used to control severity of the effect
+        const float riseFactor = 1.0; // Factor used to control how fast air rises
+
+        void main()
+        {        
+            vec2 texcoord = gl_FragCoord.xy / dgl_WindowSize;
+            float mask = texture2D(dgl_Texture2, gl_TexCoord[0].st).r;
+            float z = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);
+
+            vec2 distortionMapCoordinate = gl_TexCoord[0].st;
+            //distortionMapCoordinate.t -= dgl_Time * riseFactor;
+            vec4 distortionMapValue = texture2D(dgl_Texture1, distortionMapCoordinate);
+            vec2 distortionPositionOffset = (distortionMapValue.xy) * 2.0 * distortionFactor;
+            distortionPositionOffset *= (1.0 - gl_TexCoord[0].t);
+            vec2 distortedTextureCoordinate = texcoord + distortionPositionOffset;
+            vec2 tc = distortedTextureCoordinate * mask + texcoord * (1.0 - mask);
+            vec4 col1 = texture2D(dgl_Texture0, tc);
+            
+            float depth = texture2D(dgl_Texture3, texcoord).r;
+            //if (depth < z)
+            //    gl_FragColor = texture2D(dgl_Texture0, texcoord);
+            //else
+               gl_FragColor = col1;
+            //gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0) * depth;
+            gl_FragColor.a = 1.0;
+        }
+    };
+    
+        distortionShader = New!Shader(vp, fp);
+        mRendered.setShader(distortionShader);
+        pePlatform.material = mRendered;
+        
+        rttSpr = New!ScreenSprite(eventManager, rtt1.texture);
+        opaqueScene.createEntity(rttSpr);
+        opaquePass = addPass2D(opaqueScene);
+        opaquePass.depth = -2;
+        
+        distortionPass = addPass3D(distortionScene);
+        distortionPass.depthSource = rtt1;
+        distortionPass.clear = false;
+        distortionPass.depth = -3;
+        
+        rtt2 = New!RenderToTexture(eventManager.windowWidth, eventManager.windowHeight);
+        distortionPass.renderTarget = rtt2;
+        opaquePass.renderTarget = rtt2;
+        
+        weaponPass = addPass3D(weaponScene);
+        weaponPass.depth = -4;
+        weaponPass.clear = false;
+        weaponPass.depthSource = rtt1;
+        weaponPass.renderTarget = rtt2;
+
+        pass2d.depth = -5;
+        if (useLensDistortion)
+        {
+            ldfx = New!LensDistortionFX(eventManager, rtt2.texture);
+            createEntity2D(ldfx);
+        }
+        else
+        {
+            finalImage = New!ScreenSprite(eventManager, rtt2.texture);
+            createEntity2D(finalImage);
+        }
         
         auto eGG = gunModel.entitiesByName["eWeapon"];
-        //auto bulletStart = getEntity(gravityGun, "eBulletStart");
         Vector3f bulletStartPos = Vector3f(0, 0, -0.5);
-        //bulletStartPos = bulletStart.position;
-        eGravityGun = New!GravityGun(eGG, /*eGGFX*/ null, fpsView.camera, eventManager, lightManager, world, bulletStartPos, player);
+        if ("eBulletStart" in gunModel.entitiesByName)
+            bulletStartPos = gunModel.entitiesByName["eBulletStart"].position;
+        eGravityGun = New!GravityGun(eGG, null, fpsView.camera, eventManager, lightManager, world, bulletStartPos, player);
         weapon = eGravityGun;
         eGravityGun.transparent = true;
-        addEntity3D(eGravityGun);
-        applyPBR(eGG);
-        
-        gPlatform = New!GeomBox(Vector3f(2.0f, 0.25f, 2.0f));
-        platform = New!KinematicController(world, Vector3f(0, 2, 25), gPlatform);
-        sPlatform = New!ShapeBox(Vector3f(2.0f, 0.25f, 2.0f));
-        //registerObject("sPlatform", sPlatform);
-        pePlatform = New!PhysicsEntity(sPlatform, platform.rbody);
-        pePlatform.material = level.materialsByName["redpaint.mat"];
-        pePlatform.groupID = SHADOW_GROUP;
-        addEntity3D(pePlatform);
-        //pEntities.append(pePlatform);
-        //registerObject("pePlatform", pePlatform);
-
-        auto light = addPointLight(Vector3f(0, 4, 4));
-        light.diffuseColor = Color4f(1, 0.5, 0);
-        light.highPriority = true;
-        
-        auto light2 = addPointLight(Vector3f(0, 6, 25));
-        light2.diffuseColor = Color4f(1, 0, 0);
-        light2.highPriority = true;
+        weaponScene.addEntity(eGravityGun);
+        applyShader(eGG);
+    }
+    
+    static bool useShaders()
+    {
+        return Material.isShadersEnabled &&
+               configIsTrue("fxShadersEnabled");
+    }
+    
+    static bool useShadows()
+    {
+        return useShaders() &&
+               configIsTrue("fxShadowEnabled") &&
+               ShadowMapPass.supported;
+    }
+    
+    static bool useLensDistortion()
+    {
+        return useShaders() &&
+               configIsTrue("fxLensDistortionEnabled") &&
+               RenderToTexture.supported &&
+               LensDistortionFX.supported;
+    }
+    
+    BoxEntity addSphereEntity(Vector3f pos)
+    {
+        auto bBox = world.addDynamicBody(pos, 0.0f);
+        bBox.maxSpeed = 0.15f * 60.0f;
+        auto scBox = world.addShapeComponent(bBox, gSphere2, Vector3f(0, 0, 0), 50.0f);
+        BoxEntity peBox = New!BoxEntity(level.entitiesByName["eSphere"].model, bBox);
+        peBox.setHitSound(player, metalHitBuffer);
+        if (useShadows && shadow)
+            peBox.groupID = SHADOW_GROUP;
+        pEntities.append(peBox);
+        addEntity3D(peBox);
+        return peBox;
     }
     
     BoxEntity addBoxEntity(Vector3f pos)
     {
         auto bBox = world.addDynamicBody(pos, 0.0f);
+        bBox.maxSpeed = 0.7f * 60.0f;
         auto scBox = world.addShapeComponent(bBox, gBox, Vector3f(0, 0, 0), 50.0f);
         BoxEntity peBox = New!BoxEntity(boxModel.entitiesByName["eBox"], bBox);
         peBox.setHitSound(player, metalHitBuffer);
@@ -366,10 +509,25 @@ class Simple3DApp: Application3D
         resourceManager.addResource(filename, res);
         return res;
     }
+    
+    void addObjectsFromModel(DGL3Resource model)
+    {
+        foreach(e; model.entities)
+        {
+            addEntity3D(e);
+            applyShader(e);
+        }
+        
+        foreach(l; model.lights)
+        {
+            addLight(l);
+        }
+    }
 
     ~this()
     {
-        Delete(pbrShader);
+        if (pbrShader)
+            Delete(pbrShader);
         Delete(freeview);
         Delete(envSphere);
         Delete(envMat);
@@ -389,6 +547,8 @@ class Simple3DApp: Application3D
         Delete(ccPlayer);
         Delete(fpsView);
         
+        Delete(gSphere2);
+        
         Delete(gPlatform);
         Delete(platform);
         Delete(sPlatform);
@@ -396,7 +556,23 @@ class Simple3DApp: Application3D
         
         Delete(eGravityGun);
         
-        Delete(ldfx);
+        if (ldfx)
+            Delete(ldfx);
+            
+        if (finalImage)
+            Delete(finalImage);
+            
+        Delete(rtt1);
+        Delete(rtt2);
+        
+        Delete(opaqueScene);
+        Delete(distortionScene);
+        Delete(weaponScene);
+        
+        Delete(rttSpr);
+        
+        Delete(mRendered);
+        Delete(distortionShader);
         
         player.close();
     }
@@ -480,9 +656,8 @@ class Simple3DApp: Application3D
         
         fpsView.update(dt);
         setCameraMatrix(fpsView.getCameraMatrix());
-
-        if (rtt3d)
-            rtt3d.modelViewMatrix = fpsView.getCameraMatrix(); 
+        distortionPass.modelViewMatrix = fpsView.getCameraMatrix();
+        weaponPass.modelViewMatrix = fpsView.getCameraMatrix();
 
         if (Material.uberShader)
             Material.uberShader.setViewMatrix(fpsView.camera);
@@ -497,6 +672,8 @@ class Simple3DApp: Application3D
         }
         
         super.onUpdate(dt); 
+        distortionScene.update(dt);
+        weaponScene.update(dt);
             
         if (playerWalking && !ccPlayer.flyMode)
         {
@@ -523,15 +700,23 @@ class Simple3DApp: Application3D
             shadow.unbind();
     }
 
-    void applyPBR(Entity e)
+    void applyShader(Entity e)
     {
         if (useShadows && shadow)
             e.groupID = SHADOW_GROUP;
 
         if (e.material)
         {
+            if (!e.material.castShadows)
+            {
+                e.groupID = 0;
+            }
+        
             if (!useShadows || shadow is null)
+            {
                 e.material.receiveShadows = false;
+                e.material.castShadows = false;
+            }
                 
             if (useShaders && pbrShader.supported)
             {
@@ -545,15 +730,6 @@ class Simple3DApp: Application3D
                 e.material.textures[3] = null;
                 e.material.textures[4] = null;
             }
-        }
-    }
-
-    void addEntitiesFromModel(DGL3Resource model)
-    {
-        foreach(e; model.entities)
-        {
-            addEntity3D(e);
-            applyPBR(e);
         }
     }
 

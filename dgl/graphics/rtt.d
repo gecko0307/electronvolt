@@ -31,12 +31,15 @@ module dgl.graphics.rtt;
 import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.affine;
+import dgl.core.interfaces;
 import dgl.core.api;
 import dgl.core.event;
 import dgl.graphics.scene;
 import dgl.graphics.pass;
 import dgl.graphics.material;
 import dgl.graphics.texture;
+import dgl.graphics.state;
+import dgl.graphics.light;
 
 class DepthTexture: Texture
 {
@@ -60,23 +63,82 @@ class DepthTexture: Texture
     }
 }
 
+class RenderToTexture: RenderTarget
+{
+    GLuint fbo;
+    Texture texture;
+    DepthTexture depthTexture;
+    uint width;
+    uint height;
+    
+    this(uint w, uint h)
+    {
+        width = w;
+        height = h;
+        texture = New!Texture(w, h);
+        depthTexture = New!DepthTexture(w, h);
+
+        // Create the FBO
+        glGenFramebuffers(1, &fbo);        
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);  
+        
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.tex, 0);         
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture.tex, 0);
+        
+        GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);       
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+    
+    static bool supported()
+    {
+        return DerelictGL.isExtensionSupported("GL_ARB_framebuffer_object");
+    }
+    
+    ~this()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &fbo);
+        Delete(texture);
+        Delete(depthTexture);
+    }
+    
+    void bind(double dt)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    }
+    
+    void unbind()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+    
+    void blitDepthBuffer()
+    {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    }
+}
+
 /*
  * Render to texture using FBO
  */
+ /*
 class RTTPass: Pass
 {
     GLuint fbo;
     GLuint rbDepth;
     Texture texture;
     DepthTexture depthTexture;
+    Scene postScene;
     bool type3d;
 
     // type2d: true - 3D pass, false - 2D pass
-    this(uint w, uint h, bool type3d, Scene s, EventManager emngr)
+    this(uint w, uint h, bool type3d, Scene s, Scene postScene, EventManager emngr)
     {
         super(0, 0, w, h, s, emngr);
         
         this.type3d = type3d;
+        this.postScene = postScene;
         
         clear = true;
         alignToWindow = false;
@@ -139,6 +201,57 @@ class RTTPass: Pass
     {        
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         super.draw(dt);
+        
+        if (defaultMaterial)
+        {
+            if (overrideMaterials)
+            {
+                PipelineState.materialsActive = false;
+                defaultMaterial.forceActive = true;
+            }
+        }
+        
+        glDisable(GL_LIGHTING);
+        
+        bool useLighting;
+        if (postScene)
+        foreach(e; postScene.entities)
+        {
+            if (groupID == 0 || e.groupID == groupID)
+            {
+                useLighting = !(shadeless || postScene.shadeless || e.shadeless);
+                
+                if (useLighting)
+                    LightManager.bindLighting(e);
+
+                if (defaultMaterial)
+                    defaultMaterial.bind(dt);
+
+                e.draw(dt);
+
+                if (defaultMaterial)
+                    defaultMaterial.unbind();
+                
+                if (useLighting)
+                    LightManager.unbindLighting();
+            }
+        }
+
+        if (defaultMaterial)
+        {
+            if (overrideMaterials)
+            {
+                PipelineState.materialsActive = true;
+                defaultMaterial.forceActive = false;
+            }
+        }
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, viewWidth, viewHeight, 0, 0, viewWidth, viewHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 }
+*/

@@ -53,16 +53,19 @@ class ScreenSprite: EventListener, Drawable
 
     override void draw(double dt)
     {
-        glDisable(GL_MULTISAMPLE_ARB);
+        //glDisable(GL_MULTISAMPLE_ARB);
         material.bind(dt);
+        glDepthMask(0);
+        glColor4f(1, 1, 1, 1);
         glBegin(GL_QUADS);
         glTexCoord2f(0, 0); glVertex2f(0, 0);
         glTexCoord2f(1, 0); glVertex2f(eventManager.windowWidth, 0);
         glTexCoord2f(1, 1); glVertex2f(eventManager.windowWidth, eventManager.windowHeight);
         glTexCoord2f(0, 1); glVertex2f(0, eventManager.windowHeight);
         glEnd();
+        glDepthMask(1);
         material.unbind();
-        glEnable(GL_MULTISAMPLE_ARB);
+        //glEnable(GL_MULTISAMPLE_ARB);
     }
 
     ~this()
@@ -90,6 +93,7 @@ class Sprite: Drawable
 
     void draw(double dt)
     {
+        glDepthMask(0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
         glPushMatrix();
@@ -106,6 +110,7 @@ class Sprite: Drawable
         texture.unbind();
         glPopMatrix();
         glEnable(GL_DEPTH_TEST);
+        glDepthMask(1);
     }
 
     ~this()
@@ -150,6 +155,7 @@ class AnimatedSprite: Drawable
         float w = cast(float)tileWidth / texture.width;
         float h = cast(float)tileHeight / texture.height;
 
+        glDepthMask(0);
         glDisable(GL_DEPTH_TEST);
         glPushMatrix();
         glColor4f(1,1,1,1);
@@ -165,6 +171,7 @@ class AnimatedSprite: Drawable
         texture.unbind();
         glPopMatrix();
         glEnable(GL_DEPTH_TEST);
+        glDepthMask(1);
     }
 
     void advanceFrame()

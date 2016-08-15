@@ -133,21 +133,11 @@ class Application3D: PassApplication
         
         defaultLoadingScreen = New!LoadingScreen(eventManager, resourceManager);
         loadingScreen = defaultLoadingScreen;
-        
-        if (useShaders)
-            scene3d.defaultMaterial.setShader();
     }
     
-    static bool useShadows()
+    Light addLight(Light light)
     {
-        return ShadowMapPass.supported && 
-               ShadowMapPass.isShadowsEnabled &&
-               Material.isShadersEnabled;
-    }
-
-    static bool useShaders()
-    {
-        return Material.isShadersEnabled;
+        return lightManager.addLight(light);
     }
     
     Light addPointLight(Vector3f pos)
@@ -284,7 +274,7 @@ class Application3D: PassApplication
         }
     }
 
-    TextureResource addTexureResource(string filename)
+    TextureResource addTextureResource(string filename)
     {
         return resourceManager.addTextureResource(filename);
     }

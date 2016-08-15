@@ -95,6 +95,7 @@ class Material: Modifier
     bool useFog = true;
     bool matcap = false;
     bool receiveShadows = true;
+    bool castShadows = true;
     
     ShadowType shadowType = ShadowType.BoxBlur;
     

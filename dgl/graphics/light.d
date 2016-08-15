@@ -52,6 +52,16 @@ class Light: Drawable
     bool debugDraw = false;
     bool forceOn = false;
     bool highPriority = false;
+    
+    this()
+    {        
+        position = Vector3f(0, 0, 0);
+        diffuseColor = Color4f(1, 1, 1, 1);
+        ambientColor = Color4f(0, 0, 0, 1);
+        constantAttenuation = 0.5f;
+        linearAttenuation = 0.0f;
+        quadraticAttenuation = 0.1f;
+    }
 
     this(
         Vector4f position,
@@ -105,6 +115,7 @@ enum maxLightsPerObject = 5;
 class LightManager
 {
     DynamicArray!Light lights;
+    DynamicArray!Light lightsToDelete;
 
     bool lightsVisible = false;
     bool lightsOn = true;
@@ -130,6 +141,7 @@ class LightManager
             Color4f(1.0f, 1.0f, 1.0f, 1.0f),
             Color4f(0.1f, 0.1f, 0.1f, 1.0f));
         lights.append(light);
+        lightsToDelete.append(light);
         return light;
     }
 
@@ -292,7 +304,7 @@ class LightManager
 
     void freeLights()
     {
-        foreach(light; lights.data)
+        foreach(light; lightsToDelete)
             Delete(light);
         lights.free();
     }

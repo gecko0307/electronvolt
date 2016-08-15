@@ -102,7 +102,7 @@ class ShadowMapPass: Pass3D
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
         projSize = 10;
-        projectionMatrix = orthoMatrix(-projSize, projSize, -projSize, projSize, -20.0f, 100.0f);
+        projectionMatrix = orthoMatrix(-projSize, projSize, -projSize, projSize, -1.0f, 100.0f);
         
         lightPosition = Vector3f(0.0f, 0.0f, 0.0f);
         lightRotation = rotationQuaternion(0, degtorad(-90.0f));
@@ -125,16 +125,6 @@ class ShadowMapPass: Pass3D
     static bool supported()
     {
         return Material.isGLSLSupported() && DerelictGL.isExtensionSupported("GL_ARB_framebuffer_object");
-    }
-    
-    static bool isShadowsEnabled()
-    {
-        if ("fxShadowEnabled" in config)
-        {
-            return config["fxShadowEnabled"].toBool;
-        }
-        else
-            return false;
     }
     
     void update(double dt)

@@ -287,7 +287,14 @@ void initDGL()
             writeln("Failed to read config \"game.conf\"");
     }
     else
-        writeln("Failed to read config \"game.conf\"");
+        writeln("Failed to read config \"game.conf\"");}
+
+bool configIsTrue(string key)
+{
+    if (key in config)
+        return config[key].toBool;
+    else
+        return false;
 }
 
 void deinitDGL() 

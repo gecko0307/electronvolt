@@ -33,7 +33,9 @@ import dlib.core.memory;
 import dlib.container.dict;
 import dlib.math.vector;
 import dlib.math.quaternion;
+import dlib.image.color;
 import dgl.graphics.entity;
+import dgl.graphics.light;
 
 enum PropType
 {
@@ -148,3 +150,19 @@ class DGL3Entity: Entity
     }
 }
 
+class DGL3Light: Light
+{
+    int id;
+    string name;
+
+    this()
+    {        
+        super();
+    }
+
+    ~this()
+    {
+        if (name.length)
+            Delete(name);
+    }
+}

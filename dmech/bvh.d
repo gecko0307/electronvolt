@@ -298,9 +298,10 @@ class BVHTree(T)
 
     this(DynamicArray!T objects, 
          uint maxObjectsPerNode = 8,
+         uint maxRecursionDepth = 10,
          Heuristic splitHeuristic = Heuristic.SAH)
     {
-        root = construct(objects, maxObjectsPerNode, splitHeuristic);
+        root = construct(objects, 0, maxObjectsPerNode, maxRecursionDepth, splitHeuristic);
     }
     
     void free()
@@ -313,12 +314,19 @@ class BVHTree(T)
 
     BVHNode!T construct(
          DynamicArray!T objects, 
+         uint rec,
          uint maxObjectsPerNode,
+         uint maxRecursionDepth,
          Heuristic splitHeuristic)
     {
         BVHNode!T node = New!(BVHNode!T)(duplicate(objects));
 
         if (node.objects.data.length <= maxObjectsPerNode)
+        {
+            return node;
+        }
+        
+        if (rec == maxRecursionDepth)
         {
             return node;
         }
@@ -350,12 +358,12 @@ class BVHTree(T)
             node.objects.free();
 
         if (leftObjects.data.length > 0)
-            node.child[0] = construct(leftObjects, maxObjectsPerNode, splitHeuristic);
+            node.child[0] = construct(leftObjects, rec + 1, maxObjectsPerNode, maxRecursionDepth, splitHeuristic);
         else
             node.child[0] = null;
 
         if (rightObjects.data.length > 0)
-            node.child[1] = construct(rightObjects, maxObjectsPerNode, splitHeuristic);
+            node.child[1] = construct(rightObjects, rec + 1, maxObjectsPerNode, maxRecursionDepth, splitHeuristic);
         else
             node.child[1] = null;
 

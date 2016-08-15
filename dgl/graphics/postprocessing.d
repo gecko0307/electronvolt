@@ -79,16 +79,6 @@ class LensDistortionFX: EventListener, Drawable
         }
     };
     
-    this(RTTPass rtt)
-    {
-        super(rtt.eventManager);
-        material = New!Material();
-        material.textures[0] = rtt.texture;
-        material.shadeless = true;
-        shader = New!Shader(vp, fp);
-        material.setShader(shader);
-    }
-    
     this(EventManager emngr, Texture texture)
     {
         super(emngr);
@@ -108,6 +98,7 @@ class LensDistortionFX: EventListener, Drawable
     void draw(double dt)
     {
         material.bind(dt);
+        glDepthMask(0);
         glColor4f(1, 1, 1, 1);
         glBegin(GL_QUADS);
         glTexCoord2f(0, 0); glVertex2f(0, 0);
@@ -115,6 +106,12 @@ class LensDistortionFX: EventListener, Drawable
         glTexCoord2f(1, 1); glVertex2f(eventManager.windowWidth, eventManager.windowHeight);
         glTexCoord2f(0, 1); glVertex2f(0, eventManager.windowHeight);
         glEnd();
+        glDepthMask(1);
         material.unbind();
+    }
+    
+    static bool supported()
+    {
+        return Material.isGLSLSupported();
     }
 }

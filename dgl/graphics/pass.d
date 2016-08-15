@@ -45,6 +45,11 @@ import dgl.graphics.light;
 import dgl.graphics.material;
 import dgl.graphics.state;
 
+interface RenderTarget: Modifier
+{
+    void blitDepthBuffer();
+}
+
 class Pass: EventListener, Drawable
 {
     Matrix4x4f modelViewMatrix;
@@ -52,6 +57,8 @@ class Pass: EventListener, Drawable
     Color4f clearColor;
     Scene scene;
     Material defaultMaterial;
+    RenderTarget renderTarget;
+    RenderTarget depthSource;
     uint groupID = 0;
     int depth = 0;
     uint viewX;
@@ -99,6 +106,12 @@ class Pass: EventListener, Drawable
 
     void draw(double dt)
     {
+        if (renderTarget)
+            renderTarget.bind(dt);
+            
+        if (depthSource)
+            depthSource.blitDepthBuffer();
+        
         Application.passWidth = viewWidth;
         Application.passHeight = viewHeight;
         Application.passMaterialsActive = !overrideMaterials;
@@ -166,6 +179,11 @@ class Pass: EventListener, Drawable
                 PipelineState.materialsActive = true;
                 defaultMaterial.forceActive = false;
             }
+        }
+        
+        if (renderTarget)
+        {
+            renderTarget.unbind();
         }
     }
 }

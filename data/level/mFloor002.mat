@@ -9,5 +9,6 @@ metallic: 0.7;
 diffuseTexture: "floor002-diffuse.png";
 normalTexture: "floor002-normal.png";
 emissionTexture: "floor002-emission.png";
+castShadows: 0;
 
 

@@ -9,5 +9,6 @@ metallic: 0.1;
 diffuseTexture: "wall001-diffuse.png";
 normalTexture: "wall001-normal.png";
 metallicTexture: "wall001-metallic.png";
-receiveShadows: 0;
+receiveShadows: 1;
+castShadows: 0;
 

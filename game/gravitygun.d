@@ -38,6 +38,7 @@ class GravityGun: Weapon
     ParticleSystem sparks;
     Entity shootFX;
     AudioPlayer player;
+    Light light;
     
     ALuint[2] electricSoundBuffer;
     ALuint electricSound;
@@ -55,7 +56,7 @@ class GravityGun: Weapon
         this.eventManager = eventManager;
         this.world = world;
         Color4f teslaColor = Color4f(0.3f, 1.0f, 1.0f, 1.0f);
-        auto light = pointLight(
+        light = pointLight(
             Vector3f(0,0,0), 
             teslaColor,
             Color4f(0,0,0,1),
@@ -296,8 +297,8 @@ class GravityGun: Weapon
                             unsetShootedBody();       
                     }
                 }
-
-                if (!ignore)
+                
+                //if (!ignore)
                 {
                     if (posChange.lengthsqr < 1.0f)
                         b.linearVelocity = posChange * 10.0f;
@@ -307,11 +308,11 @@ class GravityGun: Weapon
                         if (d > 4.0f)
                             b.linearVelocity *= 1.0f / d;
                     }
-                    float dt = (1.0f / 60.0f);
-                    float maxJump = 0.5f;
-                    if (b.linearVelocity.length * dt > maxJump)
-                        b.linearVelocity = b.linearVelocity.normalized * (maxJump / dt);
-                }
+                    //float dt = (1.0f / 60.0f);
+                    //float maxJump = 0.5f;
+                    //if (b.linearVelocity.length * dt > maxJump)
+                    //    b.linearVelocity = b.linearVelocity.normalized * (maxJump / dt);
+                }               
             }
 
             float d1 = distance(tesla.transformation.translation, b.position);
@@ -352,5 +353,6 @@ class GravityGun: Weapon
     {
         Delete(tesla);
         Delete(sparks);
+        Delete(light);
     }
 }

@@ -59,7 +59,7 @@ BVHTree!Triangle modelBVH(DGL3Resource model)
     }
 
     //assert(tris.length);
-    BVHTree!Triangle bvh = New!(BVHTree!Triangle)(tris, 100);
+    BVHTree!Triangle bvh = New!(BVHTree!Triangle)(tris, 10, 20);
     tris.free();
     return bvh;
 }

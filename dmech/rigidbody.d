@@ -265,7 +265,8 @@ class RigidBody: Freeable
         if (active && dynamic)
         {
             auto rot = orientation.toMatrix3x3;
-            invInertiaTensor = (rot * inertiaTensor * rot.transposed).inverse;
+            //invInertiaTensor = (rot * inertiaTensor * rot.transposed).inverse;
+            invInertiaTensor = (rot * inertiaTensor.inverse * rot.transposed);
         }
     }
 

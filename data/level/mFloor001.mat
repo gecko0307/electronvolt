@@ -8,3 +8,4 @@ specularity: 1.0;
 metallic: 0.7;
 diffuseTexture: "floor001-diffuse.png";
 normalTexture: "floor001-normal.png";
+castShadows: 0;
