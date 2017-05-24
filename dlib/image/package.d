@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013-2016 Timur Gafarov 
+Copyright (c) 2013-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -30,6 +30,7 @@ module dlib.image;
 
 public
 {
+    import dlib.image.animation;
     import dlib.image.arithmetics;
     import dlib.image.color;
     import dlib.image.compleximage;
@@ -57,6 +58,7 @@ public
     import dlib.image.io.png;
     import dlib.image.io.tga;
     import dlib.image.io.jpeg;
+    import dlib.image.io.hdr;
 
     import dlib.image.render.cosplasma;
     import dlib.image.render.shapes;
@@ -68,4 +70,3 @@ public
 
     import dlib.image.tone.contrast;
 }
-

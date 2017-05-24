@@ -2,7 +2,7 @@ module game.physicsentity;
 
 import std.stdio;
 import dlib.math.vector;
-import dlib.math.affine;
+import dlib.math.transformation;
 import dgl.core.interfaces;
 import dgl.graphics.entity;
 import dmech.rigidbody;

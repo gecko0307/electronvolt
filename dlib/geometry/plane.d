@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2011-2013 Timur Gafarov 
+Copyright (c) 2011-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -75,7 +75,7 @@ struct Plane
         x = n.x;
         y = n.y;
         z = n.z;
-	    d = -(p0.x * x + p0.y * y + p0.z * z);
+        d = -(p0.x * x + p0.y * y + p0.z * z);
     }
 
     void fromPointAndNormal(Vector3f p, Vector3f n)
@@ -110,7 +110,7 @@ struct Plane
 
    /*
     * Get the distance from the center of the plane to the given point.
-    * This is useful for determining which side of the plane the point is on. 
+    * This is useful for determining which side of the plane the point is on.
     */
     float distance(Vector3f p)
     {
@@ -206,14 +206,14 @@ struct Plane
     union
     {
         float[4] arrayof;// = [0, 0, 0, 0];
-        
+
         Vector4f vectorof;
 
         struct
         {
             float a, b, c, d;
         }
-        
+
         Vector3f normal;
     }
 

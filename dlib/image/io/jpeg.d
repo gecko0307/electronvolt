@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Timur Gafarov
+Copyright (c) 2015-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -32,6 +32,7 @@ import std.stdio;
 import std.algorithm;
 import std.string;
 import std.traits;
+import std.math;
 
 import dlib.core.memory;
 import dlib.core.stream;
@@ -40,7 +41,6 @@ import dlib.container.array;
 import dlib.filesystem.local;
 import dlib.image.color;
 import dlib.image.image;
-import dlib.image.io.idct;
 
 import dlib.core.bitio;
 import dlib.coding.huffman;
@@ -69,7 +69,7 @@ T readNumeric(T) (InputStream istrm, Endian endian = Endian.Little)
 if (is(T == ushort))
 {
     union U16
-    { 
+    {
         ubyte[2] asBytes;
         ushort asUshort;
     }
@@ -106,7 +106,7 @@ struct HuffmanCode
 {
     ushort bits;
     ushort length;
-    
+
     auto bitString()
     {
         return .bitString(bits, length);
@@ -124,7 +124,7 @@ DynamicArray!char bitString(T)(T n, uint len = 1) if (isIntegral!T)
     DynamicArray!char arr;
 
     const int size = T.sizeof * 8;
-    
+
     bool s = 0;
     for (int a = 0; a < size; a++)
     {
@@ -137,10 +137,10 @@ DynamicArray!char bitString(T)(T n, uint len = 1) if (isIntegral!T)
         }
         n <<= 1;
     }
-    
+
     while (arr.length < len)
         arr.appendLeft('0');
-        
+
     return arr;
 }
 
@@ -349,7 +349,7 @@ struct JPEGImage
                 return &t;
         return null;
     }
-    
+
     DHT* getHuffmanTable(ubyte clas, ubyte id)
     {
         foreach(ref t; dht)
@@ -367,7 +367,8 @@ struct JPEGImage
 SuperImage loadJPEG(string filename)
 {
     InputStream input = openForInput(filename);
-    auto img = loadJPEG(input);    input.close();
+    auto img = loadJPEG(input);
+    input.close();
     return img;
 }
 
@@ -377,7 +378,7 @@ SuperImage loadJPEG(string filename)
  */
 SuperImage loadJPEG(InputStream istrm)
 {
-    Compound!(SuperImage, string) res = 
+    Compound!(SuperImage, string) res =
         loadJPEG(istrm, defaultImageFactory);
     if (res[0] is null)
         throw new Exception(res[1]);
@@ -390,12 +391,12 @@ SuperImage loadJPEG(InputStream istrm)
  * GC-free
  */
 Compound!(SuperImage, string) loadJPEG(
-    InputStream istrm, 
+    InputStream istrm,
     SuperImageFactory imgFac)
 {
     JPEGImage jpg;
     SuperImage img = null;
-    
+
     while (istrm.readable)
     {
         JPEGMarkerType mt;
@@ -431,14 +432,14 @@ Compound!(bool, string) readMarker(
     JPEGMarkerType* mt)
 {
     ushort magic = istrm.readNumeric!ushort(Endian.Big);
-    
+
     switch (magic)
     {
         case 0xFFD8:
             *mt = JPEGMarkerType.SOI;
             version(JPEGDebug) writeln("SOI");
             break;
-            
+
         case 0xFFE0:
             *mt = JPEGMarkerType.APP0;
             return readJFIF(jpg, istrm);
@@ -446,78 +447,79 @@ Compound!(bool, string) readMarker(
         case 0xFFE1:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 1);
-            
+
         case 0xFFE2:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 2);
-            
+
         case 0xFFE3:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 3);
-            
+
         case 0xFFE4:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 4);
-            
+
         case 0xFFE5:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 5);
-            
+
         case 0xFFE6:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 6);
-            
+
         case 0xFFE7:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 7);
-            
+
         case 0xFFE8:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 8);
-            
+
          case 0xFFE9:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 9);
-            
+
          case 0xFFEA:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 10);
-            
+
          case 0xFFEB:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 11);
-            
+
          case 0xFFEC:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 12);
-            
+
          case 0xFFED:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 13);
-            
+
          case 0xFFEE:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 14);
-            
+
          case 0xFFEF:
             *mt = JPEGMarkerType.APPn;
             return readAPPn(jpg, istrm, 15);
-            
+
         case 0xFFDB:
             *mt = JPEGMarkerType.DQT;
             return readDQT(jpg, istrm);
-            
+
         case 0xFFC0:
             *mt = JPEGMarkerType.SOF0;
             return readSOF0(jpg, istrm);
 
         case 0xFFC2:
-            *mt = JPEGMarkerType.SOF2;            break;
-            
+            *mt = JPEGMarkerType.SOF2;
+            break;
+
         case 0xFFC4:
             *mt = JPEGMarkerType.DHT;
             return readDHT(jpg, istrm);
-            
+
         case 0xFFDA:
             *mt = JPEGMarkerType.SOS;
             return readSOS(jpg, istrm);
@@ -525,12 +527,12 @@ Compound!(bool, string) readMarker(
         case 0xFFFE:
             *mt = JPEGMarkerType.COM;
             return readCOM(jpg, istrm);
-            
+
         default:
             *mt = JPEGMarkerType.Unknown;
             break;
     }
-    
+
     return compound(true, "");
 }
 
@@ -549,7 +551,7 @@ Compound!(bool, string) readJFIF(JPEGImage* jpg, InputStream istrm)
     jpg.jfif.yDensity = istrm.readNumeric!ushort(Endian.Big);
     jpg.jfif.thumbnailWidth = istrm.readNumeric!ubyte;
     jpg.jfif.thumbnailHeight = istrm.readNumeric!ubyte;
-    
+
     uint jfif_thumb_length = jpg.jfif.thumbnailWidth * jpg.jfif.thumbnailHeight * 3;
     if (jfif_thumb_length > 0)
     {
@@ -618,7 +620,7 @@ Compound!(bool, string) readCOM(JPEGImage* jpg, InputStream istrm)
     {
         writefln("COM string: \"%s\"", cast(string)com);
         writefln("COM length: %s", com_length);
-    }    
+    }
 
     // TODO: save COM data somewhere.
     // Maybe add a generic ImageInfo object for this?
@@ -628,7 +630,7 @@ Compound!(bool, string) readCOM(JPEGImage* jpg, InputStream istrm)
 }
 
 Compound!(bool, string) readDQT(JPEGImage* jpg, InputStream istrm)
-{   
+{
     ushort dqt_length = istrm.readNumeric!ushort(Endian.Big);
     version(JPEGDebug)
     {
@@ -672,13 +674,13 @@ Compound!(bool, string) readDQT(JPEGImage* jpg, InputStream istrm)
 }
 
 Compound!(bool, string) readSOF0(JPEGImage* jpg, InputStream istrm)
-{   
+{
     ushort sof0_length = istrm.readNumeric!ushort(Endian.Big);
     jpg.sof0.precision = istrm.readNumeric!ubyte;
     jpg.sof0.height = istrm.readNumeric!ushort(Endian.Big);
     jpg.sof0.width = istrm.readNumeric!ushort(Endian.Big);
     jpg.sof0.componentsNum = istrm.readNumeric!ubyte;
-    
+
     version(JPEGDebug)
     {
         writefln("SOF0 length: %s", sof0_length);
@@ -687,9 +689,9 @@ Compound!(bool, string) readSOF0(JPEGImage* jpg, InputStream istrm)
         writefln("SOF0 width: %s", jpg.sof0.width);
         writefln("SOF0 components: %s", jpg.sof0.componentsNum);
     }
-    
+
     jpg.sof0.components = New!(JPEGImage.SOF0Component[])(jpg.sof0.componentsNum);
-    
+
     foreach(ref c; jpg.sof0.components)
     {
         ubyte c_id = istrm.readNumeric!ubyte;
@@ -710,19 +712,19 @@ Compound!(bool, string) readSOF0(JPEGImage* jpg, InputStream istrm)
 }
 
 Compound!(bool, string) readDHT(JPEGImage* jpg, InputStream istrm)
-{    
-    ushort dht_length = istrm.readNumeric!ushort(Endian.Big);  
+{
+    ushort dht_length = istrm.readNumeric!ushort(Endian.Big);
     version(JPEGDebug)
     {
         writefln("DHT length: %s", dht_length);
     }
-  
+
     dht_length -= 2;
 
     while(dht_length > 0)
-    {    
+    {
         JPEGImage.DHT* dht = jpg.addDHT();
-    
+
         ubyte bite = istrm.readNumeric!ubyte;
         dht_length--;
         dht.clas = bite.hiNibble;
@@ -740,16 +742,16 @@ Compound!(bool, string) readDHT(JPEGImage* jpg, InputStream istrm)
             writefln("DHT tableId: %s", dht.tableId);
             writefln("DHT Huffman code lengths: %s", dht_code_lengths);
         }
-    
-        // Read Huffman table   
+
+        // Read Huffman table
         int totalCodes = reduce!("a + b")(0, dht_code_lengths);
         int storedCodes = 0;
         ubyte treeLevel = 0;
         ushort bits = 0;
-    
+
         while (storedCodes != totalCodes)
         {
-            while (treeLevel < 15 && 
+            while (treeLevel < 15 &&
                 dht_code_lengths[treeLevel] == 0)
             {
                 treeLevel++;
@@ -765,7 +767,7 @@ Compound!(bool, string) readDHT(JPEGImage* jpg, InputStream istrm)
                 dht.huffmanTable.append(entry);
 
                 dht_length--;
-            
+
                 storedCodes++;
                 bits++;
                 dht_code_lengths[treeLevel]--;
@@ -779,7 +781,7 @@ Compound!(bool, string) readDHT(JPEGImage* jpg, InputStream istrm)
 }
 
 Compound!(bool, string) readSOS(JPEGImage* jpg, InputStream istrm)
-{   
+{
     ushort sos_length = istrm.readNumeric!ushort(Endian.Big);
     jpg.sos.componentsNum = istrm.readNumeric!ubyte;
 
@@ -788,9 +790,9 @@ Compound!(bool, string) readSOS(JPEGImage* jpg, InputStream istrm)
         writefln("SOS length: %s", sos_length);
         writefln("SOS components: %s", jpg.sos.componentsNum);
     }
-    
+
     jpg.sos.components = New!(JPEGImage.SOSComponent[])(jpg.sos.componentsNum);
-    
+
     foreach(ref c; jpg.sos.components)
     {
         ubyte c_id = istrm.readNumeric!ubyte;
@@ -810,7 +812,7 @@ Compound!(bool, string) readSOS(JPEGImage* jpg, InputStream istrm)
     ubyte bite = istrm.readNumeric!ubyte;
     jpg.sos.successiveApproximationBitHigh = bite.hiNibble;
     jpg.sos.successiveApproximationBitLow = bite.loNibble;
-    
+
     version(JPEGDebug)
     {
         writefln("SOS spectral selection start: %s", jpg.sos.spectralSelectionStart);
@@ -863,27 +865,27 @@ struct ScanBitStream
         while(!node.isLeaf)
         {
             ubyte b = curByte;
-        
+
             bool bit = getBit(b, 7-bitPos);
             bitPos++;
             if (bitPos == 8)
             {
                 bitPos = 0;
                 readNextByte();
-                
+
                 if (b == 0xFF)
                 {
-                    b = curByte; 
+                    b = curByte;
                     if (b == 0x00)
                     {
                         readNextByte();
                     }
                 }
             }
-            
-            if (bit) 
+
+            if (bit)
                 node = node.right;
-            else 
+            else
                 node = node.left;
 
             if (node is null)
@@ -905,7 +907,7 @@ struct ScanBitStream
         while (i < len)
         {
             ubyte b = curByte;
-        
+
             bool bit = getBit(b, 7-bitPos);
             buffer = setBit(buffer, (by * 8 + bi), bit);
 
@@ -973,14 +975,14 @@ Compound!(SuperImage, string) decodeScanData(
     int decodeCoef(uint buffer, ubyte numBits)
     {
         bool positive = getBit(buffer, 0);
-        
+
         int value = 0;
         foreach(j; 0..numBits)
         {
             bool bit = getBit(buffer, numBits-1-j);
             value = setBit(value, j, bit);
         }
-        
+
         if (positive)
             return value;
         else
@@ -1054,7 +1056,7 @@ Compound!(SuperImage, string) decodeScanData(
                 // Read DC coefficient
                 ubyte dcDiffLen;
                 auto res = sbs.decodeByte(tableDC.huffmanTree, &dcDiffLen);
-                if (!res[0]) return error(res[1]); 
+                if (!res[0]) return error(res[1]);
 
                 if (dcDiffLen > 0)
                 {
@@ -1098,7 +1100,7 @@ Compound!(SuperImage, string) decodeScanData(
                                 i++;
                             }
 
-                            int acCoef = 0;     
+                            int acCoef = 0;
                             if (lo > 0)
                             {
                                 uint acBuffer = sbs.readBits(lo);
@@ -1234,7 +1236,7 @@ struct MCU
         if (crBlocks.length) Delete(crBlocks);
     }
 
-    Color4f getPixel(uint x, uint y) // coordinates relative to upper-left MCU corner 
+    Color4f getPixel(uint x, uint y) // coordinates relative to upper-left MCU corner
     {
         // Y block coordinates
         uint ybx = x / yWidth;
@@ -1279,5 +1281,158 @@ struct MCU
         return col;
     }
 }
+/*
+ * Inverse discrete cosine transform (DCT) for 64x64 blocks
+ *
+ * The input coefficients should already have been multiplied by the
+ * appropriate quantization table. We use fixed-point computation, with the
+ * number of bits for the fractional component varying over the intermediate
+ * stages.
+ *
+ * For more on the actual algorithm, see Z. Wang, "Fast algorithms for the
+ * discrete W transform and for the discrete Fourier transform", IEEE Trans. on
+ * ASSP, Vol. ASSP- 32, pp. 803-816, Aug. 1984.
+ */
+void idct64(int* src)
+{
+    enum blockSize = 64; // A DCT block is 8x8.
 
+    enum w1 = 2841; // 2048*sqrt(2)*cos(1*pi/16)
+    enum w2 = 2676; // 2048*sqrt(2)*cos(2*pi/16)
+    enum w3 = 2408; // 2048*sqrt(2)*cos(3*pi/16)
+    enum w5 = 1609; // 2048*sqrt(2)*cos(5*pi/16)
+    enum w6 = 1108; // 2048*sqrt(2)*cos(6*pi/16)
+    enum w7 = 565; // 2048*sqrt(2)*cos(7*pi/16)
 
+    enum w1pw7 = w1 + w7;
+    enum w1mw7 = w1 - w7;
+    enum w2pw6 = w2 + w6;
+    enum w2mw6 = w2 - w6;
+    enum w3pw5 = w3 + w5;
+    enum w3mw5 = w3 - w5;
+
+    enum r2 = 181; // 256/sqrt(2)
+
+    // Horizontal 1-D IDCT.
+    for (uint y = 0; y < 8; y++)
+    {
+        int y8 = y * 8;
+        // If all the AC components are zero, then the IDCT is trivial.
+        if (src[y8+1] == 0 && src[y8+2] == 0 && src[y8+3] == 0 &&
+            src[y8+4] == 0 && src[y8+5] == 0 && src[y8+6] == 0 && src[y8+7] == 0)
+        {
+            int dc = src[y8+0] << 3;
+            src[y8+0] = dc;
+            src[y8+1] = dc;
+            src[y8+2] = dc;
+            src[y8+3] = dc;
+            src[y8+4] = dc;
+            src[y8+5] = dc;
+            src[y8+6] = dc;
+            src[y8+7] = dc;
+            continue;
+        }
+
+        // Prescale.
+        int x0 = (src[y8+0] << 11) + 128;
+        int x1 = src[y8+4] << 11;
+        int x2 = src[y8+6];
+        int x3 = src[y8+2];
+        int x4 = src[y8+1];
+        int x5 = src[y8+7];
+        int x6 = src[y8+5];
+        int x7 = src[y8+3];
+
+        // Stage 1.
+        int x8 = w7 * (x4 + x5);
+        x4 = x8 + w1mw7*x4;
+        x5 = x8 - w1pw7*x5;
+        x8 = w3 * (x6 + x7);
+        x6 = x8 - w3mw5*x6;
+        x7 = x8 - w3pw5*x7;
+
+        // Stage 2.
+        x8 = x0 + x1;
+        x0 -= x1;
+        x1 = w6 * (x3 + x2);
+        x2 = x1 - w2pw6*x2;
+        x3 = x1 + w2mw6*x3;
+        x1 = x4 + x6;
+        x4 -= x6;
+        x6 = x5 + x7;
+        x5 -= x7;
+
+        // Stage 3.
+        x7 = x8 + x3;
+        x8 -= x3;
+        x3 = x0 + x2;
+        x0 -= x2;
+        x2 = (r2*(x4+x5) + 128) >> 8;
+        x4 = (r2*(x4-x5) + 128) >> 8;
+
+        // Stage 4.
+        src[y8+0] = (x7 + x1) >> 8;
+        src[y8+1] = (x3 + x2) >> 8;
+        src[y8+2] = (x0 + x4) >> 8;
+        src[y8+3] = (x8 + x6) >> 8;
+        src[y8+4] = (x8 - x6) >> 8;
+        src[y8+5] = (x0 - x4) >> 8;
+        src[y8+6] = (x3 - x2) >> 8;
+        src[y8+7] = (x7 - x1) >> 8;
+    }
+
+    // Vertical 1-D IDCT.
+    for (uint x = 0; x < 8; x++)
+    {
+        // Similar to the horizontal 1-D IDCT case, if all the AC components are zero, then the IDCT is trivial.
+        // However, after performing the horizontal 1-D IDCT, there are typically non-zero AC components, so
+        // we do not bother to check for the all-zero case.
+
+        // Prescale.
+        int y0 = (src[8*0+x] << 8) + 8192;
+        int y1 = src[8*4+x] << 8;
+        int y2 = src[8*6+x];
+        int y3 = src[8*2+x];
+        int y4 = src[8*1+x];
+        int y5 = src[8*7+x];
+        int y6 = src[8*5+x];
+        int y7 = src[8*3+x];
+
+        // Stage 1.
+        int y8 = w7*(y4+y5) + 4;
+        y4 = (y8 + w1mw7*y4) >> 3;
+        y5 = (y8 - w1pw7*y5) >> 3;
+        y8 = w3*(y6+y7) + 4;
+        y6 = (y8 - w3mw5*y6) >> 3;
+        y7 = (y8 - w3pw5*y7) >> 3;
+
+        // Stage 2.
+        y8 = y0 + y1;
+        y0 -= y1;
+        y1 = w6*(y3+y2) + 4;
+        y2 = (y1 - w2pw6*y2) >> 3;
+        y3 = (y1 + w2mw6*y3) >> 3;
+        y1 = y4 + y6;
+        y4 -= y6;
+        y6 = y5 + y7;
+        y5 -= y7;
+
+        // Stage 3.
+        y7 = y8 + y3;
+        y8 -= y3;
+        y3 = y0 + y2;
+        y0 -= y2;
+        y2 = (r2*(y4+y5) + 128) >> 8;
+        y4 = (r2*(y4-y5) + 128) >> 8;
+
+        // Stage 4.
+        src[8*0+x] = (y7 + y1) >> 14;
+        src[8*1+x] = (y3 + y2) >> 14;
+        src[8*2+x] = (y0 + y4) >> 14;
+        src[8*3+x] = (y8 + y6) >> 14;
+        src[8*4+x] = (y8 - y6) >> 14;
+        src[8*5+x] = (y0 - y4) >> 14;
+        src[8*6+x] = (y3 - y2) >> 14;
+        src[8*7+x] = (y7 - y1) >> 14;
+    }
+}

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013-2014 Timur Gafarov, Martin Cejp
+Copyright (c) 2013-2017 Timur Gafarov, Martin Cejp
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -47,15 +47,28 @@ import dlib.math.linsolve;
  * - Affine vector of 4x4 matrix is in the 4th column (as in OpenGL);
  * - Elements are stored in a fixed manner, so it is impossible to change
  *   matrix size once it's created;
- * - Actual data is allocated as a static array, so no references, no GC touching. 
+ * - Actual data is allocated as a static array, so no references, no GC touching.
  *   When you pass a Matrix by value, it will be safely copied;
- * - This implementation is not perfect (as for now) for dealing with really 
- *   big matrices, but ideal for smaller ones, e.g. those which are meant to be 
- *   manipulated in real-time (in game engines, rendering pipelines etc). 
+ * - This implementation is not perfect (as for now) for dealing with really
+ *   big matrices, but ideal for smaller ones, e.g. those which are meant to be
+ *   manipulated in real-time (in game engines, rendering pipelines etc).
  *   This limitation may (but doesn't have to) be addressed in future.
  */
 struct Matrix(T, size_t N)
 {
+    /**
+     * Compare two matrices.
+     *
+     * Params:
+     *     that = The matrix to compare with.
+     *
+     * Returns: $(D_KEYWORD true) if dimensions are equal, $(D_KEYWORD false) otherwise.
+     */
+    bool opEquals(Matrix!(T, N) that)
+    {
+        return arrayof == that.arrayof;
+    }
+
    /*
     * Return zero matrix
     */
@@ -103,7 +116,7 @@ struct Matrix(T, size_t N)
     this(F)(F[] arr)
     in
     {
-        assert (arr.length == N * N, 
+        assert (arr.length == N * N,
             "Matrix!(T,N): wrong array length in constructor");
     }
     body
@@ -114,8 +127,8 @@ struct Matrix(T, size_t N)
             v = arr[i2];
         }
     }
-    
-   /* 
+
+   /*
     * T = Matrix[i, j]
     */
     T opIndex(in size_t i, in size_t j) const
@@ -123,8 +136,8 @@ struct Matrix(T, size_t N)
     {
         return arrayof[j * N + i];
     }
-    
-   /* 
+
+   /*
     * Matrix[i, j] = T
     */
     T opIndexAssign(in T t, in size_t i, in size_t j)
@@ -132,22 +145,22 @@ struct Matrix(T, size_t N)
     {
         return (arrayof[j * N + i] = t);
     }
-    
-   /* 
+
+   /*
     * T = Matrix[index]
     * Indices start with 0
     */
     T opIndex(in size_t index) const
     in
     {
-        assert ((0 <= index) && (index < N * N), 
+        assert ((0 <= index) && (index < N * N),
             "Matrix.opIndex(int index): array index out of bounds");
     }
     body
     {
         return arrayof[index];
     }
-    
+
    /*
     * Matrix[index] = T
     * Indices start with 0
@@ -155,7 +168,7 @@ struct Matrix(T, size_t N)
     T opIndexAssign(in T t, in size_t index)
     in
     {
-        assert ((0 <= index) && (index < N * N), 
+        assert ((0 <= index) && (index < N * N),
             "Matrix.opIndexAssign(T t, int index): array index out of bounds");
     }
     body
@@ -169,7 +182,7 @@ struct Matrix(T, size_t N)
     T[] opSliceAssign(in T t, in size_t index1, in size_t index2)
     in
     {
-        assert ((0 <= index1) && (index1 < N) && (0 <= index2) && (index2 < N), 
+        assert ((0 <= index1) && (index1 < N) && (0 <= index2) && (index2 < N),
             "Matrix.opSliceAssign(T t, int index1, int index2): array index out of bounds");
     }
     body
@@ -177,7 +190,7 @@ struct Matrix(T, size_t N)
         return (arrayof[index1..index2] = t);
     }
 
-   /* 
+   /*
     * Matrix[] = T
     */
     T[] opSliceAssign(in T t)
@@ -225,57 +238,57 @@ struct Matrix(T, size_t N)
         static if (N == 2)
         {
             Matrix!(T,N) res;
-            
+
             res.a11 = (a11 * mat.a11) + (a12 * mat.a21);
             res.a12 = (a11 * mat.a12) + (a12 * mat.a22);
-            
+
             res.a21 = (a21 * mat.a11) + (a22 * mat.a21);
             res.a22 = (a21 * mat.a12) + (a22 * mat.a22);
-            
+
             return res;
         }
         else static if (N == 3)
         {
             Matrix!(T,N) res;
-            
+
             res.a11 = (a11 * mat.a11) + (a12 * mat.a21) + (a13 * mat.a31);
             res.a12 = (a11 * mat.a12) + (a12 * mat.a22) + (a13 * mat.a32);
             res.a13 = (a11 * mat.a13) + (a12 * mat.a23) + (a13 * mat.a33);
-            
+
             res.a21 = (a21 * mat.a11) + (a22 * mat.a21) + (a23 * mat.a31);
             res.a22 = (a21 * mat.a12) + (a22 * mat.a22) + (a23 * mat.a32);
             res.a23 = (a21 * mat.a13) + (a22 * mat.a23) + (a23 * mat.a33);
-            
+
             res.a31 = (a31 * mat.a11) + (a32 * mat.a21) + (a33 * mat.a31);
             res.a32 = (a31 * mat.a12) + (a32 * mat.a22) + (a33 * mat.a32);
             res.a33 = (a31 * mat.a13) + (a32 * mat.a23) + (a33 * mat.a33);
-            
+
             return res;
         }
         else static if (N == 4)
         {
             Matrix!(T,N) res;
-            
+
             res.a11 = (a11 * mat.a11) + (a12 * mat.a21) + (a13 * mat.a31) + (a14 * mat.a41);
             res.a12 = (a11 * mat.a12) + (a12 * mat.a22) + (a13 * mat.a32) + (a14 * mat.a42);
             res.a13 = (a11 * mat.a13) + (a12 * mat.a23) + (a13 * mat.a33) + (a14 * mat.a43);
             res.a14 = (a11 * mat.a14) + (a12 * mat.a24) + (a13 * mat.a34) + (a14 * mat.a44);
-            
+
             res.a21 = (a21 * mat.a11) + (a22 * mat.a21) + (a23 * mat.a31) + (a24 * mat.a41);
             res.a22 = (a21 * mat.a12) + (a22 * mat.a22) + (a23 * mat.a32) + (a24 * mat.a42);
             res.a23 = (a21 * mat.a13) + (a22 * mat.a23) + (a23 * mat.a33) + (a24 * mat.a43);
             res.a24 = (a21 * mat.a14) + (a22 * mat.a24) + (a23 * mat.a34) + (a24 * mat.a44);
-            
+
             res.a31 = (a31 * mat.a11) + (a32 * mat.a21) + (a33 * mat.a31) + (a34 * mat.a41);
             res.a32 = (a31 * mat.a12) + (a32 * mat.a22) + (a33 * mat.a32) + (a34 * mat.a42);
             res.a33 = (a31 * mat.a13) + (a32 * mat.a23) + (a33 * mat.a33) + (a34 * mat.a43);
             res.a34 = (a31 * mat.a14) + (a32 * mat.a24) + (a33 * mat.a34) + (a34 * mat.a44);
-            
+
             res.a41 = (a41 * mat.a11) + (a42 * mat.a21) + (a43 * mat.a31) + (a44 * mat.a41);
             res.a42 = (a41 * mat.a12) + (a42 * mat.a22) + (a43 * mat.a32) + (a44 * mat.a42);
             res.a43 = (a41 * mat.a13) + (a42 * mat.a23) + (a43 * mat.a33) + (a44 * mat.a43);
             res.a44 = (a41 * mat.a14) + (a42 * mat.a24) + (a43 * mat.a34) + (a44 * mat.a44);
-            
+
             return res;
         }
         else
@@ -356,7 +369,7 @@ struct Matrix(T, size_t N)
         Vector!(T,2) opBinaryRight(string op) (Vector!(T,2) v) if (op == "*")
         body
         {
-            return Vector!(T,2) 
+            return Vector!(T,2)
             (
                 (v.x * a11) + (v.y * a12),
                 (v.x * a21) + (v.y * a22)
@@ -369,7 +382,7 @@ struct Matrix(T, size_t N)
         Vector!(T,3) opBinaryRight(string op) (Vector!(T,3) v) if (op == "*")
         body
         {
-            return Vector!(T,3) 
+            return Vector!(T,3)
             (
                 (v.x * a11) + (v.y * a12) + (v.z * a13),
                 (v.x * a21) + (v.y * a22) + (v.z * a23),
@@ -404,7 +417,7 @@ struct Matrix(T, size_t N)
         {
             if (isAffine)
             {
-                return Vector!(T,3) 
+                return Vector!(T,3)
                 (
                     (v.x * a11) + (v.y * a12) + (v.z * a13) + a14,
                     (v.x * a21) + (v.y * a22) + (v.z * a23) + a24,
@@ -421,24 +434,24 @@ struct Matrix(T, size_t N)
        /*
         * Rotate a vector by the 3x3 upper-left portion of the matrix
         */
-        Vector!(T,3) rotate(Vector!(T,3) v) 
+        Vector!(T,3) rotate(Vector!(T,3) v)
         body
         {
-            return Vector!(T,3) 
+            return Vector!(T,3)
             (
                 (v.x * a11) + (v.y * a12) + (v.z * a13),
                 (v.x * a21) + (v.y * a22) + (v.z * a23),
                 (v.x * a31) + (v.y * a32) + (v.z * a33)
             );
         }
-        
+
        /*
         * Rotate a vector by the inverse 3x3 upper-left portion of the matrix
         */
         Vector!(T,3) invRotate(Vector!(T,3) v)
         body
         {
-            return Vector!(T,3) 
+            return Vector!(T,3)
             (
                 (v.x * a11) + (v.y * a21) + (v.z * a31),
                 (v.x * a12) + (v.y * a22) + (v.z * a32),
@@ -447,7 +460,7 @@ struct Matrix(T, size_t N)
         }
     }
 
-   /* 
+   /*
     * Determinant of an upper-left 3x3 portion
     */
     static if (N == 4 || N == 3)
@@ -461,7 +474,7 @@ struct Matrix(T, size_t N)
         }
     }
 
-   /* 
+   /*
     * Determinant
     */
     static if (N == 1)
@@ -481,14 +494,14 @@ struct Matrix(T, size_t N)
             return a11 * a22 - a12 * a21;
         }
     }
-    else 
+    else
     static if (N == 3)
     {
         alias determinant3x3 determinant;
     }
     else
     {
-       /* 
+       /*
         * Determinant of a given upper-left portion
         */
         T determinant(size_t n = N)
@@ -541,7 +554,7 @@ struct Matrix(T, size_t N)
 
     alias isSingular singular;
 
-   /* 
+   /*
     * Check if matrix represents affine transformation
     */
     static if (N == 4)
@@ -549,7 +562,7 @@ struct Matrix(T, size_t N)
         bool isAffine() @property
         body
         {
-            return (a41 == 0.0  
+            return (a41 == 0.0
                  && a42 == 0.0
                  && a43 == 0.0
                  && a44 == 1.0);
@@ -591,7 +604,7 @@ struct Matrix(T, size_t N)
         this = inverse;
     }
 
-   /* 
+   /*
     * Inverse of a matrix
     */
     static if (N == 1)
@@ -613,7 +626,7 @@ struct Matrix(T, size_t N)
             Matrix!(T,N) res;
 
             T invd = 1.0 / (a11 * a22 - a12 * a21);
-            
+
             res.a11 =  a22 * invd;
             res.a12 = -a12 * invd;
             res.a22 =  a11 * invd;
@@ -629,23 +642,23 @@ struct Matrix(T, size_t N)
         body
         {
             T d = determinant;
-        
+
             T oneOverDet = 1.0 / d;
-        
+
             Matrix!(T,N) res;
-        
+
             res.a11 =  (a33 * a22 - a32 * a23) * oneOverDet;
             res.a12 = -(a33 * a12 - a32 * a13) * oneOverDet;
             res.a13 =  (a23 * a12 - a22 * a13) * oneOverDet;
-        
+
             res.a21 = -(a33 * a21 - a31 * a23) * oneOverDet;
             res.a22 =  (a33 * a11 - a31 * a13) * oneOverDet;
             res.a23 = -(a23 * a11 - a21 * a13) * oneOverDet;
-        
+
             res.a31 =  (a32 * a21 - a31 * a22) * oneOverDet;
             res.a32 = -(a32 * a11 - a31 * a12) * oneOverDet;
             res.a33 =  (a22 * a11 - a21 * a12) * oneOverDet;
-        
+
             return res;
         }
     }
@@ -762,7 +775,7 @@ struct Matrix(T, size_t N)
                 auto submat = Matrix!(T,N-1)();
 
                 uint suby = 0;
-                foreach(yy; 0..N) 
+                foreach(yy; 0..N)
                 if (yy != y)
                 {
                     uint subx = 0;
@@ -790,7 +803,7 @@ struct Matrix(T, size_t N)
     {
         return this * -1;
     }
-    
+
    /*
     * Convert to string
     */
@@ -799,7 +812,7 @@ struct Matrix(T, size_t N)
     {
         return matrixToStr(this);
     }
-    
+
    /*
     * Symbolic element access
     */
@@ -816,7 +829,7 @@ struct Matrix(T, size_t N)
     }
 
    /*
-    * Row/column manipulations 
+    * Row/column manipulations
     */
     Vector!(T,N) getRow(size_t i)
     {
@@ -871,10 +884,10 @@ struct Matrix(T, size_t N)
         return transposed.arrayof;
     }
 
-   /* 
+   /*
     * Matrix elements
     */
-    union 
+    union
     {
        /*
         * This auto-generated structure provides symbolic access
@@ -890,7 +903,7 @@ struct Matrix(T, size_t N)
         */
         struct { mixin(elements("a")); }
 
-       /* 
+       /*
         * Linear array representing elements column by column
         */
         T[N * N] arrayof;
@@ -969,7 +982,7 @@ string matrixToStr(T, size_t N)(Matrix!(T, N) m)
             num = format("% .4f", x);
         }
     }
-    
+
     auto writer = appender!string();
     foreach (x; 0..N)
     {
@@ -985,15 +998,15 @@ string matrixToStr(T, size_t N)(Matrix!(T, N) m)
                     n++;
                 }
             }
-            
+
             if (y < N-1)
                 formattedWrite(writer, "  ");
         }
-        
+
         if (x < N-1)
             formattedWrite(writer, "\n");
     }
-    
+
     return writer.data;
 }
 
@@ -1017,7 +1030,7 @@ unittest
         25, 82, 44, 85,
         12, 20, 14, 37)
     );
-    
+
     auto m3 = Matrix4f.identity;
     assert(m3 == matrixf(
         1, 0, 0, 0,
@@ -1025,17 +1038,17 @@ unittest
         0, 0, 1, 0,
         0, 0, 0, 1)
     );
-    
+
     m3.a14 = 1;
     m3.a24 = 2;
     m3.a34 = 3;
-    
+
     /*
     // This will compile, but fail to link for some wierd reason
     auto v = Vector3f(2.0f, 4.0f, 6.0f);
     assert(Vector3f(1.0f, 2.0f, 3.0f) * m3 == v);
     */
-    
+
     assert(m1.determinant3x3 == -25);
     assert(m1.determinant == 567);
 
@@ -1043,14 +1056,14 @@ unittest
 
     assert(m1.affine == false);
     assert(m3.affine == true);
-    
+
     assert(m1.transposed == matrixf(
         1, 4, 2, 0,
         2, 6, 7, 5,
         0, 3, 8, 2,
         6, 1, 2, 1)
     );
-    
+
     auto m4 = matrixf(
         0, 3, 2,
         1, 0, 8,

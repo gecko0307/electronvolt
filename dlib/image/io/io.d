@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 Timur Gafarov, Martin Cejp
+Copyright (c) 2014-2017 Timur Gafarov, Martin Cejp
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,7 +33,9 @@ private
     import std.path;
 
     import dlib.image.image;
+    import dlib.image.animation;
     import dlib.image.io.bmp;
+    import dlib.image.io.hdr;
     import dlib.image.io.png;
     import dlib.image.io.tga;
     import dlib.image.io.jpeg;
@@ -70,6 +72,8 @@ SuperImage loadImage(string filename)
     {
         case ".bmp", ".BMP":
             return loadBMP(filename);
+        case ".hdr", ".HDR":
+            return loadHDR(filename);
         case ".jpg", ".JPG", ".jpeg", ".JPEG":
             return loadJPEG(filename);
         case ".png", ".PNG":
@@ -81,7 +85,31 @@ SuperImage loadImage(string filename)
     }
 }
 
+SuperAnimatedImage loadAnimatedImage(string filename)
+{
+    switch(filename.extension)
+    {
+        case ".png", ".apng", ".PNG", ".APNG":
+            return loadAPNG(filename);
+        default:
+            assert(0, "Image I/O error: unsupported image format or illegal extension");
+    }
+}
+
+void saveAnimatedImage(SuperAnimatedImage img, string filename)
+{
+    switch(filename.extension)
+    {
+        case ".png", ".PNG", ".apng", ".APNG":
+            img.saveAPNG(filename);
+            break;
+        default:
+            assert(0, "Image I/O error: unsupported image format or illegal extension");
+    }
+}
+
 alias saveImage save;
 alias loadImage load;
 
-
+alias loadAnimatedImage loadAnimated;
+alias saveAnimatedImage saveAnimated;

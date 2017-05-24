@@ -296,7 +296,7 @@ class SliceLexer: InputRange!string
         return _front;
     }
 
-    int opApply(int delegate(string) dg)
+    override int opApply(scope int delegate(string) dg)
     {
         int result = 0;
 
@@ -315,7 +315,7 @@ class SliceLexer: InputRange!string
         return result;
     }
 
-    int opApply(int delegate(size_t, string) dg)
+    override int opApply(scope int delegate(size_t, string) dg)
     {
         int result = 0;
         size_t i = 0;

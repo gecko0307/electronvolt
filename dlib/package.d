@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Timur Gafarov 
+Copyright (c) 2015 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -30,6 +30,7 @@ module dlib;
 
 public
 {
+    import dlib.audio;
     import dlib.coding;
     import dlib.container;
     import dlib.core;
@@ -38,7 +39,7 @@ public
     import dlib.geometry;
     import dlib.image;
     import dlib.math;
-    import dlib.xml;
+    import dlib.memory;
+    import dlib.serialization;
     import dlib.text;
-    import dlib.network;
 }

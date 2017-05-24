@@ -3,7 +3,7 @@
 import dlib.core.memory;
 import dlib.math.vector;
 import dlib.math.matrix;
-import dlib.math.affine;
+import dlib.math.transformation;
 import dlib.geometry.aabb;
 
 import dgl.core.api;
@@ -36,7 +36,7 @@ class Weapon: Entity, Modifier
         //transformation *= rotation.toMatrix4x4;
     }
     
-    Matrix4x4f getTransformation()
+    override Matrix4x4f getTransformation()
     {
         return camera.gunTransformation;
     }

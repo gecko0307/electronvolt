@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Timur Gafarov 
+Copyright (c) 2016-2017 Eugene Wissner
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -26,11 +26,30 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module dlib.xml;
+/**
+ * Copyright: Eugene Wissner 2016-2017.
+ * License: $(LINK2 boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Authors: Eugene Wissner
+ */
+module dlib.memory;
 
 public
 {
-    import dlib.xml.document;
-    import dlib.xml.node;
+    import dlib.memory.allocator;
+    import dlib.memory.gcallocator;
+    import dlib.memory.mallocator;
+    import dlib.memory.mmappool;
+
+    import std.experimental.allocator : make, dispose, shrinkArray, expandArray, makeArray, dispose;
 }
 
+Allocator allocator;
+
+@property Allocator defaultAllocator()
+{
+    if (allocator is null)
+    {
+        allocator = Mallocator.instance;
+    }
+    return allocator;
+}

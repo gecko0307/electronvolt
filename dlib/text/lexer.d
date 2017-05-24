@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Timur Gafarov 
+Copyright (c) 2016-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -28,6 +28,11 @@ DEALINGS IN THE SOFTWARE.
 
 module dlib.text.lexer;
 
+import dlib.text.slicelexer;
+
+alias SliceLexer Lexer;
+
+/+++
 import std.stdio;
 import std.algorithm;
 import std.ascii;
@@ -72,7 +77,7 @@ class Lexer: InputRange!(dchar[])
     {
         this.input = input;
         this.delims = delims;
-        
+
         if (delims.length)
         {
             sort!("count(a) < count(b)")(this.delims);
@@ -157,12 +162,12 @@ class Lexer: InputRange!(dchar[])
                 foreach(i; 0..maxDelimLength-tmp.length)
                 {
                     int c = getNextChar();
-                    
+
                     if (cast(dchar)c == '\r') // ignore carriage return
                     {
                         continue;
                     }
-                    
+
                     if (cast(dchar)c == '\n')
                     {
                         c = '\n';
@@ -184,7 +189,7 @@ class Lexer: InputRange!(dchar[])
                     break;
                 }
             }
-            
+
             uint pos = 0;
             size_t delimLen = 0;
             string delim;
@@ -202,7 +207,7 @@ class Lexer: InputRange!(dchar[])
                     }
                 }
             }
-            
+
             if (pos && pos == delimLen)
             {
                 if (buffer.length)
@@ -220,7 +225,7 @@ class Lexer: InputRange!(dchar[])
                 }
             }
             else
-            {                        
+            {
                 buffer.append(tmp.data[0]);
                 tmp.removeLeft(1);
                 fillTmp = true;
@@ -253,7 +258,7 @@ class Lexer: InputRange!(dchar[])
         return _front;
     }
 
-    final int opApply(int delegate(dchar[]) dg)
+    final int opApply(scope int delegate(dchar[]) dg)
     {
         int result = 0;
 
@@ -272,7 +277,7 @@ class Lexer: InputRange!(dchar[])
         return result;
     }
 
-    final int opApply(int delegate(size_t, dchar[]) dg)
+    final int opApply(scope int delegate(size_t, dchar[]) dg)
     {
         int result = 0;
         size_t i = 0;
@@ -301,9 +306,9 @@ unittest
     string[] delims = ["(", ")", ";", " ", "{", "}", ".", "\n", "\r", "=", "++", "<"];
     auto input = "for (int i=0; i<arr.length; ++i)\r\n{doThing();}\n";
     auto lexer = new Lexer(input, delims);
-    
+
     import std.utf : toUTF8;
-    
+
     string[] arr;
     while(true) {
         auto lexeme = lexer.getLexeme();
@@ -314,9 +319,9 @@ unittest
         Delete(lexeme);
     }
     assert(arr == ["for", " ", "(", "int", " ", "i", "=", "0", ";", " ", "i", "<", "arr", ".", "length", ";", " ", "++", "i", ")", "\n", "{", "doThing", "(", ")", ";", "}", "\n" ]);
-    
+
     input = "";
     lexer = new Lexer(input, delims);
     assert(lexer.getLexeme().length == 0);
-}
+}+++/
 

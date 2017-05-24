@@ -78,8 +78,8 @@ class EventManager
 
     bool running = true;
 
-    bool keyPressed[512] = false;
-    bool mouseButtonPressed[255] = false;
+    bool[512] keyPressed = false;
+    bool[255] mouseButtonPressed = false;
     int mouseX = 0;
     int mouseY = 0;
 

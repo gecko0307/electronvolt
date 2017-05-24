@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013-2016 Timur Gafarov 
+Copyright (c) 2013-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -32,7 +32,7 @@ private
 {
     import std.stdio;
     import std.math;
-    import dlib.math.vector;   
+    import dlib.math.vector;
     import dlib.geometry.triangle;
 }
 
@@ -49,34 +49,34 @@ struct TriMesh
     {
         uint a, b, c;
     }
-    
+
     struct FaceGroup
     {
         Index[] indices;
         int materialIndex;
     }
-    
+
     FaceGroup[] facegroups;
-    
+
     Triangle getTriangle(uint facegroupIndex, uint triIndex)
     {
         Triangle tri;
         Index triIdx = facegroups[facegroupIndex].indices[triIndex];
-        
+
         tri.v[0] = vertices[triIdx.a];
         tri.v[1] = vertices[triIdx.b];
         tri.v[2] = vertices[triIdx.c];
-        
+
         tri.n[0] = normals[triIdx.a];
         tri.n[1] = normals[triIdx.b];
         tri.n[2] = normals[triIdx.c];
-        
+
         if (numTexCoords > 0)
         {
             tri.t1[0] = texcoords1[triIdx.a];
             tri.t1[1] = texcoords1[triIdx.b];
             tri.t1[2] = texcoords1[triIdx.c];
-        
+
             if (numTexCoords > 1)
             {
                 tri.t2[0] = texcoords2[triIdx.a];
@@ -84,27 +84,27 @@ struct TriMesh
                 tri.t2[2] = texcoords2[triIdx.c];
             }
         }
-        
+
         tri.normal = planeNormal(tri.v[0], tri.v[1], tri.v[2]);
-        
+
         tri.barycenter = (tri.v[0] + tri.v[1] + tri.v[2]) / 3;
-        
-        tri.d = (tri.v[0].x * tri.normal.x + 
-                 tri.v[0].y * tri.normal.y + 
+
+        tri.d = (tri.v[0].x * tri.normal.x +
+                 tri.v[0].y * tri.normal.y +
                  tri.v[0].z * tri.normal.z);
 
         tri.edges[0] = tri.v[1] - tri.v[0];
         tri.edges[1] = tri.v[2] - tri.v[1];
         tri.edges[2] = tri.v[0] - tri.v[2];
-        
+
         tri.materialIndex = facegroups[facegroupIndex].materialIndex;
-        
+
         return tri;
     }
-    
+
     // Read-only triangle aggregate:
     // foreach(tri; mesh) ...
-    int opApply(int delegate(ref Triangle) dg)
+    int opApply(scope int delegate(ref Triangle) dg)
     {
         int result = 0;
         for (uint fgi = 0; fgi < facegroups.length; fgi++)
@@ -158,9 +158,9 @@ struct TriMesh
 
             float r = (s1 * t2) - (s2 * t1);
 
-	        // Prevent division by zero
+            // Prevent division by zero
             if (r == 0.0f)
-	            r = 1.0f;
+                r = 1.0f;
 
             float oneOverR = 1.0f / r;
 
@@ -171,14 +171,14 @@ struct TriMesh
                                      (s1 * y2 - s2 * y1) * oneOverR,
                                      (s1 * z2 - s2 * z1) * oneOverR);
 
-	        sTan[i0] += sDir;
-	        tTan[i0] += tDir;
+            sTan[i0] += sDir;
+            tTan[i0] += tDir;
 
-	        sTan[i1] += sDir;
-	        tTan[i1] += tDir;
+            sTan[i1] += sDir;
+            tTan[i1] += tDir;
 
-	        sTan[i2] += sDir;
-	        tTan[i2] += tDir;
+            sTan[i2] += sDir;
+            tTan[i2] += tDir;
         }
 
         tangents = new Vector4f[vertices.length];
@@ -192,14 +192,14 @@ struct TriMesh
             // Gram-Schmidt orthogonalize
             Vector3f tangent = (t - n * dot(n, t));
             tangent.normalize();
-            
+
             tangents[i].x = tangent.x;
             tangents[i].y = tangent.y;
             tangents[i].z = tangent.z;
 
             // Calculate handedness
             if (dot(cross(n, t), tTan[i]) < 0.0f)
-	            tangents[i].w = -1.0f;
+                tangents[i].w = -1.0f;
             else
                 tangents[i].w = 1.0f;
         }

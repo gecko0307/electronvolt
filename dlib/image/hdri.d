@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014 Timur Gafarov 
+Copyright (c) 2014-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -31,59 +31,65 @@ module dlib.image.hdri;
 private
 {
     import core.stdc.string;
+    import std.math;
+    import dlib.core.memory;
     import dlib.image.image;
     import dlib.image.color;
+    import dlib.math.utils;
 }
 
-final class FPImage: SuperImage
+abstract class SuperHDRImage: SuperImage
 {
-    public:
-
-    override @property uint width()
-    {
-        return _width;
-    }
-
-    override @property uint height()
-    {
-        return _height;
-    }
-
-    override @property uint bitDepth()
-    {
-        return _bitDepth;
-    }
-
-    override @property uint channels()
-    {
-        return _channels;
-    }
-
-    override @property uint pixelSize()
-    {
-        return _pixelSize;
-    }
-
     override @property PixelFormat pixelFormat()
     {
         return PixelFormat.RGBA_FLOAT;
     }
+}
 
-    override @property ref ubyte[] data()
+class HDRImage: SuperHDRImage
+{
+    public:
+
+    @property uint width()
+    {
+        return _width;
+    }
+
+    @property uint height()
+    {
+        return _height;
+    }
+
+    @property uint bitDepth()
+    {
+        return _bitDepth;
+    }
+
+    @property uint channels()
+    {
+        return _channels;
+    }
+
+    @property uint pixelSize()
+    {
+        return _pixelSize;
+    }
+
+    @property ubyte[] data()
     {
         return _data;
     }
 
-    override @property SuperImage dup()
+    @property SuperImage dup()
     {
-        auto res = new FPImage(_width, _height);
-        res.data = _data.dup;
+        auto res = new HDRImage(_width, _height);
+        res.data[] = data[];
         return res;
     }
 
-    override SuperImage createSameFormat(uint w, uint h)
+    SuperImage createSameFormat(uint w, uint h)
     {
-        return new FPImage(w, h);
+        return new HDRImage(w, h);
     }
 
     this(uint w, uint h)
@@ -93,13 +99,13 @@ final class FPImage: SuperImage
         _bitDepth = 32;
         _channels = 4;
         _pixelSize = (_bitDepth / 8) * _channels;
-        _data = new ubyte[_width * _height * _pixelSize];
+        allocateData();
 
-        pixelCost = 1.0f / (_width * _height);
-        progress = 0.0f;
+        //pixelCost = 1.0f / (_width * _height);
+        //progress = 0.0f;
     }
 
-    override Color4f opIndex(int x, int y)
+    Color4f opIndex(int x, int y)
     {
         while(x >= _width) x = _width-1;
         while(y >= _height) y = _height-1;
@@ -114,8 +120,8 @@ final class FPImage: SuperImage
         memcpy(&a, dataptr + 4 * 3, 4);
         return Color4f(r, g, b, a);
     }
-    
-    override Color4f opIndexAssign(Color4f c, int x, int y)
+
+    Color4f opIndexAssign(Color4f c, int x, int y)
     {
         while(x >= _width) x = _width-1;
         while(y >= _height) y = _height-1;
@@ -130,7 +136,12 @@ final class FPImage: SuperImage
 
         return c;
     }
-    
+
+    protected void allocateData()
+    {
+        _data = new ubyte[_width * _height * _pixelSize];
+    }
+
     void free()
     {
         // Do nothing, let GC delete the object
@@ -155,5 +166,140 @@ SuperImage clamp(SuperImage img, float minv, float maxv)
     }
 
     return img;
+}
+
+interface SuperHDRImageFactory
+{
+    SuperHDRImage createImage(uint w, uint h);
+}
+
+class HDRImageFactory: SuperHDRImageFactory
+{
+    SuperHDRImage createImage(uint w, uint h)
+    {
+        return new HDRImage(w, h);
+    }
+}
+
+private SuperHDRImageFactory _defaultHDRImageFactory;
+
+SuperHDRImageFactory defaultHDRImageFactory()
+{
+    if (!_defaultHDRImageFactory)
+        _defaultHDRImageFactory = new HDRImageFactory();
+    return _defaultHDRImageFactory;
+}
+
+class UnmanagedHDRImage: HDRImage
+{
+    override @property SuperImage dup()
+    {
+        auto res = New!(UnmanagedHDRImage)(_width, _height);
+        res.data[] = data[];
+        return res;
+    }
+
+    override SuperImage createSameFormat(uint w, uint h)
+    {
+        return New!(UnmanagedHDRImage)(w, h);
+    }
+
+    this(uint w, uint h)
+    {
+        super(w, h);
+    }
+
+    ~this()
+    {
+        Delete(_data);
+    }
+
+    protected override void allocateData()
+    {
+        _data = New!(ubyte[])(_width * _height * _pixelSize);
+    }
+
+    override void free()
+    {
+        Delete(this);
+    }
+}
+
+class UnmanagedHDRImageFactory: SuperHDRImageFactory
+{
+    SuperHDRImage createImage(uint w, uint h)
+    {
+        return New!UnmanagedHDRImage(w, h);
+    }
+}
+
+SuperImage hdrTonemapGamma(SuperHDRImage img, float gamma)
+{
+    return hdrTonemapGamma(img, null, gamma);
+}
+
+SuperImage hdrTonemapGamma(SuperHDRImage img, SuperImage output, float gamma)
+{
+    SuperImage res;
+    if (output)
+        res = output;
+    else
+        res = image(img.width, img.height, 3);
+
+    foreach(y; 0..img.height)
+    foreach(x; 0..img.width)
+    {
+        Color4f c = img[x, y];
+        float r = c.r ^^ gamma;
+        float g = c.g ^^ gamma;
+        float b = c.b ^^ gamma;
+        res[x, y] = Color4f(r, g, b, c.a);
+    }
+
+    return res;
+}
+
+SuperImage hdrTonemapAverageLuminance(SuperHDRImage img, float a, float gamma)
+{
+    return hdrTonemapAverageLuminance(img, null, a, gamma);
+}
+
+SuperImage hdrTonemapAverageLuminance(SuperHDRImage img, SuperImage output, float a, float gamma)
+{
+    SuperImage res;
+    if (output)
+        res = output;
+    else
+        res = image(img.width, img.height, 3);
+
+    float sumLuminance = 0.0f;
+
+    foreach(y; 0..img.height)
+    foreach(x; 0..img.width)
+    {
+        sumLuminance += log(EPSILON + img[x, y].luminance);        
+    }
+
+    float N = img.width * img.height;
+    float lumAverage = exp(sumLuminance / N); 
+
+    float aOverLumAverage = a / lumAverage;
+
+    foreach(y; 0..img.height)
+    foreach(x; 0..img.width)
+    {
+        auto col = img[x, y];
+        float Lw = col.luminance;
+        float L = Lw * aOverLumAverage;
+        float Ld = L / (1.0f + L);
+        Color4f nRGB = col / Lw;
+        Color4f dRGB = nRGB * Ld;
+        float r = dRGB.r ^^ gamma;
+        float g = dRGB.g ^^ gamma;
+        float b = dRGB.b ^^ gamma;
+        res[x, y] = Color4f(r, g, b, col.a);
+    }
+
+    return res;
 }
 

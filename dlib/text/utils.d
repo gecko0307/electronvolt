@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Timur Gafarov 
+Copyright (c) 2016-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -39,6 +39,14 @@ T[] copy(T)(T[] b)
     return res;
 }
 
+immutable(T)[] immutableCopy(T)(immutable(T)[] b)
+{
+    auto res = New!(T[])(b.length);
+    foreach(i, c; b)
+        res[i] = c;
+    return cast(immutable(T)[])res;
+}
+
 ///
 unittest
 {
@@ -69,7 +77,7 @@ unittest
 {
     auto str1 = "hello";
     auto str2 = " world";
-    
+
     auto cat = catStr(str1, str2);
     assert(cat == "hello world");
     Delete(cat);

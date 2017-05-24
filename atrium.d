@@ -34,7 +34,7 @@ import std.math;
 import dlib.core.memory;
 import dlib.core.stream;
 import dlib.math.vector;
-import dlib.math.affine;
+import dlib.math.transformation;
 import dlib.math.quaternion;
 import dlib.math.utils;
 import dlib.geometry.triangle;
@@ -215,7 +215,7 @@ class Simple3DApp: Application3D
     PhysicsEntity pePlatform; 
     
     AudioPlayer player;
-    ALuint footstepBuffer[2];
+    ALuint[2] footstepBuffer;
     uint footstepIndex = 0;
     ALuint footstepSound;
     ALuint metalHitBuffer;

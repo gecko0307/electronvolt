@@ -30,7 +30,7 @@ module dgl.graphics.rtt;
 
 import dlib.core.memory;
 import dlib.math.vector;
-import dlib.math.affine;
+import dlib.math.transformation;
 import dgl.core.interfaces;
 import dgl.core.api;
 import dgl.core.event;

@@ -1,5 +1,5 @@
-﻿/*
-Copyright (c) 2015 Timur Gafarov 
+/*
+Copyright (c) 2015-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -37,21 +37,21 @@ import dlib.core.memory;
 class BST(T)
 {
     bool root;
-    BST left = null; 
-    BST right = null; 
+    BST left = null;
+    BST right = null;
     int key = 0;
 
-    T value; 
-    
+    T value;
+
     this()
     {
         root = true;
     }
 
-    this(int k, T v) 
-    { 
-        key = k; 
-        value = v; 
+    this(int k, T v)
+    {
+        key = k;
+        value = v;
         root = false;
     }
 
@@ -60,76 +60,76 @@ class BST(T)
         clear();
     }
 
-    void insert(int k, T v) 
-    { 
-        if (k < key) 
-        { 
-            if (left is null) left = allocate!(BST)(k, v); 
-            else left.insert(k, v); 
-        } 
-        else if (k > key) 
-        { 
-            if (right is null) right = allocate!(BST)(k, v); 
-            else right.insert(k, v); 
-        } 
-        else value = v;		 
+    void insert(int k, T v)
+    {
+        if (k < key)
+        {
+            if (left is null) left = allocate!(BST)(k, v);
+            else left.insert(k, v);
+        }
+        else if (k > key)
+        {
+            if (right is null) right = allocate!(BST)(k, v);
+            else right.insert(k, v);
+        }
+        else value = v;
     }
 
-    BST find(int k) 
-    { 
-        if (k < key) 
-        { 
-            if (left !is null) return left.find(k); 
-            else return null; 
-        } 
-        else if (k > key) 
-        { 
-            if (right !is null) return right.find(k); 
-            else return null; 
-        } 
+    BST find(int k)
+    {
+        if (k < key)
+        {
+            if (left !is null) return left.find(k);
+            else return null;
+        }
+        else if (k > key)
+        {
+            if (right !is null) return right.find(k);
+            else return null;
+        }
         else return this;
     }
 
-    protected BST findLeftMost() 
-    { 
-        if (left is null) return this; 
-        else return left.findLeftMost(); 
+    protected BST findLeftMost()
+    {
+        if (left is null) return this;
+        else return left.findLeftMost();
     }
 
-    void remove(int k, BST par = null) 
-    { 
-        if (k < key) 
-        { 
-            if (left !is null) left.remove(k, this); 
-            else return; 
-        } 
-        else if (k > key) 
-        { 
-            if (right !is null) right.remove(k, this); 
-            else return; 
-        } 
-        else 
-        { 
-            if (left !is null && right !is null) 
-            { 
-                auto m = right.findLeftMost(); 
-                key = m.key; 
-                value = m.value; 
-                right.remove(key, this); 
-            } 
-            else if (this == par.left) 
+    void remove(int k, BST par = null)
+    {
+        if (k < key)
+        {
+            if (left !is null) left.remove(k, this);
+            else return;
+        }
+        else if (k > key)
+        {
+            if (right !is null) right.remove(k, this);
+            else return;
+        }
+        else
+        {
+            if (left !is null && right !is null)
+            {
+                auto m = right.findLeftMost();
+                key = m.key;
+                value = m.value;
+                right.remove(key, this);
+            }
+            else if (this == par.left)
             {
                 par.left = (left !is null)? left : right;
                 //deallocate(value);
-            } 
-            else if (this == par.right) 
-            { 
+            }
+            else if (this == par.right)
+            {
                 par.right = (left !is null)? left : right;
                 //deallocate(value);
-            } 
-        } 
+            }
+        }
     }
-    
+
     void traverse(void function(int, T) func)
     {
         if (left !is null)
@@ -139,8 +139,8 @@ class BST(T)
         if (right !is null)
             right.traverse(func);
     }
-    
-    int opApply(int delegate(int, ref T) dg)
+
+    int opApply(scope int delegate(int, ref T) dg)
     {
         int result = 0;
 
@@ -150,10 +150,10 @@ class BST(T)
             if (result)
                 return result;
         }
-        
+
         if (!root)
             dg(key, value);
-            
+
         if (right !is null)
         {
             result = right.opApply(dg);
@@ -163,7 +163,7 @@ class BST(T)
 
         return result;
     }
-    
+
     void clear()
     {
         if (left !is null)

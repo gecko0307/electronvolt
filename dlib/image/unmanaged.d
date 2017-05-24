@@ -1,5 +1,5 @@
-﻿/*
-Copyright (c) 2015 Timur Gafarov 
+/*
+Copyright (c) 2015-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -63,7 +63,7 @@ class UnmanagedImage(PixelFormat fmt): Image!(fmt)
     {
         _data = New!(ubyte[])(_width * _height * _pixelSize);
     }
-    
+
     override void free()
     {
         Delete(this);
@@ -82,7 +82,7 @@ alias UnmanagedImage!(PixelFormat.RGBA16) UnmanagedImageRGBA16;
 
 class UnmanagedImageFactory: SuperImageFactory
 {
-    SuperImage createImage(uint w, uint h, uint channels, uint bitDepth)
+    SuperImage createImage(uint w, uint h, uint channels, uint bitDepth, uint numFrames = 1)
     {
         return unmanagedImage(w, h, channels, bitDepth);
     }
@@ -130,4 +130,3 @@ body
             assert(0);
     }
 }
-

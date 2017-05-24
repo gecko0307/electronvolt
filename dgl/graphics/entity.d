@@ -30,7 +30,7 @@ module dgl.graphics.entity;
 
 import dlib.math.vector;
 import dlib.math.matrix;
-import dlib.math.affine;
+import dlib.math.transformation;
 import dlib.math.quaternion;
 import dgl.core.api;
 import dgl.core.interfaces;

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014 Martin Cejp
+Copyright (c) 2014-2017 Martin Cejp
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -58,25 +58,25 @@ class LocalFileSystem : FileSystem {
     override InputStream openForInput(string filename) {
         return cast(InputStream) openFile(filename, read, 0);
     }
-    
+
     override OutputStream openForOutput(string filename, uint creationFlags) {
-        return cast(OutputStream) openFile(filename, write, creationFlags); 
+        return cast(OutputStream) openFile(filename, write, creationFlags);
     }
-    
+
     override IOStream openForIO(string filename, uint creationFlags) {
         return openFile(filename, read | write, creationFlags);
     }
-    
+
     override bool createDir(string path, bool recursive) {
         import std.algorithm;
-        
+
         if (recursive) {
             ptrdiff_t index = max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-            
+
             if (index != -1)
                 createDir(path[0..index], true);
         }
-        
+
         version (Posix) {
             return mkdir(toStringz(path), access_0755) == 0;
         }
@@ -86,11 +86,11 @@ class LocalFileSystem : FileSystem {
         else
             throw new Exception("Not implemented.");
     }
-    
+
     override Directory openDir(string path) {
         version (Posix) {
             DIR* d = opendir(!path.empty ? toStringz(path) : ".");
-            
+
             if (d == null)
                 return null;
             else
@@ -111,7 +111,7 @@ class LocalFileSystem : FileSystem {
         else
             throw new Exception("Not implemented.");
     }
-    
+
     override bool stat(string path, out FileStat stat_out) {
         version (Posix) {
             stat_t st;
@@ -148,22 +148,22 @@ class LocalFileSystem : FileSystem {
         else
             throw new Exception("Not implemented.");
     }
-    
+
     /*override bool move(string path, string newPath) {
         // TODO: should we allow newPath to actually be a directory?
-        
+
         return rename(toStringz(path), toStringz(newPath)) == 0;
     }*/
-    
+
     override bool remove(string path, bool recursive) {
         FileStat stat;
-        
+
         if (!this.stat(path, stat))
             return false;
-        
+
         return remove(path, stat.isDirectory, recursive);
     }
-    
+
 private:
     version (Posix) {
         enum access_0644 = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
@@ -172,25 +172,25 @@ private:
 
     IOStream openFile(string filename, uint accessFlags, uint creationFlags) {
         // TODO: Windows implementation
-        
+
         version (Posix) {
             int flags;
-            
+
             switch (accessFlags & (read | write)) {
                 case read: flags = O_RDONLY; break;
                 case write: flags = O_WRONLY; break;
                 case read | write: flags = O_RDWR; break;
                 default: flags = 0;
             }
-            
+
             if (creationFlags & FileSystem.create)
                 flags |= O_CREAT;
-            
+
             if (creationFlags & FileSystem.truncate)
                 flags |= O_TRUNC;
-            
+
             int fd = open(toStringz(filename), flags, access_0644);
-            
+
             if (fd < 0)
                 return null;
             else
@@ -225,14 +225,14 @@ private:
         else
             throw new Exception("Not implemented.");
     }
-    
+
     bool remove(string path, bool isDirectory, bool recursive) {
         // TODO: Windows implementation
-        
+
         if (isDirectory && recursive) {
             // Remove contents
             auto dir = openDir(path);
-            
+
             try {
                 foreach (entry; dir.contents)
                     remove(path ~ "/" ~ entry.name, entry.isDirectory, recursive);
@@ -241,9 +241,9 @@ private:
                 dir.close();
             }
         }
-            
+
         version (Posix) {
-            if (isDirectory) 
+            if (isDirectory)
                 return rmdir(toStringz(path)) == 0;
             else
                 return std.stdio.remove(toStringz(path)) == 0;
@@ -265,7 +265,7 @@ private FileSystem fs;
 static this() {
     // decouple dependency from the rest of this module
     import dlib.filesystem.local;
-    
+
     setFileSystem(new LocalFileSystem);
 }
 
@@ -335,109 +335,102 @@ bool remove(string path, bool recursive) {
 }
 
 unittest {
-    import std.regex;
-    import std.algorithm;
-    
-    void listImagesInDirectory(ReadOnlyFileSystem fs, string baseDir = "") {
-        foreach (entry; dlib.filesystem.filesystem.findFiles(fs, baseDir, true)
-                .filter!(entry => entry.isFile)
-                .filter!(e => e.name.baseName.globMatch("*.(gif|jpg|png)"))) {
-            writefln("%s", entry.name);
-        }
-    }
-    
-    writeln("listImagesInDirectory (FileSystem example):");
-    listImagesInDirectory(new LocalFileSystem, "tests");
-    writeln();
-}
-
-unittest {
     // TODO: test >4GiB files
-    
+
     import std.algorithm;
-    import std.conv;
-    import std.regex;
-    import std.stdio;
-    
+    import std.file;
+
     alias remove = dlib.filesystem.local.remove;
-    
+
     remove("tests/test_data", true);
     assert(openDir("tests/test_data") is null);
-    
+
     assert(createDir("tests/test_data/main", true));
-    
-    void printStat(string filename) {
-        FileStat stat_;
-        assert(stat(filename, stat_));
-        
-        writef("  - '%s'\t", filename);
-        
-        if (stat_.isFile)
-            writefln("%u", stat_.sizeInBytes);
-        else if (stat_.isDirectory)
-            writefln("DIR");
-        
-        writefln("      created: %s", to!string(stat_.creationTimestamp));
-        writefln("      modified: %s", to!string(stat_.modificationTimestamp));
-    }
-    
+
     enum dir = "tests";
-    writefln("Listing files in %s:", dir);
-    
     auto d = openDir(dir);
-    
-    try {
+
+    try
+    {
+        chdir(dir);
+        auto expected = dirEntries("", SpanMode.shallow)
+                                  .filter!(e => e.isFile)
+                                  .array;
+        size_t i;
+        chdir("..");
+
         foreach (entry; d.contents) {
             if (entry.isFile)
-                writeln("    ", entry.name);
+            {
+                assert(expected[i] == entry.name);
+                ++i;
+            }
         }
     }
-    finally {
+    finally
+    {
         d.close();
     }
-    
-    writeln();
-    
-    writeln("Listing files mathing the pattern *.d:");
+
+    //
+    OutputStream outp = openForOutput("tests/test_data/main/hello_world.txt", FileSystem.create | FileSystem.truncate);
+    string expected = "Hello, World!\n";
+    assert(outp);
+
+    try
+    {
+        assert(outp.writeArray(expected));
+    }
+    finally {
+        outp.close();
+    }
+
+    //
+    InputStream inp = openForInput("tests/test_data/main/hello_world.txt");
+    assert(inp);
+
+    try
+    {
+        while (inp.readable)
+        {
+            char[1] buffer;
+
+            auto have = inp.readBytes(buffer.ptr, buffer.length);
+            assert(buffer[0..have] == expected[0..have]);
+            expected.popFrontN(have);
+        }
+    }
+    finally
+    {
+        inp.close();
+    }
+}
+
+unittest
+{
+    import std.algorithm;
+    import std.file;
+
+    auto expected = dirEntries("", SpanMode.depth)
+                              .filter!(e => e.isFile)
+                              .filter!(e => e.name.baseName.endsWith(".d"))
+                              .map!(e => e.name.replace("\\", "/"))
+                              .array;
+    size_t i;
 
     foreach (entry; findFiles("", true)
             .filter!(entry => entry.isFile)
             .filter!(e => e.name.baseName.globMatch("*.d"))
         ) {
         FileStat stat_;
-        assert(stat(entry.name, stat_));        // make sure we're getting the expected path
-        
-        writefln("    %s: %u bytes", entry.name, stat_.sizeInBytes);
-    }
+        assert(stat(entry.name, stat_)); // make sure we're getting the expected path
+        assert(expected[i] == entry.name);
+        assert(stat_.sizeInBytes == expected[i].getSize());
 
-    writeln();
+        SysTime modificationTime, accessTime;
+        expected[i].getTimes(accessTime, modificationTime);
+        assert(modificationTime ==  stat_.modificationTimestamp);
 
-    //
-    OutputStream outp = openForOutput("tests/test_data/main/hello_world.txt", FileSystem.create | FileSystem.truncate);
-    assert(outp);
-    
-    try {
-        assert(outp.writeArray("Hello, World!\n"));
+        ++i;
     }
-    finally {
-        outp.close();
-    }
-    
-    //
-    InputStream inp = openForInput("tests/test_data/main/hello_world.txt");
-    assert(inp);
-    
-    try {
-        while (inp.readable) {
-            char[1] buffer;
-            
-            auto have = inp.readBytes(buffer.ptr, buffer.length);
-            std.stdio.write(buffer[0..have]);
-        }
-    }
-    finally {
-        inp.close();
-    }
-
-    writeln();
 }

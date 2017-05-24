@@ -124,6 +124,7 @@ package
 
     string[] getLoadedExtensionNames()
     {
+        import std.algorithm : sort;
         auto keys = loaded.keys;
         string[] ret;
         foreach(key; keys)
@@ -137,6 +138,7 @@ package
 
     string[] getNotLoadedExtensionNames()
     {
+        import std.algorithm : sort;
         auto keys = loaded.keys;
         string[] ret;
         foreach(key; keys)

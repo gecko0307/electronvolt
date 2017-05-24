@@ -1,5 +1,5 @@
-﻿/*
-Copyright (c) 2013 Timur Gafarov 
+/*
+Copyright (c) 2013-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -32,21 +32,21 @@ private
 {
     import dlib.math.vector;
     import dlib.math.matrix;
-    import dlib.math.affine;
+    import dlib.math.transformation;
 }
 
 struct OBB
 {
     Vector3f extent;
     Matrix4x4f transform;
-    
+
     this(Vector3f position, Vector3f size)
     {
         transform = Matrix4x4f.identity;
         center = position;
         extent = size;
     }
-    
+
     @property
     {
         Vector3f center()
@@ -64,7 +64,7 @@ struct OBB
             return v;
         }
     }
-    
+
     @property Matrix3x3f orient()
     {
         return matrix4x4to3x3(transform);

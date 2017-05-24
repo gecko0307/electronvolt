@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2011-2015 Timur Gafarov, Martin Cejp
+Copyright (c) 2011-2017 Timur Gafarov, Martin Cejp, Vadim Lopatin
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -40,8 +40,11 @@ private
     import dlib.core.compound;
     import dlib.filesystem.local;
     import dlib.math.utils;
+    import dlib.math.interpolation;
     import dlib.coding.zlib;
+    import dlib.image.color;
     import dlib.image.image;
+    import dlib.image.animation;
     import dlib.image.io.io;
 }
 
@@ -58,6 +61,11 @@ static const ubyte[4] bKGD = ['b', 'K', 'G', 'D'];
 static const ubyte[4] tEXt = ['t', 'E', 'X', 't'];
 static const ubyte[4] iTXt = ['i', 'T', 'X', 't'];
 static const ubyte[4] zTXt = ['z', 'T', 'X', 't'];
+
+// APNG chunks
+static const ubyte[4] acTL = ['a', 'c', 'T', 'L'];
+static const ubyte[4] fcTL = ['f', 'c', 'T', 'L'];
+static const ubyte[4] fdAT = ['f', 'd', 'A', 'T'];
 
 enum ColorType: ubyte
 {
@@ -84,7 +92,7 @@ struct PNGChunk
     ubyte[4] type;
     ubyte[] data;
     uint crc;
-    
+
     void free()
     {
         if (data.ptr)
@@ -96,7 +104,7 @@ struct PNGHeader
 {
     union
     {
-        struct 
+        struct
         {
             uint width;
             uint height;
@@ -109,6 +117,158 @@ struct PNGHeader
         ubyte[13] bytes;
     }
 }
+
+struct AnimationControlChunk
+{
+    union
+    {
+        struct
+        {
+            uint numFrames;
+            uint numPlays;
+        };
+        ubyte[8] bytes;
+    }
+
+    void readFromBuffer(ubyte[] data)
+    {
+        *(&numFrames) = *(cast(uint*)data.ptr);
+        numFrames = bigEndian(numFrames);
+        *(&numPlays) = *(cast(uint*)(data.ptr+4));
+        numPlays = bigEndian(numPlays);
+    }
+}
+
+enum DisposeOp: ubyte
+{
+    None = 0,
+    Background = 1,
+    Previous = 2
+}
+
+enum BlendOp: ubyte
+{
+    Source = 0,
+    Over = 1
+}
+
+struct FrameControlChunk
+{
+    union
+    {
+        struct
+        {
+            uint sequenceNumber;
+            uint width;
+            uint height;
+            uint x;
+            uint y;
+            ushort delayNumerator;
+            ushort delayDenominator;
+            ubyte disposeOp;
+            ubyte blendOp;
+        };
+        ubyte[26] bytes;
+    }
+
+    void readFromBuffer(ubyte[] data)
+    {
+        *(&sequenceNumber) = *(cast(uint*)data.ptr);
+        sequenceNumber = bigEndian(sequenceNumber);
+        *(&width) = *(cast(uint*)(data.ptr+4));
+        width = bigEndian(width);
+        *(&height) = *(cast(uint*)(data.ptr+8));
+        height = bigEndian(height);
+        *(&x) = *(cast(uint*)(data.ptr+12));
+        x = bigEndian(x);
+        *(&y) = *(cast(uint*)(data.ptr+16));
+        y = bigEndian(y);
+        *(&delayNumerator) = *(cast(ushort*)(data.ptr+20));
+        delayNumerator = bigEndian(delayNumerator);
+        *(&delayDenominator) = *(cast(ushort*)(data.ptr+22));
+        delayDenominator = bigEndian(delayDenominator);
+        disposeOp = data[24];
+        blendOp = data[25];
+    }
+}
+
+struct PNGImage
+{
+    // Common PNG data
+    PNGHeader hdr;
+    uint numChannels;
+    uint bitDepth;
+    uint bytesPerChannel;
+    bool isAnimated = false;
+
+    // Data for indexed PNG
+    ubyte[] palette;
+    ubyte[] transparency;
+    uint paletteSize = 0;
+
+    // APNG data
+    uint numFrames = 1;
+    uint numLoops = 0;
+    bool decodingFirstFrame;
+    FrameControlChunk frame;
+
+    ZlibDecoder decoder;
+
+    ubyte[] frameBuffer;
+    uint frameSize;
+
+    ubyte[] filteredBuffer;
+    uint filteredBufferSize;
+
+    void initDecoder()
+    {
+        ubyte[] buffer;
+
+        if (decoder.buffer.length)
+        {
+            //Delete(decoder.buffer);
+            buffer = decoder.buffer;
+        }
+        else
+        {
+            uint bufferLength = hdr.width * hdr.height * numChannels * bytesPerChannel + hdr.height; 
+            buffer = New!(ubyte[])(bufferLength);
+        }
+
+        decoder = ZlibDecoder(buffer);
+    }
+
+    void initFrameBuffer()
+    {
+        if (frameBuffer.length)
+            Delete(frameBuffer);
+
+        if (filteredBuffer.length)
+            Delete(filteredBuffer);
+
+        frameBuffer = New!(ubyte[])(hdr.width * hdr.height * numChannels * bytesPerChannel);
+        filteredBuffer = New!(ubyte[])(hdr.width * hdr.height * numChannels * bytesPerChannel);
+    }
+
+    void free()
+    {
+        if (decoder.buffer.length)
+            Delete(decoder.buffer);
+
+        if (frameBuffer.length)
+            Delete(frameBuffer);
+
+        if (filteredBuffer.length)
+            Delete(filteredBuffer);
+
+        if (palette.length)
+            Delete(palette);
+
+        if (transparency.length)
+            Delete(transparency);
+    }
+}
+
 class PNGLoadException: ImageLoadException
 {
     this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
@@ -124,7 +284,20 @@ class PNGLoadException: ImageLoadException
 SuperImage loadPNG(string filename)
 {
     InputStream input = openForInput(filename);
-    auto img = loadPNG(input);    input.close();
+    auto img = loadPNG(input);
+    input.close();
+    return img;
+}
+
+/*
+ * Load animated PNG (APNG) from file using local FileSystem.
+ * Causes GC allocation
+ */
+SuperAnimatedImage loadAPNG(string filename)
+{
+    InputStream input = openForInput(filename);
+    auto img = loadAPNG(input);
+    input.close();
     return img;
 }
 
@@ -135,8 +308,21 @@ SuperImage loadPNG(string filename)
 void savePNG(SuperImage img, string filename)
 {
     OutputStream output = openForOutput(filename);
-    Compound!(bool, string) res = 
-        savePNG(img, output);
+    Compound!(bool, string) res = savePNG(img, output);
+    output.close();
+
+    if (!res[0])
+        throw new PNGLoadException(res[1]);
+}
+
+/*
+ * Save APNG to file using local FileSystem.
+ * Causes GC allocation
+ */
+void saveAPNG(SuperAnimatedImage img, string filename)
+{
+    OutputStream output = openForOutput(filename);
+    Compound!(bool, string) res = saveAPNG(img, output);
     output.close();
 
     if (!res[0])
@@ -149,7 +335,7 @@ void savePNG(SuperImage img, string filename)
  */
 SuperImage loadPNG(InputStream istrm)
 {
-    Compound!(SuperImage, string) res = 
+    Compound!(SuperImage, string) res =
         loadPNG(istrm, defaultImageFactory);
     if (res[0] is null)
         throw new PNGLoadException(res[1]);
@@ -158,123 +344,81 @@ SuperImage loadPNG(InputStream istrm)
 }
 
 /*
+ * Load animated PNG (APNG) from stream using default animated image factory.
+ * Causes GC allocation
+ */
+SuperAnimatedImage loadAPNG(InputStream istrm)
+{
+    Compound!(SuperImage, string) res =
+        loadPNG(istrm, animatedImageFactory);
+    if (res[0] is null)
+        throw new PNGLoadException(res[1]);
+    else
+        return cast(SuperAnimatedImage)res[0];
+}
+
+/*
  * Load PNG from stream using specified image factory.
  * GC-free
  */
 Compound!(SuperImage, string) loadPNG(
-    InputStream istrm, 
+    InputStream istrm,
     SuperImageFactory imgFac)
 {
+    PNGImage png;
+
     SuperImage img = null;
-    
+    SuperAnimatedImage animImg = null;
+    SuperImage tmpImg = null;
+
+    void finalize()
+    {
+        png.free();
+
+        // don't close the stream, just release our reference
+        istrm = null;
+    }
+
     Compound!(SuperImage, string) error(string errorMsg)
     {
+        finalize();
         if (img)
         {
             img.free();
             img = null;
         }
+        if (tmpImg)
+        {
+            tmpImg.free();
+            tmpImg = null;
+        }
         return compound(img, errorMsg);
     }
 
-    bool readChunk(PNGChunk* chunk)
-    {
-        if (!istrm.readBE!uint(&chunk.length)
-            || !istrm.fillArray(chunk.type))
-        {
-            return false;
-        }
-            
-        version(PNGDebug) writefln("Chunk length = %s", chunk.length);
-        version(PNGDebug) writefln("Chunk type = %s", cast(char[])chunk.type);
-        
-        if (chunk.length > 0)
-        {
-            chunk.data = New!(ubyte[])(chunk.length);
-
-            if (!istrm.fillArray(chunk.data))
-            {
-                return false;
-            }
-        }
-        
-        version(PNGDebug) writefln("Chunk data.length = %s", chunk.data.length);
-        
-        if (!istrm.readBE!uint(&chunk.crc))
-        {
-            return false;
-        }
-            
-        // TODO: reimplement CRC check with ranges instead of concatenation
-        uint calculatedCRC = crc32(chain(chunk.type[0..$], chunk.data));
-        
-        version(PNGDebug) 
-        {
-            writefln("Chunk CRC = %X", chunk.crc);
-            writefln("Calculated CRC = %X", calculatedCRC);
-            writeln("-------------------");
-        }
-
-        if (chunk.crc != calculatedCRC)
-        {
-            return false;
-        }
-        
-        return true;
-    }
-    
-    bool readHeader(PNGHeader* hdr, PNGChunk* chunk)
-    {
-        hdr.bytes[] = chunk.data[];
-        hdr.width = bigEndian(hdr.width);
-        hdr.height = bigEndian(hdr.height);
-        
-        version(PNGDebug)
-        { 
-            writefln("width = %s", hdr.width);
-            writefln("height = %s", hdr.height);
-            writefln("bitDepth = %s", hdr.bitDepth);
-            writefln("colorType = %s", hdr.colorType);
-            writefln("compressionMethod = %s", hdr.compressionMethod);
-            writefln("filterMethod = %s", hdr.filterMethod);
-            writefln("interlaceMethod = %s", hdr.interlaceMethod);
-            writeln("----------------"); 
-        }
-        
-        return true;
-    }
-
     ubyte[8] signatureBuffer;
-    
+
     if (!istrm.fillArray(signatureBuffer))
     {
         return error("loadPNG error: signature check failed");
     }
 
-    version(PNGDebug) 
+    version(PNGDebug)
     {
         writeln("----------------");
         writeln("PNG Signature: ", signatureBuffer);
         writeln("----------------");
     }
-    
-    PNGHeader hdr;
-    
-    ZlibDecoder zlibDecoder;
-    
-    ubyte[] palette;
-    ubyte[] transparency;
-    uint paletteSize = 0;
 
     bool endChunk = false;
     while (!endChunk && istrm.readable)
     {
         PNGChunk chunk;
-        bool res = readChunk(&chunk);
-        if (!res)
+        auto res = readChunk(&png, istrm, &chunk);
+
+        if (!res[0])
         {
             chunk.free();
-            return error("loadPNG error: failed to read chunk");
+            return error(res[1]);
         }
         else
         {
@@ -285,207 +429,394 @@ Compound!(SuperImage, string) loadPNG(
             }
             else if (chunk.type == IHDR)
             {
-                if (chunk.data.length < hdr.bytes.length)
-                    return error("loadPNG error: illegal header chunk");
-                
-                readHeader(&hdr, &chunk);
+                res = readIHDR(&png, &chunk);
                 chunk.free();
-
-                bool supportedIndexed = 
-                    (hdr.colorType == ColorType.Palette) && 
-                    (hdr.bitDepth == 1 || 
-                     hdr.bitDepth == 2 || 
-                     hdr.bitDepth == 4 ||
-                     hdr.bitDepth == 8);
-                     
-                if (hdr.bitDepth != 8 && hdr.bitDepth != 16 && !supportedIndexed)
-                    return error("loadPNG error: unsupported bit depth");
-
-                if (hdr.compressionMethod != 0)
-                    return error("loadPNG error: unsupported compression method");
-
-                if (hdr.filterMethod != 0)
-                    return error("loadPNG error: unsupported filter method");
-
-                if (hdr.interlaceMethod != 0) 
-                    return error("loadPNG error: interlacing is not supported");
-                
-                uint bufferLength = ((hdr.width * hdr.bitDepth + 7) / 8) * hdr.height + hdr.height;
-                ubyte[] buffer = New!(ubyte[])(bufferLength);
-                
-                zlibDecoder = ZlibDecoder(buffer);
-                
-                version(PNGDebug) 
+                if (!res[0])
                 {
-                    writefln("buffer.length = %s", bufferLength);
-                    writeln("----------------"); 
+                    return error(res[1]);
                 }
+
+                png.decodingFirstFrame = true;
+                png.frame.width = png.hdr.width;
+                png.frame.height = png.hdr.height;
+                png.frame.x = 0;
+                png.frame.y = 0;
+
+                png.initFrameBuffer();
+                png.initDecoder();
             }
             else if (chunk.type == IDAT)
             {
-                zlibDecoder.decode(chunk.data);
+                png.decoder.decode(chunk.data);
                 chunk.free();
             }
             else if (chunk.type == PLTE)
             {
-                palette = chunk.data;
+                png.palette = chunk.data;
             }
             else if (chunk.type == tRNS)
             {
-                transparency = chunk.data;
-                version(PNGDebug) 
+                png.transparency = chunk.data;
+
+                if (png.hdr.colorType == ColorType.Palette)
                 {
-                    writeln("----------------"); 
-                    writefln("transparency.length = %s", transparency.length);
-                    writeln("----------------"); 
+                    if (png.transparency.length > 0)
+                        png.numChannels = 4;
+                    else
+                        png.numChannels = 3;
                 }
+
+                version(PNGDebug)
+                {
+                    writefln("transparency.length = %s", png.transparency.length);
+                }
+
+                png.initFrameBuffer();
+                png.initDecoder();
+            }
+            else if (chunk.type == acTL)
+            {
+                AnimationControlChunk animControl;
+                animControl.readFromBuffer(chunk.data); 
+                png.numFrames = animControl.numFrames;
+                png.numLoops = animControl.numPlays;
+                png.isAnimated = true;
+
+                version(PNGDebug)
+                {
+                    writefln("numFrames = %s", png.numFrames);
+                    writefln("numLoops = %s", png.numLoops);
+                }
+
+                chunk.free();
+            }
+            else if (chunk.type == fcTL)
+            {
+                png.frame.readFromBuffer(chunk.data);
+
+                version(PNGDebug)
+                {
+                    writefln("sequenceNumber = %s", png.frame.sequenceNumber);
+                    writefln("frameWidth = %s", png.frame.width);
+                    writefln("frameHeight = %s", png.frame.height);
+                    writefln("frameX = %s", png.frame.x);
+                    writefln("frameY = %s", png.frame.y);
+                    writefln("delayNumerator = %s", png.frame.delayNumerator);
+                    writefln("delayDenominator = %s", png.frame.delayDenominator);
+                    writefln("disposeOp = %s", cast(DisposeOp)png.frame.disposeOp);
+                    writefln("blendOp = %s", cast(BlendOp)png.frame.blendOp);
+                }
+
+                png.initDecoder();
+
+                chunk.free();
+            }
+            else if (chunk.type == fdAT)
+            {
+                uint dataSequenceNumber;
+                *(&dataSequenceNumber) = *(cast(uint*)chunk.data.ptr);
+                dataSequenceNumber = bigEndian(dataSequenceNumber);
+                version(PNGDebug)
+                {
+                    writefln("sequenceNumber = %s", dataSequenceNumber);
+                }
+
+                png.decoder.decode(chunk.data[4..$]);
+                chunk.free();
             }
             else
             {
                 chunk.free();
             }
-        }
-    }
-    
-    // finalize decoder
-    version(PNGDebug) writefln("zlibDecoder.hasEnded = %s", zlibDecoder.hasEnded);
-    if (!zlibDecoder.hasEnded)
-        return error("loadPNG error: unexpected end of zlib stream");
-    
-    ubyte[] buffer = zlibDecoder.buffer;
-    version(PNGDebug) writefln("buffer.length = %s", buffer.length);
-    
-    // create image
-    if (hdr.colorType == ColorType.Greyscale)
-    {
-        if (hdr.bitDepth == 8)
-            img = imgFac.createImage(hdr.width, hdr.height, 1, 8);
-        else if (hdr.bitDepth == 16)
-            img = imgFac.createImage(hdr.width, hdr.height, 1, 16);
-    }
-    else if (hdr.colorType == ColorType.GreyscaleAlpha)
-    {
-        if (hdr.bitDepth == 8)
-            img = imgFac.createImage(hdr.width, hdr.height, 2, 8);
-        else if (hdr.bitDepth == 16)
-            img = imgFac.createImage(hdr.width, hdr.height, 2, 16);
-    }
-    else if (hdr.colorType == ColorType.RGB)
-    {
-        if (hdr.bitDepth == 8)
-            img = imgFac.createImage(hdr.width, hdr.height, 3, 8);
-        else if (hdr.bitDepth == 16)
-            img = imgFac.createImage(hdr.width, hdr.height, 3, 16);
-    }
-    else if (hdr.colorType == ColorType.RGBA)
-    {
-        if (hdr.bitDepth == 8)
-            img = imgFac.createImage(hdr.width, hdr.height, 4, 8);
-        else if (hdr.bitDepth == 16)
-            img = imgFac.createImage(hdr.width, hdr.height, 4, 16);
-    }
-    else if (hdr.colorType == ColorType.Palette)
-    {
-        if (transparency.length > 0)
-            img = imgFac.createImage(hdr.width, hdr.height, 4, 8);
-        else
-            img = imgFac.createImage(hdr.width, hdr.height, 3, 8);
-    }
-    else
-        return error("loadPNG error: unsupported color type");
 
-    version(PNGDebug)
-    {
-        writefln("img.width = %s", img.width);
-        writefln("img.height = %s", img.height);
-        writefln("img.bitDepth = %s", img.bitDepth);
-        writefln("img.channels = %s", img.channels);
-        writeln("----------------"); 
-    }
-
-    bool indexed = (hdr.colorType == ColorType.Palette);
-    
-    // don't close the stream, just release our reference
-    istrm = null;
-
-    // apply filtering to the image data
-    ubyte[] buffer2;
-    string errorMsg;
-    if (!filter(&hdr, img.channels, indexed, buffer, buffer2, errorMsg))
-    {
-        return error(errorMsg); 
-    }
-    Delete(buffer);
-    buffer = buffer2;
-
-    // if a palette is used, substitute target colors
-    if (indexed)
-    {
-        if (palette.length == 0)
-            return error("loadPNG error: palette chunk not found"); 
-
-        ubyte[] pdata = New!(ubyte[])(img.width * img.height * img.channels);
-        if (hdr.bitDepth == 8)
-        {
-            for (int i = 0; i < buffer.length; ++i)
+            version(PNGDebug)
             {
-                ubyte b = buffer[i];
-                pdata[i * img.channels + 0] = palette[b * 3 + 0];
-                pdata[i * img.channels + 1] = palette[b * 3 + 1];
-                pdata[i * img.channels + 2] = palette[b * 3 + 2];
-                if (transparency.length > 0)
-                    pdata[i * img.channels + 3] = 
-                        b < transparency.length ? transparency[b] : 0;
+                writeln("----------------");
             }
         }
-        else // bit depths 1, 2, 4
-        {
-            int srcindex = 0;
-            int srcshift = 8 - hdr.bitDepth;
-            ubyte mask = cast(ubyte)((1 << hdr.bitDepth) - 1);
-            int sz = img.width * img.height; 
-            for (int dstindex = 0; dstindex < sz; dstindex++) 
-            {
-                auto b = ((buffer[srcindex] >> srcshift) & mask);
-                //assert(b * 3 + 2 < palette.length);
-                pdata[dstindex * img.channels + 0] = palette[b * 3 + 0];
-                pdata[dstindex * img.channels + 1] = palette[b * 3 + 1];
-                pdata[dstindex * img.channels + 2] = palette[b * 3 + 2];
-                
-                if (transparency.length > 0)
-                    pdata[dstindex * img.channels + 3] =
-                        b < transparency.length ? transparency[b] : 0;
 
-                if (srcshift <= 0)
+        if (png.decoder.hasEnded)
+        {
+            if (img is null)
+            {
+                tmpImg = imgFac.createImage(png.hdr.width, png.hdr.height, png.numChannels, png.bitDepth);
+                img = imgFac.createImage(png.hdr.width, png.hdr.height, png.numChannels, png.bitDepth, png.numFrames);
+
+                if (png.isAnimated)
+                    animImg = cast(SuperAnimatedImage)img;
+            }
+
+            res = fillFrame(&png);
+            if (res[0])
+            {
+                if (png.decodingFirstFrame)
                 {
-                    srcshift = 8 - hdr.bitDepth;
-                    srcindex++;
+                    png.decodingFirstFrame = false;
+
+                    if (tmpImg.data.length != png.frameBuffer.length)
+                    {
+                        return error("loadPNG error: uncompressed data length mismatch");
+                    }
+
+                    tmpImg.data[] = png.frameBuffer[0..png.frameSize];
+                    img.data[] = tmpImg.data[];
+
+                    if (animImg)
+                    {
+                        disposeFrame(&png, animImg, tmpImg, true);
+                    }
                 }
                 else
                 {
-                    srcshift -= hdr.bitDepth;
+                    blitFrame(&png, png.frameBuffer, tmpImg);
+
+                    img.data[] = tmpImg.data[];
+
+                    uint f = animImg.currentFrame;
+                    animImg.currentFrame = f - 1;
+                    disposeFrame(&png, animImg, tmpImg, false);
+                    animImg.currentFrame = f;
+                }
+
+                if (animImg)
+                {
+                    if (animImg.currentFrame == animImg.numFrames-1)
+                    {
+                        // Last frame, stop here
+                        animImg.currentFrame = 0;
+                        break;
+                    }
                 }
             }
-        }
-       
-        Delete(buffer);
-        buffer = pdata;
-        
-        Delete(palette);
+            else
+            {
+                return error(res[1]);
+            }
 
-        if (transparency.length > 0)
-            Delete(transparency);
+            if (animImg)
+            {
+                animImg.advanceFrame();
+            }
+            else
+            {
+                // Stop decoding if we don't need animation
+                break;
+            }
+        }
     }
 
-    if (img.data.length != buffer.length)
-        return error("loadPNG error: uncompressed data length mismatch");
-    
-    foreach(i, v; buffer)
-        img.data[i] = v;
-        
-    Delete(buffer);
-
+    finalize();
     return compound(img, "");
+}
+
+/*
+ * Load animated PNG (APNG) from stream using specified image factory.
+ * GC-free
+ */
+Compound!(SuperAnimatedImage, string) loadAPNG(
+    InputStream istrm,
+    SuperImageFactory imgFac)
+{
+    SuperAnimatedImage img = null;
+    auto res = loadPNG(istrm, imgFac);
+    if (res[0])
+        img = cast(SuperAnimatedImage)res[0];
+    return compound(img, res[1]);
+}
+
+/*
+ * Save APNG to stream.
+ * GC-free
+ */
+Compound!(bool, string) saveAPNG(SuperAnimatedImage img, OutputStream output)
+in
+{
+    assert (img.data.length);
+}
+body
+{
+    ubyte[] raw;
+    ubyte[] buffer;
+
+    void finalize()
+    {
+        if (buffer.length)
+            Delete(buffer);
+        if (raw.length)
+            Delete(raw);
+    }
+
+    Compound!(bool, string) error(string errorMsg)
+    {
+        finalize();
+        return compound(false, errorMsg);
+    }
+
+    if (img.bitDepth != 8)
+        return error("savePNG error: only 8-bit images are supported by encoder");
+
+    bool writeChunk(ubyte[4] chunkType, ubyte[] chunkData)
+    {
+        PNGChunk hdrChunk;
+        hdrChunk.length = cast(uint)chunkData.length;
+        hdrChunk.type = chunkType;
+        hdrChunk.data = chunkData;
+        hdrChunk.crc = crc32(chain(chunkType[0..$], hdrChunk.data));
+
+        if (!output.writeBE!uint(hdrChunk.length)
+            || !output.writeArray(hdrChunk.type))
+            return false;
+
+        if (chunkData.length)
+            if (!output.writeArray(hdrChunk.data))
+                return false;
+
+        if (!output.writeBE!uint(hdrChunk.crc))
+            return false;
+
+        return true;
+    }
+
+    bool writeHeader()
+    {
+        PNGHeader hdr;
+        hdr.width = networkByteOrder(img.width);
+        hdr.height = networkByteOrder(img.height);
+        hdr.bitDepth = 8;
+        if (img.channels == 4)
+            hdr.colorType = ColorType.RGBA;
+        else if (img.channels == 3)
+            hdr.colorType = ColorType.RGB;
+        else if (img.channels == 2)
+            hdr.colorType = ColorType.GreyscaleAlpha;
+        else if (img.channels == 1)
+            hdr.colorType = ColorType.Greyscale;
+        hdr.compressionMethod = 0;
+        hdr.filterMethod = 0;
+        hdr.interlaceMethod = 0;
+
+        return writeChunk(IHDR, hdr.bytes);
+    }
+
+    uint seqNumber = 0;
+
+    bool writeAnimationControlChunk()
+    {
+        AnimationControlChunk actl;
+        actl.numFrames = networkByteOrder(img.numFrames);
+        actl.numPlays = networkByteOrder(0);
+        return writeChunk(acTL, actl.bytes);
+    }
+
+    bool writeFrameControlChunk()
+    {
+        FrameControlChunk fctl;
+        fctl.sequenceNumber = networkByteOrder(seqNumber);
+        seqNumber++;
+        fctl.width = networkByteOrder(img.width);
+        fctl.height = networkByteOrder(img.height);
+        fctl.x = networkByteOrder(0);
+        fctl.y = networkByteOrder(0);
+        // TODO: add timeStep to SuperAnimatedImage
+        fctl.delayNumerator = networkByteOrder(75);
+        fctl.delayDenominator = networkByteOrder(1000);
+        fctl.disposeOp = DisposeOp.Background;
+        fctl.blendOp = BlendOp.Source;
+        return writeChunk(fcTL, fctl.bytes);
+    }
+
+    bool writeFrameDataChunk(ubyte[] data)
+    {
+        uint len = cast(uint)data.length + 4;
+        ubyte[4] type = fdAT;
+        uint seq = seqNumber;
+        uint seqBE = networkByteOrder(seqNumber);
+        seqNumber++;
+        ubyte[4] seqNumberBytes;
+        seqNumberBytes = (cast(ubyte*)&seqBE)[0..4][];
+        uint crc = crc32(chain(type[0..$], seqNumberBytes[0..$], data));
+
+        if (!output.writeBE!uint(len)
+            || !output.writeArray(type))
+            return false;
+
+        if (!output.writeBE!uint(seq))
+            return false;
+
+        if (data.length)
+            if (!output.writeArray(data))
+                return false;
+
+        if (!output.writeBE!uint(crc))
+            return false;
+
+        return true;
+    }
+
+    output.writeArray(PNGSignature);
+    if (!writeHeader())
+        return error("savePNG error: write failed (disk full?)");
+
+    if (!writeAnimationControlChunk())
+        return error("savePNG error: write failed (disk full?)");
+
+    //TODO: filtering
+    raw = New!(ubyte[])(img.width * img.height * img.channels + img.height);
+    buffer = New!(ubyte[])(64 * 1024);
+
+    bool encode(uint frame)
+    {
+        if (!writeFrameControlChunk())
+            return false;
+
+        foreach(y; 0..img.height)
+        {
+            auto rowStart = y * (img.width * img.channels + 1);
+            raw[rowStart] = 0; // No filter
+
+            foreach(x; 0..img.width)
+            {
+                auto dataIndex = (y * img.width + x) * img.channels;
+                auto rawIndex = rowStart + 1 + x * img.channels;
+
+                foreach(ch; 0..img.channels)
+                    raw[rawIndex + ch] = img.data[dataIndex + ch];
+            }
+        }
+
+        ZlibBufferedEncoder zlibEncoder = ZlibBufferedEncoder(buffer, raw);
+        while (!zlibEncoder.ended)
+        {
+            auto len = zlibEncoder.encode();
+            if (len > 0)
+            {
+                bool res;
+                if (frame == 0)
+                    res = writeChunk(IDAT, zlibEncoder.buffer[0..len]);
+                else
+                    res = writeFrameDataChunk(zlibEncoder.buffer[0..len]);
+
+                if (!res)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    uint startFrame = img.currentFrame;
+    foreach(f; 0..img.numFrames)
+    {
+        img.currentFrame = f;
+        if (!encode(f))
+            return error("savePNG error: write failed (disk full?)");
+    }
+    img.currentFrame = startFrame;
+
+    writeChunk(IEND, []);
+
+    finalize();
+    return compound(true, "");
 }
 
 /*
@@ -514,11 +845,11 @@ body
         hdrChunk.type = chunkType;
         hdrChunk.data = chunkData;
         hdrChunk.crc = crc32(chain(chunkType[0..$], hdrChunk.data));
-        
-        if (!output.writeBE!uint(hdrChunk.length)        
+
+        if (!output.writeBE!uint(hdrChunk.length)
             || !output.writeArray(hdrChunk.type))
             return false;
-        
+
         if (chunkData.length)
             if (!output.writeArray(hdrChunk.data))
                 return false;
@@ -579,7 +910,7 @@ body
         if (len > 0)
             writeChunk(IDAT, zlibEncoder.buffer[0..len]);
     }
-    
+
     writeChunk(IEND, []);
 
     Delete(buffer);
@@ -588,8 +919,341 @@ body
     return compound(true, "");
 }
 
+Compound!(bool, string) err(string msg)
+{
+    return compound(false, msg);
+}
+
+Compound!(bool, string) suc()
+{
+    return compound(true, "");
+}
+
+Compound!(bool, string) readChunk(
+    PNGImage* png,
+    InputStream istrm,
+    PNGChunk* chunk)
+{
+    if (!istrm.readBE!uint(&chunk.length) ||
+        !istrm.fillArray(chunk.type))
+    {
+        return err("loadPNG error: failed to read chunk, invalid PNG stream");
+    }
+
+    version(PNGDebug) writefln("Chunk length = %s", chunk.length);
+    version(PNGDebug) writefln("Chunk type = %s", cast(char[])chunk.type);
+
+    if (chunk.length > 0)
+    {
+        chunk.data = New!(ubyte[])(chunk.length);
+        if (!istrm.fillArray(chunk.data))
+        {
+            return err("loadPNG error: failed to read chunk data, invalid PNG stream");
+        }
+    }
+
+    version(PNGDebug) writefln("Chunk data.length = %s", chunk.data.length);
+
+    if (!istrm.readBE!uint(&chunk.crc))
+    {
+        return err("loadPNG error: failed to read chunk CRC, invalid PNG stream");
+    }
+
+    uint calculatedCRC = crc32(chain(chunk.type[0..$], chunk.data));
+
+    version(PNGDebug)
+    {
+        writefln("Chunk CRC = %X", chunk.crc);
+        writefln("Calculated CRC = %X", calculatedCRC);
+    }
+
+    if (chunk.crc != calculatedCRC)
+    {
+        return err("loadPNG error: chunk CRC check failed");
+    }
+
+    return suc();
+}
+
+Compound!(bool, string) readIHDR(
+    PNGImage* png,
+    PNGChunk* chunk)
+{
+    PNGHeader* hdr = &png.hdr;
+
+    if (chunk.data.length < hdr.bytes.length)
+        return err("loadPNG error: illegal header chunk");
+
+    hdr.bytes[] = chunk.data[0..hdr.bytes.length];
+    hdr.width = bigEndian(hdr.width);
+    hdr.height = bigEndian(hdr.height);
+
+    version(PNGDebug)
+    {
+        writefln("width = %s", hdr.width);
+        writefln("height = %s", hdr.height);
+        writefln("bitDepth = %s", hdr.bitDepth);
+        writefln("colorType = %s", hdr.colorType);
+        writefln("compressionMethod = %s", hdr.compressionMethod);
+        writefln("filterMethod = %s", hdr.filterMethod);
+        writefln("interlaceMethod = %s", hdr.interlaceMethod);
+    }
+
+    bool supportedIndexed =
+        (hdr.colorType == ColorType.Palette) &&
+        (hdr.bitDepth == 1 ||
+         hdr.bitDepth == 2 ||
+         hdr.bitDepth == 4 ||
+         hdr.bitDepth == 8);
+
+    if (hdr.bitDepth != 8 && hdr.bitDepth != 16 && !supportedIndexed)
+        return err("loadPNG error: unsupported bit depth");
+
+    if (hdr.compressionMethod != 0)
+        return err("loadPNG error: unsupported compression method");
+
+    if (hdr.filterMethod != 0)
+        return err("loadPNG error: unsupported filter method");
+
+    if (hdr.interlaceMethod != 0)
+        return err("loadPNG error: interlacing is not supported");
+
+    if (hdr.colorType == ColorType.Greyscale)
+        png.numChannels = 1;
+    else if (hdr.colorType == ColorType.GreyscaleAlpha)
+        png.numChannels = 2;
+    else if (hdr.colorType == ColorType.RGB)
+        png.numChannels = 3;
+    else if (hdr.colorType == ColorType.RGBA)
+        png.numChannels = 4;
+    else if (hdr.colorType == ColorType.Palette)
+    {
+        if (png.transparency.length > 0)
+            png.numChannels = 4;
+        else
+            png.numChannels = 3;
+    }
+    else
+        return err("loadPNG error: unsupported color type");
+
+    if (hdr.colorType == ColorType.Palette)
+        png.bitDepth = 8;
+    else
+        png.bitDepth = hdr.bitDepth;
+
+    png.bytesPerChannel = png.bitDepth / 8;
+
+    version(PNGDebug)
+    {
+        writefln("bytesPerChannel = %s", png.bytesPerChannel);
+    }
+
+    return suc();
+}
+
+Compound!(bool, string) fillFrame(PNGImage* png)
+{
+    ubyte[] decodedBuffer = png.decoder.buffer;
+    version(PNGDebug) writefln("decodedBuffer.length = %s", decodedBuffer.length);
+
+    bool indexed = (png.hdr.colorType == ColorType.Palette);
+
+    uint calculatedSize;
+    if (indexed)
+        calculatedSize = png.frame.width * png.frame.height * png.hdr.bitDepth / 8 + png.frame.height;
+    else
+        calculatedSize = png.frame.width * png.frame.height * png.numChannels + png.frame.height;
+
+    png.frameSize = png.frame.width * png.frame.height * png.numChannels * png.bytesPerChannel;
+    png.filteredBufferSize = calculatedSize - png.frame.height;
+
+    version(PNGDebug)
+    {
+        writefln("calculatedSize = %s", calculatedSize);
+        writefln("frameSize = %s", png.frameSize);
+        writefln("filteredBufferSize = %s", png.filteredBufferSize);
+
+        writefln("png.frameBuffer.length = %s", png.frameBuffer.length);
+    }
+
+    ubyte[] pdata = png.frameBuffer[0..png.frameSize];
+    ubyte[] filteredBuffer = png.filteredBuffer[0..png.filteredBufferSize];
+
+    if (decodedBuffer.length != calculatedSize)
+    {
+        return err("loadPNG error: image size and data mismatch");
+    }
+
+    // apply filtering to the image data
+    auto res = filter(png, indexed, decodedBuffer, filteredBuffer);
+    if (!res[0])
+    {
+        return err(res[1]);
+    }
+
+    // if a palette is used, substitute target colors
+    if (indexed)
+    {
+        if (png.palette.length == 0)
+            return err("loadPNG error: palette chunk not found");
+
+        if (png.hdr.bitDepth == 8)
+        {
+            for (int i = 0; i < filteredBuffer.length; ++i)
+            {
+                ubyte b = filteredBuffer[i];
+                pdata[i * png.numChannels + 0] = png.palette[b * 3 + 0];
+                pdata[i * png.numChannels + 1] = png.palette[b * 3 + 1];
+                pdata[i * png.numChannels + 2] = png.palette[b * 3 + 2];
+                if (png.transparency.length > 0)
+                    pdata[i * png.numChannels + 3] =
+                        b < png.transparency.length ? png.transparency[b] : 255;
+            }
+        }
+        else // bit depths 1, 2, 4
+        {
+            int srcindex = 0;
+            int srcshift = 8 - png.hdr.bitDepth;
+            ubyte mask = cast(ubyte)((1 << png.hdr.bitDepth) - 1);
+            int sz = png.frame.width * png.frame.height;
+            for (int dstindex = 0; dstindex < sz; dstindex++)
+            {
+                auto b = ((filteredBuffer[srcindex] >> srcshift) & mask);
+                //assert(b * 3 + 2 < palette.length);
+                pdata[dstindex * png.numChannels + 0] = png.palette[b * 3 + 0];
+                pdata[dstindex * png.numChannels + 1] = png.palette[b * 3 + 1];
+                pdata[dstindex * png.numChannels + 2] = png.palette[b * 3 + 2];
+
+                if (png.transparency.length > 0)
+                    pdata[dstindex * png.numChannels + 3] =
+                        b < png.transparency.length ? png.transparency[b] : 255;
+
+                if (srcshift <= 0)
+                {
+                    srcshift = 8 - png.hdr.bitDepth;
+                    srcindex++;
+                }
+                else
+                {
+                    srcshift -= png.hdr.bitDepth;
+                }
+            }
+        }
+    }
+    else
+    {
+        pdata[] = filteredBuffer[];
+    }
+
+    return suc();
+}
+
+void blitFrame(
+    PNGImage* png,
+    ubyte[] frameBuffer, 
+    SuperImage img)
+{
+    for(uint y = 0; y < png.frame.height; y++)
+    {
+        for(uint x = 0; x < png.frame.width; x++)
+        {
+            Color4f c1 = img[png.frame.x + x, png.frame.y + y];
+            Color4f c2 = getColor(png, frameBuffer, x, y);
+
+            if (png.frame.blendOp == BlendOp.Source)
+                img[png.frame.x + x, png.frame.y + y] = c2;
+            else
+                img[png.frame.x + x, png.frame.y + y] = alphaOver(c1, c2);
+        }
+    }
+}
+
+void disposeFrame(
+    PNGImage* png, 
+    SuperImage prevImg,
+    SuperImage img,
+    bool firstFrame)
+{
+    if (png.frame.disposeOp != DisposeOp.None)
+    for(uint y = 0; y < png.hdr.height; y++)
+    {
+        for(uint x = 0; x < png.hdr.width; x++)
+        {
+            if (png.frame.disposeOp == DisposeOp.Previous && !firstFrame)
+                img[x, y] = prevImg[x, y];
+            else
+                img[x, y] = Color4f(0, 0, 0, 0);
+        }
+    }
+}
+
+Color4f getColor(
+    PNGImage* png,
+    ubyte[] pixData,
+    uint x, 
+    uint y)
+{
+    uint bitDepth = png.bitDepth;
+    uint channels = png.numChannels;
+    uint pixelSize = png.bytesPerChannel * channels;
+    uint index = (y * png.frame.width + x) * pixelSize;
+    uint maxv = (2 ^^ bitDepth) - 1;
+
+    Color4 res = Color4(0, 0, 0, 0);
+
+    if (channels == 1 && bitDepth == 8)
+    {
+        auto v = pixData[index];
+        res = Color4(v, v, v);
+    }
+    else if (channels == 2 && bitDepth == 8)
+    {
+        auto v = pixData[index];
+        res = Color4(v, v, v, pixData[index+1]);
+    }
+    else if (channels == 3 && bitDepth == 8)
+    {
+        res = Color4(pixData[index], pixData[index+1], pixData[index+2], cast(ubyte)maxv);
+    }
+    else if (channels == 4 && bitDepth == 8)
+    {
+        res = Color4(pixData[index], pixData[index+1], pixData[index+2], pixData[index+3]);
+    }
+    else if (channels == 1 && bitDepth == 16)
+    {
+        ushort v = pixData[index] << 8 | pixData[index+1];
+        res = Color4(v, v, v);
+    }
+    else if (channels == 2 && bitDepth == 16)
+    {
+        ushort v = pixData[index]   << 8 | pixData[index+1];
+        ushort a = pixData[index+2] << 8 | pixData[index+3];
+        res = Color4(v, v, v, a);
+    }
+    else if (channels == 3 && bitDepth == 16)
+    {
+        ushort r = pixData[index]   << 8 | pixData[index+1];
+        ushort g = pixData[index+2] << 8 | pixData[index+3];
+        ushort b = pixData[index+4] << 8 | pixData[index+5];
+        ushort a = cast(ushort)maxv;
+        res = Color4(r, g, b, a);
+    }
+    else if (channels == 4 && bitDepth == 16)
+    {
+        ushort r = pixData[index]   << 8 | pixData[index+1];
+        ushort g = pixData[index+2] << 8 | pixData[index+3];
+        ushort b = pixData[index+4] << 8 | pixData[index+5];
+        ushort a = pixData[index+6] << 8 | pixData[index+7];
+        res = Color4(r, g, b, a);
+    }
+    else
+        assert(0);
+    
+    return Color4f(res, bitDepth);
+}
+
 /*
- * performs the paeth PNG filter from pixels values:
+ * Performs the paeth PNG filter from pixels values:
  *   a = back
  *   b = up
  *   c = up and back
@@ -605,45 +1269,25 @@ pure ubyte paeth(ubyte a, ubyte b, ubyte c)
     else return c;
 }
 
-bool filter(PNGHeader* hdr, 
-            uint channels,
-            bool indexed,
-            ubyte[] ibuffer,
-        out ubyte[] obuffer,
-        out string errorMsg)
+Compound!(bool, string) filter(
+      PNGImage* png,
+      bool indexed,
+      ubyte[] ibuffer,
+      ubyte[] obuffer)
 {
-    uint dataSize = cast(uint)ibuffer.length;
+    uint width = png.frame.width;
+    uint height = png.frame.height;
+    uint channels = png.numChannels;
+
     uint scanlineSize;
-
-    uint calculatedSize;
     if (indexed)
-    {
-        calculatedSize = hdr.width * hdr.height * hdr.bitDepth / 8 + hdr.height;
-        scanlineSize = hdr.width * hdr.bitDepth / 8 + 1;
-    }
+        scanlineSize = width * png.hdr.bitDepth / 8 + 1;
     else
-    {
-        calculatedSize = hdr.width * hdr.height * channels + hdr.height;
-        scanlineSize = hdr.width * channels + 1;
-    }
-
-    version(PNGDebug)
-    {
-        writefln("[filter] dataSize = %s", dataSize);
-        writefln("[filter] calculatedSize = %s", calculatedSize);
-    }
-
-    if (dataSize != calculatedSize)
-    {
-        errorMsg = "loadPNG error: image size and data mismatch";
-        return false;
-    }
-
-    obuffer = New!(ubyte[])(calculatedSize - hdr.height);
+        scanlineSize = width * channels + 1;
 
     ubyte pback, pup, pupback, cbyte;
 
-    for (int i = 0; i < hdr.height; ++i)
+    for (int i = 0; i < height; ++i)
     {
         pback = 0;
 
@@ -655,8 +1299,7 @@ bool filter(PNGHeader* hdr,
             // TODO: support filtering for indexed images
             if (scanFilter != FilterMethod.None)
             {
-                errorMsg = "loadPNG error: filtering is not supported for indexed images";
-                return false;
+                return err("loadPNG error: filtering is not supported for indexed images");
             }
 
             for (int j = 1; j < scanlineSize; ++j)
@@ -664,56 +1307,54 @@ bool filter(PNGHeader* hdr,
                 ubyte b = ibuffer[(i * scanlineSize) + j];
                 obuffer[(i * (scanlineSize-1) + j - 1)] = b;
             }
-            continue;
         }
-
-        for (int j = 0; j < hdr.width; ++j)
+        else
+        for (int j = 0; j < width; ++j)
         {
             for (int k = 0; k < channels; ++k)
             {
-                if (i == 0)    pup = 0;
-                else pup = obuffer[((i-1) * hdr.width + j) * channels + k]; // (hdr.height-(i-1)-1)
-                if (j == 0)    pback = 0;
-                else pback = obuffer[(i * hdr.width + j-1) * channels + k];
+                if (i == 0) pup = 0;
+                else pup = obuffer[((i-1) * width + j) * channels + k];
+                if (j == 0) pback = 0;
+                else pback = obuffer[(i * width + j-1) * channels + k];
                 if (i == 0 || j == 0) pupback = 0;
-                else pupback = obuffer[((i-1) * hdr.width + j - 1) * channels + k];
-                
+                else pupback = obuffer[((i-1) * width + j - 1) * channels + k];
+
                 // get the current byte from ibuffer
-                cbyte = ibuffer[i * (hdr.width * channels + 1) + j * channels + k + 1];
+                cbyte = ibuffer[i * (width * channels + 1) + j * channels + k + 1];
 
                 // filter, then set the current byte in data
                 switch (scanFilter)
                 {
                     case FilterMethod.None:
-                        obuffer[(i * hdr.width + j) * channels + k] = cbyte;
+                        obuffer[(i * width + j) * channels + k] = cbyte;
                         break;
                     case FilterMethod.Sub:
-                        obuffer[(i * hdr.width + j) * channels + k] = cast(ubyte)(cbyte + pback);
+                        obuffer[(i * width + j) * channels + k] = cast(ubyte)(cbyte + pback);
                         break;
                     case FilterMethod.Up:
-                        obuffer[(i * hdr.width + j) * channels + k] = cast(ubyte)(cbyte + pup);
+                        obuffer[(i * width + j) * channels + k] = cast(ubyte)(cbyte + pup);
                         break;
                     case FilterMethod.Average:
-                        obuffer[(i * hdr.width + j) * channels + k] = cast(ubyte)(cbyte + (pback + pup) / 2);
+                        obuffer[(i * width + j) * channels + k] = cast(ubyte)(cbyte + (pback + pup) / 2);
                         break;
                     case FilterMethod.Paeth:
-                        obuffer[(i * hdr.width + j) * channels + k] = cast(ubyte)(cbyte + paeth(pback, pup, pupback));
+                        obuffer[(i * width + j) * channels + k] = cast(ubyte)(cbyte + paeth(pback, pup, pupback));
                         break;
                     default:
-                        errorMsg = format("loadPNG error: unknown scanline filter (%s)", scanFilter);
-                        return false;
+                        return err(format("loadPNG error: unknown scanline filter (%s)", scanFilter));
                 }
             }
         }
     }
 
-    return true;
+    return suc();
 }
 
 uint crc32(R)(R range, uint inCrc = 0) if (isInputRange!R)
 {
     uint[256] generateTable()
-    { 
+    {
         uint[256] table;
         uint crc;
         for (int i = 0; i < 256; i++)
@@ -740,23 +1381,23 @@ uint crc32(R)(R range, uint inCrc = 0) if (isInputRange!R)
 unittest
 {
     import std.base64;
-    
+
     InputStream png() {
         string minimal =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADklEQVR42mL4z8AAEGAAAwEBAGb9nyQAAAAASUVORK5CYII=";
-    
+
         ubyte[] bytes = Base64.decode(minimal);
         return new ArrayStream(bytes, bytes.length);
     }
-    
+
     SuperImage img = loadPNG(png());
-    
+
     assert(img.width == 1);
     assert(img.height == 1);
     assert(img.channels == 3);
     assert(img.pixelSize == 3);
     assert(img.data == [0xff, 0x00, 0x00]);
-    
+
     createDir("tests", false);
     savePNG(img, "tests/minimal.png");
     loadPNG("tests/minimal.png");

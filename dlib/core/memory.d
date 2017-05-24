@@ -1,5 +1,5 @@
-﻿/*
-Copyright (c) 2015 Timur Gafarov
+/*
+Copyright (c) 2015-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -34,19 +34,40 @@ import std.traits;
 import core.stdc.stdlib;
 import core.exception: onOutOfMemoryError;
 
+import dlib.memory;
+
 /*
  * Tools for manual memory management
  */
 
 //version = MemoryDebug;
 
-private __gshared static size_t _allocatedMemory = 0;
+private __gshared ulong _allocatedMemory = 0;
+
+private __gshared Mallocator _defaultGlobalAllocator; 
+private __gshared Allocator _globalAllocator;
+
+Allocator globalAllocator()
+{
+    if (_globalAllocator is null)
+    {
+        if (_defaultGlobalAllocator is null)
+            _defaultGlobalAllocator = Mallocator.instance;
+        _globalAllocator = _defaultGlobalAllocator;
+    }
+    return _globalAllocator;
+}
+
+void globalAllocator(Allocator a)
+{
+    _globalAllocator = a;
+}
 
 version(MemoryDebug)
 {
     import std.datetime;
     import std.algorithm;
-    
+
     struct AllocationRecord
     {
         string type;
@@ -54,17 +75,17 @@ version(MemoryDebug)
         ulong id;
         bool deleted;
     }
-    
+
     AllocationRecord[ulong] records;
     ulong counter = 0;
-    
+
     void addRecord(void* p, string type, size_t size)
     {
         records[cast(ulong)p] = AllocationRecord(type, size, counter, false);
         counter++;
         //writefln("Allocated %s (%s bytes)", type, size);
     }
-    
+
     void markDeleted(void* p)
     {
         ulong k = cast(ulong)p - psize;
@@ -73,7 +94,7 @@ version(MemoryDebug)
         records[k].deleted = true;
         //writefln("Dellocated %s (%s bytes)", type, size);
     }
-    
+
     void printMemoryLog()
     {
         writeln("----------------------------------------------------");
@@ -99,7 +120,7 @@ else
     void printMemoryLog() {}
 }
 
-size_t allocatedMemory()
+ulong allocatedMemory()
 {
     return _allocatedMemory;
 }
@@ -114,7 +135,7 @@ enum psize = 8;
 T allocate(T, A...) (A args) if (is(T == class))
 {
     enum size = __traits(classInstanceSize, T);
-    void* p = malloc(size+psize);
+    void* p = globalAllocator.allocate(size+psize).ptr; //malloc(size+psize);
     if (!p)
         onOutOfMemoryError();
     auto memory = p[psize..psize+size];
@@ -131,7 +152,7 @@ T allocate(T, A...) (A args) if (is(T == class))
 T* allocate(T, A...) (A args) if (is(T == struct))
 {
     enum size = T.sizeof;
-    void* p = malloc(size+psize);
+    void* p = globalAllocator.allocate(size+psize).ptr; //malloc(size+psize);
     if (!p)
         onOutOfMemoryError();
     auto memory = p[psize..psize+size];
@@ -148,7 +169,7 @@ T allocate(T) (size_t length) if (isArray!T)
 {
     alias AT = ForeachType!T;
     size_t size = length * AT.sizeof;
-    auto mem = malloc(size+psize);
+    auto mem = globalAllocator.allocate(size+psize).ptr; //malloc(size+psize);
     if (!mem)
         onOutOfMemoryError();
     T arr = cast(T)mem[psize..psize+size];
@@ -167,7 +188,7 @@ void deallocate(T)(ref T obj) if (isArray!T)
 {
     void* p = cast(void*)obj.ptr;
     size_t size = *cast(size_t*)(p - psize);
-    free(p - psize);
+    globalAllocator.deallocate((p - psize)[0..size+psize]); //free(p - psize);
     _allocatedMemory -= size;
     version(MemoryDebug)
     {
@@ -182,7 +203,7 @@ void deallocate(T)(T obj) if (is(T == class) || is(T == interface))
     void* p = cast(void*)o;
     size_t size = *cast(size_t*)(p - psize);
     destroy(obj);
-    free(p - psize);
+    globalAllocator.deallocate((p - psize)[0..size+psize]); //free(p - psize);
     _allocatedMemory -= size;
     version(MemoryDebug)
     {
@@ -195,7 +216,7 @@ void deallocate(T)(T* obj)
     void* p = cast(void*)obj;
     size_t size = *cast(size_t*)(p - psize);
     destroy(obj);
-    free(p - psize);
+    globalAllocator.deallocate((p - psize)[0..size+psize]); //free(p - psize); 
     _allocatedMemory -= size;
     version(MemoryDebug)
     {

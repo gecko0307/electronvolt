@@ -1,5 +1,5 @@
-﻿/*
-Copyright (c) 2015 Timur Gafarov 
+/*
+Copyright (c) 2015-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -35,24 +35,23 @@ private
     import dlib.container.hash;
 }
 
-pragma(msg, "dlib.container.aarray is deprecated, use dlib.container.dict instead");
-
 /*
  * GC-free associative array implementation
  */
 
+deprecated("dlib.container.aarray is deprecated, use dlib.container.dict instead")
 class AArray(T): BST!(T)
 {
     this()
     {
         super();
     }
-    
+
     void opIndexAssign(T v, string i)
     {
         insert(stringHash(i), v);
     }
-    
+
     T opIndex(string i)
     {
         auto node = find(stringHash(i));
@@ -61,7 +60,7 @@ class AArray(T): BST!(T)
         else
             return node.value;
     }
-    
+
     T* opIn_r(string i)
     {
         auto node = find(stringHash(i));
@@ -70,7 +69,7 @@ class AArray(T): BST!(T)
         else
             return null;
     }
-    
+
     void remove(string i)
     {
         super.remove(stringHash(i));
@@ -78,4 +77,3 @@ class AArray(T): BST!(T)
 
     //mixin FreeImpl;
 }
-

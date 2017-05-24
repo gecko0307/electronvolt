@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2011-2016 Timur Gafarov 
+Copyright (c) 2011-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -52,7 +52,7 @@ enum PixelFormat
     RGBA_FLOAT
 }
 
-abstract class SuperImage: Freeable
+interface SuperImage: Freeable
 {
     @property uint width();
     @property uint height();
@@ -60,7 +60,7 @@ abstract class SuperImage: Freeable
     @property uint channels();
     @property uint pixelSize();
     @property PixelFormat pixelFormat();
-    @property ref ubyte[] data();
+    @property ubyte[] data();
 
     @property SuperImage dup();
 
@@ -68,31 +68,31 @@ abstract class SuperImage: Freeable
     Color4f opIndexAssign(Color4f c, int x, int y);
 
     SuperImage createSameFormat(uint w, uint h);
-    
+
     final @property auto row()
     {
         return range!uint(0, width);
     }
-    
+
     final @property auto col()
     {
         return range!uint(0, height);
     }
 
-    float pixelCost = 0.0f;
-    shared float progress = 0.0f;
-    
+    //float pixelCost = 0.0f;
+    //shared float progress = 0.0f;
+/*
     final void updateProgress()
     {
         progress = progress + pixelCost;
     }
-    
+
     final void resetProgress()
     {
         progress = 0.0f;
     }
-    
-    final int opApply(int delegate(ref Color4f p, uint x, uint y) dg)
+*/
+    final int opApply(scope int delegate(ref Color4f p, uint x, uint y) dg)
     {
         int result = 0;
 
@@ -150,7 +150,7 @@ class Image(PixelFormat fmt): SuperImage
         return fmt;
     }
 
-    override @property ref ubyte[] data()
+    override @property ubyte[] data()
     {
         return _data;
     }
@@ -158,7 +158,7 @@ class Image(PixelFormat fmt): SuperImage
     override @property SuperImage dup()
     {
         auto res = new Image!(fmt)(_width, _height);
-        res.data = _data.dup;
+        res.data[] = data[];
         return res;
     }
 
@@ -173,24 +173,24 @@ class Image(PixelFormat fmt): SuperImage
         _height = h;
 
         _bitDepth = [
-            PixelFormat.L8:     8, PixelFormat.LA8:     8,  
+            PixelFormat.L8:     8, PixelFormat.LA8:     8,
             PixelFormat.RGB8:   8, PixelFormat.RGBA8:   8,
-            PixelFormat.L16:   16, PixelFormat.LA16:   16, 
+            PixelFormat.L16:   16, PixelFormat.LA16:   16,
             PixelFormat.RGB16: 16, PixelFormat.RGBA16: 16
         ][fmt];
 
         _channels = [
             PixelFormat.L8:    1, PixelFormat.LA8:    2,
             PixelFormat.RGB8:  3, PixelFormat.RGBA8:  4,
-            PixelFormat.L16:   1, PixelFormat.LA16:   2,  
+            PixelFormat.L16:   1, PixelFormat.LA16:   2,
             PixelFormat.RGB16: 3, PixelFormat.RGBA16: 4
         ][fmt];
 
         _pixelSize = (_bitDepth / 8) * _channels;
         allocateData();
-        
-        pixelCost = 1.0f / (_width * _height);
-        progress = 0.0f;
+
+        //pixelCost = 1.0f / (_width * _height);
+        //progress = 0.0f;
     }
 
     protected void allocateData()
@@ -200,9 +200,11 @@ class Image(PixelFormat fmt): SuperImage
 
     public Color4 getPixel(int x, int y)
     {
+        ubyte[] pixData = data();
+
         if (x >= width) x = width-1;
         else if (x < 0) x = 0;
-        
+
         if (y >= height) y = height-1;
         else if (y < 0) y = 0;
 
@@ -212,47 +214,47 @@ class Image(PixelFormat fmt): SuperImage
 
         static if (fmt == PixelFormat.L8)
         {
-            auto v = _data[index];
+            auto v = pixData[index];
             return Color4(v, v, v);
         }
         else if (fmt == PixelFormat.LA8)
         {
-            auto v = _data[index];
-            return Color4(v, v, v, data[index+1]);
+            auto v = pixData[index];
+            return Color4(v, v, v, pixData[index+1]);
         }
         else if (fmt == PixelFormat.RGB8)
         {
-            return Color4(_data[index], _data[index+1], _data[index+2], cast(ubyte)maxv);
+            return Color4(pixData[index], pixData[index+1], pixData[index+2], cast(ubyte)maxv);
         }
         else if (fmt == PixelFormat.RGBA8)
         {
-            return Color4(_data[index], _data[index+1], _data[index+2], _data[index+3]);
+            return Color4(pixData[index], pixData[index+1], pixData[index+2], pixData[index+3]);
         }
         else if (fmt == PixelFormat.L16)
         {
-            ushort v = _data[index] << 8 | _data[index+1];
+            ushort v = pixData[index] << 8 | pixData[index+1];
             return Color4(v, v, v);
         }
         else if (fmt == PixelFormat.LA16)
         {
-            ushort v = _data[index]   << 8 | _data[index+1];
-            ushort a = _data[index+2] << 8 | _data[index+3];
+            ushort v = pixData[index]   << 8 | pixData[index+1];
+            ushort a = pixData[index+2] << 8 | pixData[index+3];
             return Color4(v, v, v, a);
         }
         else if (fmt == PixelFormat.RGB16)
         {
-            ushort r = _data[index]   << 8 | _data[index+1];
-            ushort g = _data[index+2] << 8 | _data[index+3];
-            ushort b = _data[index+4] << 8 | _data[index+5];
+            ushort r = pixData[index]   << 8 | pixData[index+1];
+            ushort g = pixData[index+2] << 8 | pixData[index+3];
+            ushort b = pixData[index+4] << 8 | pixData[index+5];
             ushort a = cast(ushort)maxv;
             return Color4(r, g, b, a);
         }
         else if (fmt == PixelFormat.RGBA16)
         {
-            ushort r = _data[index]   << 8 | _data[index+1];
-            ushort g = _data[index+2] << 8 | _data[index+3];
-            ushort b = _data[index+4] << 8 | _data[index+5];
-            ushort a = _data[index+6] << 8 | _data[index+7];
+            ushort r = pixData[index]   << 8 | pixData[index+1];
+            ushort g = pixData[index+2] << 8 | pixData[index+3];
+            ushort b = pixData[index+4] << 8 | pixData[index+5];
+            ushort a = pixData[index+6] << 8 | pixData[index+7];
             return Color4(r, g, b, a);
         }
         else
@@ -263,6 +265,8 @@ class Image(PixelFormat fmt): SuperImage
 
     public Color4 setPixel(Color4 c, int x, int y)
     {
+        ubyte[] pixData = data();
+
         if(x >= width || y >= height || x < 0 || y < 0)
             return c;
 
@@ -270,57 +274,57 @@ class Image(PixelFormat fmt): SuperImage
 
         static if (fmt == PixelFormat.L8)
         {
-            _data[index] = cast(ubyte)c.r;
+            pixData[index] = cast(ubyte)c.r;
         }
         else if (fmt == PixelFormat.LA8)
         {
-            _data[index] = cast(ubyte)c.r;
-            _data[index+1] = cast(ubyte)c.a;
+            pixData[index] = cast(ubyte)c.r;
+            pixData[index+1] = cast(ubyte)c.a;
         }
         else if (fmt == PixelFormat.RGB8)
         {
-            _data[index] = cast(ubyte)c.r;
-            _data[index+1] = cast(ubyte)c.g;
-            _data[index+2] = cast(ubyte)c.b;
+            pixData[index] = cast(ubyte)c.r;
+            pixData[index+1] = cast(ubyte)c.g;
+            pixData[index+2] = cast(ubyte)c.b;
         }
         else if (fmt == PixelFormat.RGBA8)
         {
-            _data[index] = cast(ubyte)c.r;
-            _data[index+1] = cast(ubyte)c.g;
-            _data[index+2] = cast(ubyte)c.b;
-            _data[index+3] = cast(ubyte)c.a;
+            pixData[index] = cast(ubyte)c.r;
+            pixData[index+1] = cast(ubyte)c.g;
+            pixData[index+2] = cast(ubyte)c.b;
+            pixData[index+3] = cast(ubyte)c.a;
         }
         else if (fmt == PixelFormat.L16)
         {
-            _data[index] = cast(ubyte)(c.r >> 8);
-            _data[index+1] = cast(ubyte)(c.r & 0xFF);
+            pixData[index] = cast(ubyte)(c.r >> 8);
+            pixData[index+1] = cast(ubyte)(c.r & 0xFF);
         }
         else if (fmt == PixelFormat.LA16)
         {
-            _data[index] = cast(ubyte)(c.r >> 8);
-            _data[index+1] = cast(ubyte)(c.r & 0xFF);
-            _data[index+2] = cast(ubyte)(c.a >> 8);
-            _data[index+3] = cast(ubyte)(c.a & 0xFF);
+            pixData[index] = cast(ubyte)(c.r >> 8);
+            pixData[index+1] = cast(ubyte)(c.r & 0xFF);
+            pixData[index+2] = cast(ubyte)(c.a >> 8);
+            pixData[index+3] = cast(ubyte)(c.a & 0xFF);
         }
         else if (fmt == PixelFormat.RGB16)
         {
-            _data[index] = cast(ubyte)(c.r >> 8);
-            _data[index+1] = cast(ubyte)(c.r & 0xFF);
-            _data[index+2] = cast(ubyte)(c.g >> 8);
-            _data[index+3] = cast(ubyte)(c.g & 0xFF);
-            _data[index+4] = cast(ubyte)(c.b >> 8);
-            _data[index+5] = cast(ubyte)(c.b & 0xFF);
+            pixData[index] = cast(ubyte)(c.r >> 8);
+            pixData[index+1] = cast(ubyte)(c.r & 0xFF);
+            pixData[index+2] = cast(ubyte)(c.g >> 8);
+            pixData[index+3] = cast(ubyte)(c.g & 0xFF);
+            pixData[index+4] = cast(ubyte)(c.b >> 8);
+            pixData[index+5] = cast(ubyte)(c.b & 0xFF);
         }
         else if (fmt == PixelFormat.RGBA16)
         {
-            _data[index] = cast(ubyte)(c.r >> 8);
-            _data[index+1] = cast(ubyte)(c.r & 0xFF);
-            _data[index+2] = cast(ubyte)(c.g >> 8);
-            _data[index+3] = cast(ubyte)(c.g & 0xFF);
-            _data[index+4] = cast(ubyte)(c.b >> 8);
-            _data[index+5] = cast(ubyte)(c.b & 0xFF);
-            _data[index+6] = cast(ubyte)(c.a >> 8);
-            _data[index+7] = cast(ubyte)(c.a & 0xFF);
+            pixData[index] = cast(ubyte)(c.r >> 8);
+            pixData[index+1] = cast(ubyte)(c.r & 0xFF);
+            pixData[index+2] = cast(ubyte)(c.g >> 8);
+            pixData[index+3] = cast(ubyte)(c.g & 0xFF);
+            pixData[index+4] = cast(ubyte)(c.b >> 8);
+            pixData[index+5] = cast(ubyte)(c.b & 0xFF);
+            pixData[index+6] = cast(ubyte)(c.a >> 8);
+            pixData[index+7] = cast(ubyte)(c.a & 0xFF);
         }
         else
         {
@@ -334,13 +338,13 @@ class Image(PixelFormat fmt): SuperImage
     {
         return Color4f(getPixel(x, y), _bitDepth);
     }
-    
+
     override Color4f opIndexAssign(Color4f c, int x, int y)
     {
         setPixel(c.convert(_bitDepth), x, y);
         return c;
     }
-    
+
     void free()
     {
         // Do nothing, let GC delete the object
@@ -371,12 +375,12 @@ alias Image!(PixelFormat.RGBA16) ImageRGBA16;
  */
 interface SuperImageFactory
 {
-    SuperImage createImage(uint w, uint h, uint channels, uint bitDepth);
+    SuperImage createImage(uint w, uint h, uint channels, uint bitDepth, uint numFrames = 1);
 }
 
 class ImageFactory: SuperImageFactory
 {
-    SuperImage createImage(uint w, uint h, uint channels, uint bitDepth)
+    SuperImage createImage(uint w, uint h, uint channels, uint bitDepth, uint numFrames = 1)
     {
         return image(w, h, channels, bitDepth);
     }
@@ -479,7 +483,7 @@ struct ImageRegion
     uint width;
     uint height;
 
-    final int opApply(int delegate(ref Color4f p, uint x, uint y) dg)
+    final int opApply(scope int delegate(ref Color4f p, uint x, uint y) dg)
     {
         int result = 0;
         uint x1, y1;
@@ -519,23 +523,23 @@ struct ImageWindowRange
     SuperImage img;
     uint width;
     uint height;
-    
+
     private uint halfWidth;
     private uint halfHeight;
     private uint wx = 0;
     private uint wy = 0;
-    
+
     this(SuperImage img, uint w, uint h)
     {
         this.img = img;
         this.width = w;
         this.height = h;
-        
+
         this.halfWidth = this.width / 2;
         this.halfHeight = this.height / 2;
     }
 
-    final int opApply(int delegate(ImageRegion w, uint x, uint y) dg)
+    final int opApply(scope int delegate(ImageRegion w, uint x, uint y) dg)
     {
         int result = 0;
 
@@ -555,13 +559,13 @@ struct ImageWindowRange
 
             if (result)
                 break;
-        }        
+        }
 
         return result;
     }
-    
+
     bool empty = false;
-    
+
     void popFront()
     {
         wx++;
@@ -569,7 +573,7 @@ struct ImageWindowRange
         {
             wx = 0;
             wy++;
-            
+
             if (wy == img.height)
             {
                 wy = 0;
@@ -577,7 +581,7 @@ struct ImageWindowRange
             }
         }
     }
-    
+
     @property ImageRegion front()
     {
         return region(img, wx - halfWidth, wy - halfHeight, width, height);
@@ -591,10 +595,10 @@ ImageWindowRange windows(SuperImage img, uint width, uint height)
 
 /*
     ImageWindowRange usage example (convolution with emboss kernel):
-  
+
     float[3][3] kernel = [
-        [-1, -1,  0], 
-        [-1,  0,  1], 
+        [-1, -1,  0],
+        [-1,  0,  1],
         [ 0,  1,  1],
     ];
 

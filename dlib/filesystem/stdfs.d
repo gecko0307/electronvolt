@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2016 Timur Gafarov 
+Copyright (c) 2015-2017 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -34,6 +34,7 @@ import std.string;
 import dlib.core.memory;
 import dlib.core.stream;
 import dlib.container.dict;
+import dlib.container.array;
 import dlib.filesystem.filesystem;
 
 version(Posix)
@@ -50,12 +51,12 @@ version(Windows)
 import dlib.text.utils;
 import dlib.text.utf16;
 
-// TODO: where is these definitions in druntime?
+// TODO: where are these definitions in druntime?
 version(Windows)
 {
    extern(C) int _wmkdir(const wchar*);
    extern(C) int _wremove(const wchar*);
-   
+
    extern(Windows) int RemoveDirectoryW(const wchar*);
 }
 
@@ -72,7 +73,7 @@ class StdInFileStream: InputStream
         fseek(file, 0, SEEK_END);
         _size = ftell(file);
         fseek(file, 0, SEEK_SET);
-        
+
         eof = false;
     }
 
@@ -82,7 +83,7 @@ class StdInFileStream: InputStream
     }
 
     StreamPos getPosition() @property
-    { 
+    {
         return ftell(file);
     }
 
@@ -121,7 +122,7 @@ class StdInFileStream: InputStream
     }
 }
 
-class StdOutFileStream: OutputStream 
+class StdOutFileStream: OutputStream
 {
     FILE* file;
     bool _writeable;
@@ -136,42 +137,42 @@ class StdOutFileStream: OutputStream
     {
         fclose(file);
     }
-    
+
     StreamPos getPosition() @property
     {
         return 0;
     }
-    
+
     bool setPosition(StreamPos pos)
     {
         return false;
     }
-    
+
     StreamSize size()
     {
         return 0;
     }
-    
+
     void close()
     {
         fclose(file);
     }
-    
+
     bool seekable()
     {
         return false;
     }
-    
+
     void flush()
     {
-        fflush(file); 
+        fflush(file);
     }
-    
+
     bool writeable()
     {
         return _writeable;
     }
-    
+
     size_t writeBytes(const void* buffer, size_t count)
     {
         size_t res = fwrite(buffer, 1, count, file);
@@ -192,21 +193,21 @@ class StdIOStream: IOStream
     {
         this.file = file;
         this._writeable = true;
-        
+
         fseek(file, 0, SEEK_END);
         this._size = ftell(file);
         fseek(file, 0, SEEK_SET);
-        
+
         this._eof = false;
     }
-    
+
     ~this()
     {
         fclose(file);
     }
-    
+
     StreamPos getPosition() @property
-    { 
+    {
         return ftell(file);
     }
 
@@ -243,17 +244,17 @@ class StdIOStream: IOStream
             _eof = true;
         return bytesRead;
     }
-    
+
     void flush()
     {
-        fflush(file); 
+        fflush(file);
     }
-    
+
     bool writeable()
     {
         return _writeable;
     }
-    
+
     size_t writeBytes(const void* buffer, size_t count)
     {
         size_t res = fwrite(buffer, 1, count, file);
@@ -266,17 +267,22 @@ class StdIOStream: IOStream
 class StdFileSystem: FileSystem
 {
     Dict!(Directory, string) openedDirs;
+    DynamicArray!string openedDirPaths;
 
     this()
     {
         openedDirs = New!(Dict!(Directory, string));
     }
-    
+
     ~this()
     {
         foreach(k, v; openedDirs)
             Delete(v);
         Delete(openedDirs);
+
+        foreach(p; openedDirPaths)
+            Delete(p);
+        openedDirPaths.free();
     }
 
     bool stat(string filename, out FileStat stat)
@@ -288,9 +294,9 @@ class StdFileSystem: FileSystem
                 isFile = std.file.isFile(filename);
                 isDirectory = std.file.isDir(filename);
                 sizeInBytes = std.file.getSize(filename);
-                getTimes(filename, 
+                getTimes(filename,
                     modificationTimestamp,
-                    modificationTimestamp); 
+                    modificationTimestamp);
             }
             return true;
         }
@@ -314,7 +320,7 @@ class StdFileSystem: FileSystem
         }
         return New!StdInFileStream(file);
     }
-    
+
     StdOutFileStream openForOutput(string filename, uint creationFlags = FileSystem.create)
     {
         version(Posix)
@@ -331,9 +337,9 @@ class StdFileSystem: FileSystem
         }
         return New!StdOutFileStream(file);
     }
-    
+
     StdIOStream openForIO(string filename, uint creationFlags = FileSystem.create)
-    {        
+    {
         version(Posix)
         {
             FILE* file = fopen(filename.toStringz, "rb+"); // TODO: GC-free toStringz replacement
@@ -351,37 +357,31 @@ class StdFileSystem: FileSystem
 
     Directory openDir(string path)
     {
+        if (path in openedDirs)
+        {
+            Directory d = openedDirs[path];
+            Delete(d);
+        }
+
+        Directory dir;
+
         version(Posix)
         {
-            if (path in openedDirs)
-            {
-                auto d = openedDirs[path];
-                //d.reset();
-                return d;
-            }
-            else
-            {
-                auto dir = New!StdPosixDirectory(path);
-                openedDirs[path] = dir;
-                return dir;
-            }
+            dir = New!StdPosixDirectory(path);
         }
         version(Windows)
         {
-            if (path in openedDirs)
-            {
-                return openedDirs[path];
-            }
-            else
-            {
-                string s = catStr(path, "\\*.*");
-                wchar[] ws = convertUTF8toUTF16(s, true);
-                Delete(s);
-                auto dir = New!StdWindowsDirectory(ws);
-                openedDirs[path] = dir;
-                return dir;
-            }
+            string s = catStr(path, "\\*.*");
+            wchar[] ws = convertUTF8toUTF16(s, true);
+            Delete(s);
+            dir = New!StdWindowsDirectory(ws.ptr);
         }
+
+        auto p = New!(char[])(path.length);
+        p[] = path[];
+        openedDirPaths.append(cast(string)p);
+        openedDirs[cast(string)p] = dir;
+        return dir;
     }
 
     bool createDir(string path, bool recursive = true)
@@ -433,7 +433,7 @@ class StdFileSystem: FileSystem
                 wchar[] wp = convertUTF8toUTF16(path, true);
                 res = _wremove(wp.ptr) == 0;
                 Delete(wp);
-            }  
+            }
             return res;
         }
     }
@@ -453,3 +453,119 @@ T readStruct(T)(InputStream istrm) if (is(T == struct))
     istrm.readBytes(res.ptr, T.sizeof);
     return res;
 }
+enum MAX_PATH_LEN = 4096;
+
+struct PathBuilder
+{
+    char[MAX_PATH_LEN] str;
+    uint length = 0;
+
+    void append(string s)
+    {
+        if (length && str[length-1] != '/')
+        {
+            str[length] = '/';
+            length++;
+        }
+
+        str[length..length+s.length] = s[];
+        length += s.length;
+    }
+
+    string toString()
+    {
+        if (length)
+            return cast(string)(str[0..length]);
+        else
+            return "";
+    }
+}
+
+struct RecursiveFileIterator
+{
+    PathBuilder pb;
+    ReadOnlyFileSystem rofs;
+    string directory;
+    bool rec;
+
+    this(ReadOnlyFileSystem fs, string dir, bool recursive)
+    {
+        rofs = fs;
+        directory = dir;
+        pb.append(dir);
+        rec = recursive;
+    }
+
+    int opApply(scope int delegate(string path, ref dlib.filesystem.filesystem.DirEntry) dg)
+    {
+        int result = 0;
+
+        if (!rofs)
+            return 0;
+
+        foreach(e; rofs.openDir(directory).contents)
+        {
+            uint pathPos = pb.length;
+            pb.append(e.name);
+
+            string oldPath = directory;
+            directory = pb.toString;
+
+            result = dg(directory, e);
+            if (result)
+                break;
+
+            if (e.isDirectory && rec)
+                result = opApply(dg);
+
+            directory = oldPath;
+            pb.length = pathPos;
+
+            if (result)
+                break;
+        }
+
+        return 0;
+    }
+
+    int opApply(scope int delegate(ref dlib.filesystem.filesystem.DirEntry) dg)
+    {
+        int result = 0;
+
+        auto dir = rofs.openDir(directory);
+
+        foreach(e; dir.contents)
+        {
+            uint pathPos = pb.length;
+            pb.append(e.name);
+
+            string oldPath = directory;
+            directory = pb.toString;
+
+            result = dg(e);
+            if (result)
+                break;
+
+            if (e.isDirectory)
+                result = opApply(dg);
+
+            directory = oldPath;
+            pb.length = pathPos;
+
+            if (result)
+                break;
+        }
+
+        return 0;
+    }
+}
+
+RecursiveFileIterator traverseDir(ReadOnlyFileSystem rofs, string baseDir, bool recursive)
+{
+    FileStat s;
+    if (!rofs.stat(baseDir, s))  
+        return RecursiveFileIterator(null, baseDir, recursive);
+    else
+        return RecursiveFileIterator(rofs, baseDir, recursive);
+}
+
