@@ -115,6 +115,7 @@ protected:
         return _lib;
     }
 
+    package(derelict)
     void bindFunc(void** ptr, string funcName, bool doThrow = true)
     {
         void* func = lib.loadSymbol(funcName, doThrow);
