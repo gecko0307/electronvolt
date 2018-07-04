@@ -24,9 +24,9 @@ private
 
     else
     {
-        import std.c.linux.linux;
-        import std.c.stdlib;
-        import std.c.string;
+        import core.sys.posix.unistd;
+        import core.stdc.stdlib;
+        import core.stdc.string;
         import std.file;
         static import std.string;
     }
@@ -185,7 +185,7 @@ private void registerClass (string className) (Class superClass, objc_method_lis
 
         foreach (m ; methodList)
         {
-            auto method = m.method_list[0];            
+            auto method = m.method_list[0];
             class_addMethod(newClass, method.method_name, method.method_imp, method.method_types);
         }
 
@@ -299,7 +299,7 @@ class SDLApplication : NSApplication
         objc_msgSend(class_SDLApplication, sel_poseAsClass, aClass);
     }
 
-    SDLApplication init ()
+    override SDLApplication init ()
     {
         id result = objc_msgSend(this.id_, sel_init);
         return result ? this : null;
@@ -347,7 +347,7 @@ class SDLMain : NSObject
         return cast(Class) objc_getClass!(this.stringof);
     }
 
-    SDLMain init ()
+    override SDLMain init ()
     {
         id result = objc_msgSend(this.id_, sel_init);
         return result ? this : null;
@@ -376,7 +376,7 @@ extern (C)
     {
         if (shouldChdir)
         {
-            char parentdir[MAXPATHLEN];
+            char[MAXPATHLEN] parentdir;
 
             CFURLRef url = CFBundleCopyBundleURL(CFBundleGetMainBundle());
             CFURLRef url2 = CFURLCreateCopyDeletingLastPathComponent(null, url);

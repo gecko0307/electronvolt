@@ -93,8 +93,14 @@ private string _pbrVertexShader = q{
     }
 };
 
+version(OSX)
+    private enum shader_extensions = "#extension GL_EXT_gpu_shader4 : enable\n";
+else
+    private enum shader_extensions = "";
+
 private string _pbrFragmentShader = q{
     #version 120
+    } ~ shader_extensions ~ q{
     #define PI 3.14159265
     #define ST_BOXBLUR 0
     #define ST_POISSONDISK 1
