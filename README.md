@@ -2,6 +2,8 @@ Atrium
 ======
 The goal of this project is to create a first-person game with physics based puzzles, entirely in [D language](http://dlang.org).
 
+> Note: development of Atrium is temporarily put on hold until its new engine, [Dagon](https://github.com/gecko0307/dagon), is finished.
+
 Visit the project site at http://gecko0307.github.io/atrium
 
 Also visit our [GameJolt page](http://gamejolt.com/games/action/atrium/46185) and follow the development blog (in Russian) at http://dlanggamedev.blogspot.ru
