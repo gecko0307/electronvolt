@@ -1,24 +1,33 @@
 {
-    "description": "atrium",
+    "name": "electronvolt",
+    "description": "FPS with physics based puzzles",
+    "homepage": "https://github.com/gecko0307/electronvolt",
+    "license": "Boost",
     "authors": [
         "Timur Gafarov"
     ],
-    "license": "Boost",
-    "homepage": "http://github.com/gecko0307/atrium",
-    "name": "atrium",
+    
+    "dependencies": {
+        "dagon": "~master",
+        "dagon:ftfont": "~master",
+        "bindbc-newton": "~master"
+    },
+    
     "importPaths": [
-        "."
+        "src"
     ],
+    
     "buildRequirements":[
         "allowWarnings"
     ],
-    "libs-linux": ["dl"],
+    
+    "sourcePaths": ["src"],
+    "mainSourceFile": "src/main.d",
+    
     "configurations": [
         {
-            "name": "atrium",
-            "targetType": "executable",
-            "sourcePaths": ["."],
-            "mainSourceFile": "atrium.d"
+            "name": "application",
+            "targetType": "executable"
         }
     ]
 }
