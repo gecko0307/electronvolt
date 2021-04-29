@@ -77,12 +77,12 @@ class TestScene: Scene, NewtonRaycaster
     override void beforeLoad()
     {
         aFontDroidSans14 = this.addFontAsset("data/font/DroidSans.ttf", 14);
-        aCubeMesh = addOBJAsset("data/box/box2.obj");
-        aBoxDiffuse = addTextureAsset("data/box/box2-diffuse.png");
-        aBoxNormal = addTextureAsset("data/box/box2-normal.png");
-        aBoxRoughness = addTextureAsset("data/box/box2-roughness.png");
+        aCubeMesh = addOBJAsset("data/box/box.obj");
+        aBoxDiffuse = addTextureAsset("data/box/box-diffuse.png");
+        aBoxNormal = addTextureAsset("data/box/box-normal.png");
+        aBoxRoughness = addTextureAsset("data/box/box-roughness.png");
         
-        aLevel = addOBJAsset("data/level.obj");
+        aLevel = addOBJAsset("data/building/building.obj");
         aEnvmap = addTextureAsset("data/mars.png");
         aHeightmap = addImageAsset("data/terrain/heightmap.png");
         aGrass = addTextureAsset("data/terrain/dirt-albedo.png");
