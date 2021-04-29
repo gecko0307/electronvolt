@@ -23,10 +23,7 @@ class TestScene: Scene, NewtonRaycaster
     TextureAsset aBoxDiffuse;
     TextureAsset aBoxNormal;
     TextureAsset aBoxRoughness;
-    TextureAsset aBoxMetallic;
-    TextureAsset aBoxEmission;
     OBJAsset aLevel;
-    TextureAsset aGridTexture;
     ImageAsset aHeightmap;
     TextureAsset aGrass;
     TextureAsset aGrassNormal;
@@ -84,11 +81,8 @@ class TestScene: Scene, NewtonRaycaster
         aBoxDiffuse = addTextureAsset("data/box/box2-diffuse.png");
         aBoxNormal = addTextureAsset("data/box/box2-normal.png");
         aBoxRoughness = addTextureAsset("data/box/box2-roughness.png");
-        aBoxMetallic = addTextureAsset("data/box/box-metallic.png");
-        aBoxEmission = addTextureAsset("data/box/box-emission.png");
         
         aLevel = addOBJAsset("data/level.obj");
-        aGridTexture = addTextureAsset("data/grid.png");
         aEnvmap = addTextureAsset("data/mars.png");
         aHeightmap = addImageAsset("data/terrain/heightmap.png");
         aGrass = addTextureAsset("data/terrain/dirt-albedo.png");
@@ -184,39 +178,18 @@ class TestScene: Scene, NewtonRaycaster
         eSky.material.culling = false;
         eSky.material.diffuse = envCubemap;
         
-        auto matPink = New!Material(assetManager);
-        matPink.diffuse = Color4f(1.0, 0.36, 0.478, 1.0);
-        matPink.roughness = 0.2f;
-
-        auto matOrange = New!Material(assetManager);
-        matOrange.diffuse = Color4f(1.0, 0.5, 0.3, 1.0);
-        matOrange.roughness = 0.2f;
-        
-        auto matYellow = New!Material(assetManager);
-        matYellow.diffuse = Color4f(1.0, 0.87, 0.36, 1.0);
-        matYellow.roughness = 0.2f;
-        
-        auto matGreen = New!Material(assetManager);
-        matGreen.diffuse = Color4f(0.517, 1.0, 0.36, 1.0);
-        matGreen.roughness = 0.2f;
-        
-        auto materials = [matPink, matOrange, matYellow, matGreen];
-        
+        auto box = New!NewtonBoxShape(Vector3f(0.625, 0.607, 0.65), world);
         auto boxMat = addMaterial();
         boxMat.diffuse = aBoxDiffuse.texture;
         boxMat.normal = aBoxNormal.texture;
         boxMat.roughness = aBoxRoughness.texture;
-        //boxMat.metallic = aBoxMetallic.texture;
-        //boxMat.emission = aBoxEmission.texture;
-
-        auto box = New!NewtonBoxShape(Vector3f(0.625, 0.607, 0.65), world);
 
         cubeBodyControllers = New!(NewtonBodyComponent[])(numCubes);
         foreach(i; 0..cubeBodyControllers.length)
         {
             auto eCube = addEntity();
             eCube.drawable = aCubeMesh.mesh;
-            eCube.material = boxMat;//materials[uniform(0, $)];
+            eCube.material = boxMat;
             eCube.position = Vector3f(3, i * 1.5, 5);
             auto b = world.createDynamicBody(box, 80.0f);
             cubeBodyControllers[i] = New!NewtonBodyComponent(eventManager, eCube, b);
@@ -330,15 +303,12 @@ class TestScene: Scene, NewtonRaycaster
         {
             if (cubeBody)
             {
-                cubeBody.groupId = world.defaultGroupId;
                 cubeBody = null;
             }
             else
             {
                 oldDistance = float.max;
                 world.raycast(character.eyePoint, character.eyePoint - camera.directionAbsolute * 30.0f, this);
-                if (cubeBody)
-                    cubeBody.groupId = world.grabGroupId;
             }
         }
         else if (button == MB_RIGHT)
@@ -347,7 +317,6 @@ class TestScene: Scene, NewtonRaycaster
             {
                 Vector3f f = camera.directionAbsolute * -50000.0f;
                 cubeBody.addForce(f);
-                cubeBody.groupId = world.defaultGroupId;
                 cubeBody = null;
             }
             else
@@ -358,7 +327,6 @@ class TestScene: Scene, NewtonRaycaster
                 {
                     Vector3f f = camera.directionAbsolute * -50000.0f;
                     cubeBody.addForce(f);
-                    cubeBody.groupId = world.defaultGroupId;
                     cubeBody = null;
                 }
             }

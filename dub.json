@@ -10,7 +10,7 @@
     "dependencies": {
         "dagon": "~master",
         "dagon:ftfont": "~master",
-        "bindbc-newton": "~master"
+        "dagon-newton": "~master"
     },
     
     "importPaths": [

@@ -1,0 +1,45 @@
+# Static libraries
+*.a
+*.lib
+
+# Executables
+*.exe
+
+# DUB
+.dub
+docs.json
+dub.selections.json
+__dummy.html
+__test__library__
+tests
+docs/
+
+# Code coverage
+*.lst
+
+# Backup files
+*~
+
+# Editor files
+.vs
+
+# Dagon files
+gamecontrollerdb.txt
+data/
+
+# DLLs
+freetype.dll
+newton.dll
+nuklear.dll
+SDL2.dll
+dgNewtonAvx.dll
+dgNewtonAvx2.dll
+dgNewtonSse4.2.dll
+
+# Scripts
+*.bat
+*.sh
+
+# Resolve
+.resolve/
+dependencies.json
