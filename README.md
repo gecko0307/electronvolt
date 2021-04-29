@@ -10,6 +10,8 @@ Tech details
 ------------
 The game features [its own graphics engine](https://github.com/gecko0307/dagon). It also uses [Newton Dynamics](http://newtondynamics.com/) for physics.
 
+The old version based on DGL engine can be found [here](https://github.com/gecko0307/electronvolt/tree/atrium_dgl).
+
 Building
 --------
 To build the game, run `dub build --build=release-nobounds`.
