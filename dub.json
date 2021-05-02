@@ -10,7 +10,8 @@
     "dependencies": {
         "dagon": "~master",
         "dagon:ftfont": "~master",
-        "dagon-newton": "~master"
+        "dagon-newton": "~master",
+        "bindbc-soloud": "~>0.1.1"
     },
     
     "importPaths": [

@@ -8,25 +8,33 @@ import std.random;
 import dagon;
 import dagon.ext.ftfont;
 import dagon.ext.newton;
+import soloud;
 
 Vector2f lissajousCurve(float t)
 {
     return Vector2f(sin(t), cos(2 * t));
 }
 
-class TestScene: Scene, NewtonRaycaster
+class GameplayScene: Scene, NewtonRaycaster
 {
     Game game;
+    Soloud audio;
+    
     FontAsset aFontDroidSans14;
     TextureAsset aEnvmap;
-    OBJAsset aCubeMesh;
+    
+    OBJAsset aBoxMesh;
     TextureAsset aBoxDiffuse;
     TextureAsset aBoxNormal;
     TextureAsset aBoxRoughness;
+    
     OBJAsset aLevel;
     ImageAsset aHeightmap;
-    TextureAsset aGrass;
-    TextureAsset aGrassNormal;
+    TextureAsset aRocks;
+    TextureAsset aRocksNormal;
+    TextureAsset aDirt;
+    TextureAsset aDirtNormal;
+    TextureAsset aDirtSplatmap;
     PackageAsset aGravitygun;
     TextureAsset aTexColorTable;
 
@@ -34,16 +42,10 @@ class TestScene: Scene, NewtonRaycaster
     Camera camera;
     FirstPersonViewComponent fpview;
 
-    TextureAsset aTexParticle;
-    Entity eParticleSystem;
-    Entity eParticlesGravity;
-    Entity eParticlesGravityAttractor;
-    Emitter emitterGravityDust;
-    BlackHole attractorGravityDust;
     Light lightGravity;
 
     Light sun;
-    Color4f sunColor = Color4f(1.0f, 0.7f, 0.5f, 1.0f);
+    Color4f sunColor = Color4f(1.0f, 0.9f, 0.8f, 1.0f);
     float sunPitch = -20.0f;
     float sunTurn = 180.0f;
 
@@ -59,11 +61,14 @@ class TestScene: Scene, NewtonRaycaster
     NewtonCharacterComponent character;
 
     TextLine text;
+    
+    WavStream music;
 
-    this(Game game)
+    this(Game game, Soloud audio)
     {
         super(game);
         this.game = game;
+        this.audio = audio;
     }
 
     ~this()
@@ -72,24 +77,32 @@ class TestScene: Scene, NewtonRaycaster
             Delete(cubeBodyControllers);
         if (sphereBodyControllers.length)
             Delete(sphereBodyControllers);
+        
+        music.free();
     }
 
     override void beforeLoad()
     {
+        music = WavStream.create();
+        music.load("data/music/the_derelict_ship.mp3");
+        
         aFontDroidSans14 = this.addFontAsset("data/font/DroidSans.ttf", 14);
-        aCubeMesh = addOBJAsset("data/box/box.obj");
+        aBoxMesh = addOBJAsset("data/box/box.obj");
         aBoxDiffuse = addTextureAsset("data/box/box-diffuse.png");
         aBoxNormal = addTextureAsset("data/box/box-normal.png");
         aBoxRoughness = addTextureAsset("data/box/box-roughness.png");
         
         aLevel = addOBJAsset("data/building/building.obj");
         aEnvmap = addTextureAsset("data/mars.png");
+        
         aHeightmap = addImageAsset("data/terrain/heightmap.png");
-        aGrass = addTextureAsset("data/terrain/dirt-albedo.png");
-        aGrassNormal = addTextureAsset("data/terrain/dirt-normal.png");
+        aRocks = addTextureAsset("data/terrain/rocks-albedo.png");
+        aRocksNormal = addTextureAsset("data/terrain/rocks-normal.png");
+        aDirt = addTextureAsset("data/terrain/dirt-albedo.png");
+        aDirtNormal = addTextureAsset("data/terrain/dirt-normal.png");
+        aDirtSplatmap = addTextureAsset("data/terrain/dirt-splatmap.png");
         
         aGravitygun = addPackageAsset("data/gravitygun/gravitygun.asset");
-        aTexParticle = addTextureAsset("data/particle.png");
         
         aTexColorTable = addTextureAsset("data/lut.png");
     }
@@ -109,9 +122,9 @@ class TestScene: Scene, NewtonRaycaster
         auto envCubemap = addCubemap(1024);
         envCubemap.fromEquirectangularMap(aEnvmap.texture);
         environment.ambientMap = envCubemap;
-        environment.ambientEnergy = 0.3f;
+        environment.ambientEnergy = 0.4f;
         environment.fogColor = Color4f(0.651f, 0.553f, 0.6f, 1.0f);
-        environment.fogEnd = 200.0f;
+        environment.fogEnd = 500.0f;
 
         game.deferredRenderer.ssaoEnabled = true;
         game.deferredRenderer.ssaoPower = 4.0f;
@@ -122,7 +135,7 @@ class TestScene: Scene, NewtonRaycaster
         game.postProcessingRenderer.motionBlurEnabled = true;
         game.postProcessingRenderer.glowEnabled = true;
         game.postProcessingRenderer.glowThreshold = 1.0f;
-        game.postProcessingRenderer.glowIntensity = 0.3f;
+        game.postProcessingRenderer.glowIntensity = 0.2f;
         game.postProcessingRenderer.glowRadius = 7;
         game.postProcessingRenderer.lutEnabled = true;
         game.postProcessingRenderer.colorLookupTable = aTexColorTable.texture;
@@ -133,8 +146,8 @@ class TestScene: Scene, NewtonRaycaster
         sun.shadowEnabled = true;
         sun.energy = 10.0f;
         sun.scatteringEnabled = true;
-        sun.scattering = 0.35f;
-        sun.mediumDensity = 0.1f;
+        sun.scattering = 0.3f;
+        sun.mediumDensity = 0.09f;
         sun.scatteringUseShadow = false;
         sun.color = sunColor;
         sun.rotation =
@@ -188,7 +201,7 @@ class TestScene: Scene, NewtonRaycaster
         foreach(i; 0..cubeBodyControllers.length)
         {
             auto eCube = addEntity();
-            eCube.drawable = aCubeMesh.mesh;
+            eCube.drawable = aBoxMesh.mesh;
             eCube.material = boxMat;
             eCube.position = Vector3f(3, i * 1.5, 5);
             auto b = world.createDynamicBody(box, 80.0f);
@@ -196,7 +209,7 @@ class TestScene: Scene, NewtonRaycaster
         }
 
         eCharacter = addEntity();
-        eCharacter.position = Vector3f(0, 2, 20);
+        eCharacter.position = Vector3f(0, 10, 20);
         character = New!NewtonCharacterComponent(eventManager, eCharacter, 1.8f, 80.0f, world);
         
         useEntity(aGravitygun.entity);
@@ -208,35 +221,7 @@ class TestScene: Scene, NewtonRaycaster
             useEntity(entity);
         }
         aGravitygun.entity.position = Vector3f(0.15, -0.2, -0.2);
-
-        eParticleSystem = addEntity();
-        auto particleSystem = New!ParticleSystem(eventManager, eParticleSystem);
-
-        eParticlesGravity = addEntity();
-        emitterGravityDust = New!Emitter(eParticlesGravity, particleSystem, 100);
-        auto mParticlesDust = addMaterial();
-        mParticlesDust.diffuse = aTexParticle.texture;
-        mParticlesDust.emission = aTexParticle.texture;
-        mParticlesDust.shadeless = true;
-        mParticlesDust.blending = Transparent;
-        mParticlesDust.depthWrite = false;
-        mParticlesDust.energy = 10.0f;
-        emitterGravityDust.material = mParticlesDust;
-        emitterGravityDust.initialPositionRandomRadius = 2.0f;
-        emitterGravityDust.minInitialSpeed = 0.01f;
-        emitterGravityDust.maxInitialSpeed = 0.01f;
-        emitterGravityDust.minSize = 0.005f;
-        emitterGravityDust.maxSize = 0.01f;
-        emitterGravityDust.startColor = Color4f(0.0f, 1.0f, 1.0f, 0.0f);
-        emitterGravityDust.endColor = Color4f(0.0f, 1.0f, 1.0f, 0.25f);
-        emitterGravityDust.minLifetime = 0.5f;
-        emitterGravityDust.maxLifetime = 1.0f;
-        emitterGravityDust.emitting = false;
-
-        eParticlesGravityAttractor = addEntity();
-        attractorGravityDust = New!BlackHole(eParticlesGravityAttractor, particleSystem, 3.0f);
-        attractorGravityDust.active = false;
-
+        
         lightGravity = addLight(LightType.Spot, aGravitygun.entity);
         lightGravity.position = Vector3f(0, 0, -0.3f);
         lightGravity.castShadow = false;
@@ -256,21 +241,28 @@ class TestScene: Scene, NewtonRaycaster
         auto levelBodyController = New!NewtonBodyComponent(eventManager, eLevel, levelBody);
         
         auto heightmap = New!ImageHeightmap(aHeightmap.image, 1.0f, assetManager);
-        auto terrain = New!Terrain(128, 64, heightmap, assetManager);
-        Vector3f terrainScale = Vector3f(1.0f, 5.0f, 1.0f);
-        auto heightmapShape = New!NewtonHeightmapShape(heightmap, 128, 128, terrainScale, world);
+        uint terrainRes = 512;
+        auto terrain = New!Terrain(terrainRes, 64, heightmap, assetManager);
+        Vector3f terrainScale = Vector3f(0.5f, 30.0f, 0.5f);
+        auto heightmapShape = New!NewtonHeightmapShape(heightmap, terrainRes, terrainRes, terrainScale, world);
         auto terrainBody = world.createStaticBody(heightmapShape);
         auto eTerrain = addEntity();
-        eTerrain.position = Vector3f(-64, -4, -64);
+        eTerrain.position = Vector3f(-128, 0, -128);
         auto terrainBodyController = New!NewtonBodyComponent(eventManager, eTerrain, terrainBody);
         auto eTerrainVisual = addEntity(eTerrain);
         eTerrainVisual.dynamic = false;
         eTerrainVisual.solid = true;
         eTerrainVisual.material = addMaterial();
-        eTerrainVisual.material.diffuse = aGrass.texture;
-        eTerrainVisual.material.normal = aGrassNormal.texture;
-        eTerrainVisual.material.textureScale = Vector2f(30, 30);
-        eTerrainVisual.material.roughness = 0.8f;
+        eTerrainVisual.material.culling = false;
+        eTerrainVisual.material.diffuse = aRocks.texture;
+        eTerrainVisual.material.normal = aRocksNormal.texture;
+        eTerrainVisual.material.roughness = 0.5f;
+        eTerrainVisual.material.textureScale = Vector2f(60, 60);
+        eTerrainVisual.material.diffuse2 = aDirt.texture;
+        eTerrainVisual.material.normal2 = aDirtNormal.texture;
+        eTerrainVisual.material.roughness2 = 0.7f;
+        eTerrainVisual.material.textureScale2 = Vector2f(70, 70);
+        eTerrainVisual.material.splatmap2 = aDirtSplatmap.texture;
         eTerrainVisual.drawable = terrain;
         eTerrainVisual.scaling = terrainScale;
 
@@ -279,6 +271,9 @@ class TestScene: Scene, NewtonRaycaster
         auto eText = addEntityHUD();
         eText.drawable = text;
         eText.position = Vector3f(16.0f, 30.0f, 0.0f);
+        
+        int voice = audio.play(music);
+        audio.setLooping(voice, true);
         
         eventManager.showCursor(false);
         fpview.active = true;
@@ -358,12 +353,29 @@ class TestScene: Scene, NewtonRaycaster
     override void onUpdate(Time t)
     {
         updateCharacter();
-        
+        updateWeaponMechanics(t);
+        world.update(t.delta);
+        updateSway(t);
+        updateText();
+    }
+    
+    void updateCharacter()
+    {
+        playerWalking = false;
+        const float speed = 4.0f;
+        if (inputManager.getButton("left")) { character.move(camera.rightAbsolute, -speed); playerWalking = true; }
+        if (inputManager.getButton("right")) { character.move(camera.rightAbsolute, speed); playerWalking = true; }
+        if (inputManager.getButton("forward")) { character.move(camera.directionAbsolute, -speed); playerWalking = true; }
+        if (inputManager.getButton("back")) { character.move(camera.directionAbsolute, speed); playerWalking = true; }
+        if (inputManager.getButton("jump")) character.jump(1.0f);
+        character.updateVelocity();
+    }
+    
+    void updateWeaponMechanics(Time t)
+    {
         const Vector3f targetPos = character.eyePoint - camera.directionAbsolute * 1.5f;
         if (cubeBody)
         {
-            emitterGravityDust.emitting = true;
-            attractorGravityDust.active = true;
             lightGravity.shining = true;
 
             const Vector3f deltaPos = targetPos - cubeBody.position.xyz;
@@ -374,19 +386,15 @@ class TestScene: Scene, NewtonRaycaster
                 cubeBody.velocity = velocityDir * 10.0f;
             else
                 cubeBody.velocity = velocity;
-            
-            eParticlesGravity.position = cubeBody.position.xyz;
-            eParticlesGravityAttractor.position = cubeBody.position.xyz;
         }
         else
         {
-            emitterGravityDust.emitting = false;
-            attractorGravityDust.active = false;
             lightGravity.shining = false;
         }
-        
-        world.update(t.delta);
-        
+    }
+    
+    void updateSway(Time t)
+    {
         if (playerWalking && character.onGround)
         {
             camSwayTime += 7.0f * t.delta;
@@ -408,22 +416,9 @@ class TestScene: Scene, NewtonRaycaster
 
         Vector2f gunSway = lissajousCurve(gunSwayTime) / 15.0f;
         aGravitygun.entity.position = 
-            Vector3f(0.15, -0.2, -0.2) + 
+            Vector3f(0.15, -0.21, -0.2) + 
             Vector3f(gunSway.x * 0.1f, gunSway.y * 0.1f - fpview.pitch / 90.0f * 0.05f, 0.0f);
         aGravitygun.entity.rotation = rotationQuaternion!float(Axis.x, degtorad(fpview.pitch * 0.1f));
-        updateText();
-    }
-    
-    void updateCharacter()
-    {
-        playerWalking = false;
-        const float speed = 4.0f;
-        if (inputManager.getButton("left")) { character.move(camera.rightAbsolute, -speed); playerWalking = true; }
-        if (inputManager.getButton("right")) { character.move(camera.rightAbsolute, speed); playerWalking = true; }
-        if (inputManager.getButton("forward")) { character.move(camera.directionAbsolute, -speed); playerWalking = true; }
-        if (inputManager.getButton("back")) { character.move(camera.directionAbsolute, speed); playerWalking = true; }
-        if (inputManager.getButton("jump")) character.jump(1.0f);
-        character.updateVelocity();
     }
     
     char[100] txt;
@@ -437,10 +432,19 @@ class TestScene: Scene, NewtonRaycaster
 
 class TestGame: Game
 {
+    Soloud audio;
+    
     this(uint w, uint h, bool fullscreen, string title, string[] args)
     {
         super(w, h, fullscreen, title, args);
-        currentScene = New!TestScene(this);
+        audio = Soloud.create();
+        audio.init(Soloud.CLIP_ROUNDOFF | Soloud.LEFT_HANDED_3D);
+        currentScene = New!GameplayScene(this, audio);
+    }
+    
+    ~this()
+    {
+        audio.deinit();
     }
 }
 
@@ -453,8 +457,9 @@ void main(string[] args)
     {
         writeln(info.error.to!string, " ", info.message.to!string);
     }
+    loadSoloud();
 
-    TestGame game = New!TestGame(1600, 900, false, "Dagon + Newton Game Dynamics", args);
+    TestGame game = New!TestGame(1600, 900, false, "eV [dev]", args);
     game.run();
     //Delete(game);
 

@@ -16,4 +16,4 @@ Building
 --------
 To build the game, run `dub build --build=release-nobounds`.
 
-The repository contains only the source code. To run Electronvolt, you'll need binary data which is available on [Releases page](https://github.com/gecko0307/electronvolt/releases). Download the archive `electronvolt-data.7z`, unpack it and put the `data` folder alongside with the executable.
+The repository contains only the source code. To run Electronvolt, you'll need binary data which is available [here](https://gamedev.timurgafarov.ru/storage/eV-data.zip). Download the archive `eV-data.zip`, unpack it and put the `data` folder alongside with the executable.
