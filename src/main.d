@@ -28,7 +28,7 @@ class GameplayScene: Scene, NewtonRaycaster
     TextureAsset aBoxNormal;
     TextureAsset aBoxRoughness;
     
-    OBJAsset aLevel;
+    //OBJAsset aLevel;
     ImageAsset aHeightmap;
     TextureAsset aRocks;
     TextureAsset aRocksNormal;
@@ -42,7 +42,7 @@ class GameplayScene: Scene, NewtonRaycaster
     Camera camera;
     FirstPersonViewComponent fpview;
 
-    Light lightGravity;
+    //Light lightGravity;
 
     Light sun;
     Color4f sunColor = Color4f(1.0f, 0.9f, 0.8f, 1.0f);
@@ -92,7 +92,7 @@ class GameplayScene: Scene, NewtonRaycaster
         aBoxNormal = addTextureAsset("data/box/box-normal.png");
         aBoxRoughness = addTextureAsset("data/box/box-roughness.png");
         
-        aLevel = addOBJAsset("data/building/building.obj");
+        //aLevel = addOBJAsset("data/building/building.obj");
         aEnvmap = addTextureAsset("data/mars.png");
         
         aHeightmap = addImageAsset("data/terrain/heightmap.png");
@@ -222,6 +222,7 @@ class GameplayScene: Scene, NewtonRaycaster
         }
         aGravitygun.entity.position = Vector3f(0.15, -0.2, -0.2);
         
+        /*
         lightGravity = addLight(LightType.Spot, aGravitygun.entity);
         lightGravity.position = Vector3f(0, 0, -0.3f);
         lightGravity.castShadow = false;
@@ -229,7 +230,9 @@ class GameplayScene: Scene, NewtonRaycaster
         lightGravity.energy = 10.0f;
         lightGravity.volumeRadius = 3.0f;
         lightGravity.specular = 0.0f;
+        */
         
+        /*
         auto levelShape = New!NewtonMeshShape(aLevel.mesh, world);
         auto eLevel = addEntity();
         eLevel.drawable = aLevel.mesh;
@@ -239,6 +242,7 @@ class GameplayScene: Scene, NewtonRaycaster
         eLevel.material = matLevel;
         auto levelBody = world.createStaticBody(levelShape);
         auto levelBodyController = New!NewtonBodyComponent(eventManager, eLevel, levelBody);
+        */
         
         auto heightmap = New!ImageHeightmap(aHeightmap.image, 1.0f, assetManager);
         uint terrainRes = 512;
@@ -376,7 +380,7 @@ class GameplayScene: Scene, NewtonRaycaster
         const Vector3f targetPos = character.eyePoint - camera.directionAbsolute * 1.5f;
         if (cubeBody)
         {
-            lightGravity.shining = true;
+            //lightGravity.shining = true;
 
             const Vector3f deltaPos = targetPos - cubeBody.position.xyz;
             const Vector3f velocity = deltaPos / t.delta * 0.3f;
@@ -389,7 +393,7 @@ class GameplayScene: Scene, NewtonRaycaster
         }
         else
         {
-            lightGravity.shining = false;
+            //lightGravity.shining = false;
         }
     }
     
