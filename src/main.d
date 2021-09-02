@@ -42,8 +42,6 @@ class GameplayScene: Scene, NewtonRaycaster
     Camera camera;
     FirstPersonViewComponent fpview;
 
-    //Light lightGravity;
-
     Light sun;
     Color4f sunColor = Color4f(1.0f, 0.9f, 0.8f, 1.0f);
     float sunPitch = -20.0f;
@@ -109,7 +107,7 @@ class GameplayScene: Scene, NewtonRaycaster
 
     override void afterLoad()
     {
-        world = New!NewtonPhysicsWorld(assetManager);
+        world = New!NewtonPhysicsWorld(eventManager, assetManager);
 
         world.loadPlugins("./");
 
@@ -204,13 +202,12 @@ class GameplayScene: Scene, NewtonRaycaster
             eCube.drawable = aBoxMesh.mesh;
             eCube.material = boxMat;
             eCube.position = Vector3f(3, i * 1.5, 5);
-            auto b = world.createDynamicBody(box, 80.0f);
-            cubeBodyControllers[i] = New!NewtonBodyComponent(eventManager, eCube, b);
+            cubeBodyControllers[i] = eCube.makeDynamicBody(world, box, 500.0f); 
         }
 
         eCharacter = addEntity();
         eCharacter.position = Vector3f(0, 10, 20);
-        character = New!NewtonCharacterComponent(eventManager, eCharacter, 1.8f, 80.0f, world);
+        character = eCharacter.makeCharacter(world, 1.8f, 80.0f);
         
         useEntity(aGravitygun.entity);
         aGravitygun.entity.setParent(camera);
@@ -221,16 +218,6 @@ class GameplayScene: Scene, NewtonRaycaster
             useEntity(entity);
         }
         aGravitygun.entity.position = Vector3f(0.15, -0.2, -0.2);
-        
-        /*
-        lightGravity = addLight(LightType.Spot, aGravitygun.entity);
-        lightGravity.position = Vector3f(0, 0, -0.3f);
-        lightGravity.castShadow = false;
-        lightGravity.color = Color4f(0.0f, 1.0f, 1.0f, 1.0f);
-        lightGravity.energy = 10.0f;
-        lightGravity.volumeRadius = 3.0f;
-        lightGravity.specular = 0.0f;
-        */
         
         /*
         auto levelShape = New!NewtonMeshShape(aLevel.mesh, world);
@@ -249,10 +236,9 @@ class GameplayScene: Scene, NewtonRaycaster
         auto terrain = New!Terrain(terrainRes, 64, heightmap, assetManager);
         Vector3f terrainScale = Vector3f(0.5f, 30.0f, 0.5f);
         auto heightmapShape = New!NewtonHeightmapShape(heightmap, terrainRes, terrainRes, terrainScale, world);
-        auto terrainBody = world.createStaticBody(heightmapShape);
         auto eTerrain = addEntity();
         eTerrain.position = Vector3f(-128, 0, -128);
-        auto terrainBodyController = New!NewtonBodyComponent(eventManager, eTerrain, terrainBody);
+        eTerrain.makeStaticBody(world, heightmapShape);
         auto eTerrainVisual = addEntity(eTerrain);
         eTerrainVisual.dynamic = false;
         eTerrainVisual.solid = true;
@@ -380,8 +366,6 @@ class GameplayScene: Scene, NewtonRaycaster
         const Vector3f targetPos = character.eyePoint - camera.directionAbsolute * 1.5f;
         if (cubeBody)
         {
-            //lightGravity.shining = true;
-
             const Vector3f deltaPos = targetPos - cubeBody.position.xyz;
             const Vector3f velocity = deltaPos / t.delta * 0.3f;
             const Vector3f velocityDir = velocity.normalized;
@@ -390,10 +374,6 @@ class GameplayScene: Scene, NewtonRaycaster
                 cubeBody.velocity = velocityDir * 10.0f;
             else
                 cubeBody.velocity = velocity;
-        }
-        else
-        {
-            //lightGravity.shining = false;
         }
     }
     
@@ -465,7 +445,7 @@ void main(string[] args)
 
     TestGame game = New!TestGame(1600, 900, false, "eV [dev]", args);
     game.run();
-    //Delete(game);
+    Delete(game);
 
     writeln("Allocated memory: ", allocatedMemory());
 }
