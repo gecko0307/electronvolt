@@ -123,18 +123,22 @@ class GameplayScene: Scene, NewtonRaycaster
         environment.ambientEnergy = 0.4f;
         environment.fogColor = Color4f(0.651f, 0.553f, 0.6f, 1.0f);
         environment.fogEnd = 500.0f;
-
+        
         game.deferredRenderer.ssaoEnabled = true;
         game.deferredRenderer.ssaoPower = 4.0f;
         game.deferredRenderer.ssaoRadius = 0.25f;
         game.deferredRenderer.ssaoDenoise = 1.0f;
-        game.postProcessingRenderer.tonemapper = Tonemapper.Filmic;
+        game.deferredRenderer.occlusionBufferDetail = 1.0f;
         game.postProcessingRenderer.fxaaEnabled = true;
+        game.postProcessingRenderer.depthOfFieldEnabled = true;
+        game.postProcessingRenderer.fStop = 1.0f;
         game.postProcessingRenderer.motionBlurEnabled = true;
-        game.postProcessingRenderer.glowEnabled = true;
+        game.postProcessingRenderer.glowEnabled = false;
         game.postProcessingRenderer.glowThreshold = 1.0f;
         game.postProcessingRenderer.glowIntensity = 0.2f;
         game.postProcessingRenderer.glowRadius = 7;
+        game.postProcessingRenderer.tonemapper = Tonemapper.Filmic;
+        game.postProcessingRenderer.exposure = 1.0f;
         game.postProcessingRenderer.lutEnabled = true;
         game.postProcessingRenderer.colorLookupTable = aTexColorTable.texture;
         game.postProcessingRenderer.lensDistortionEnabled = true;
@@ -144,9 +148,10 @@ class GameplayScene: Scene, NewtonRaycaster
         sun.shadowEnabled = true;
         sun.energy = 10.0f;
         sun.scatteringEnabled = true;
+        sun.scatteringUseShadow = true;
         sun.scattering = 0.3f;
-        sun.mediumDensity = 0.09f;
-        sun.scatteringUseShadow = false;
+        sun.mediumDensity = 0.02f;
+        sun.scatteringMaxRandomStepOffset = 0.055f;
         sun.color = sunColor;
         sun.rotation =
             rotationQuaternion!float(Axis.y, degtorad(sunTurn)) *
@@ -209,6 +214,7 @@ class GameplayScene: Scene, NewtonRaycaster
         eCharacter.position = Vector3f(0, 10, 20);
         character = eCharacter.makeCharacter(world, 1.8f, 80.0f);
         
+        /*
         useEntity(aGravitygun.entity);
         aGravitygun.entity.setParent(camera);
         foreach(name, entityAsset; aGravitygun.entities)
@@ -218,6 +224,7 @@ class GameplayScene: Scene, NewtonRaycaster
             useEntity(entity);
         }
         aGravitygun.entity.position = Vector3f(0.15, -0.2, -0.2);
+        */
         
         /*
         auto levelShape = New!NewtonMeshShape(aLevel.mesh, world);
@@ -398,11 +405,13 @@ class GameplayScene: Scene, NewtonRaycaster
         Vector2f camSway = lissajousCurve(camSwayTime) / 15.0f;  
         camera.position = Vector3f(camSway.x, camSway.y, 0.0f);
 
+        /*
         Vector2f gunSway = lissajousCurve(gunSwayTime) / 15.0f;
         aGravitygun.entity.position = 
             Vector3f(0.15, -0.21, -0.2) + 
             Vector3f(gunSway.x * 0.1f, gunSway.y * 0.1f - fpview.pitch / 90.0f * 0.05f, 0.0f);
         aGravitygun.entity.rotation = rotationQuaternion!float(Axis.x, degtorad(fpview.pitch * 0.1f));
+        */
     }
     
     char[100] txt;
