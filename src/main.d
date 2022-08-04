@@ -21,7 +21,7 @@ class GameplayScene: Scene, NewtonRaycaster
     Soloud audio;
     
     FontAsset aFontDroidSans14;
-    TextureAsset aEnvmap;
+    ImageAsset aEnvmap;
     
     OBJAsset aBoxMesh;
     TextureAsset aBoxDiffuse;
@@ -35,7 +35,7 @@ class GameplayScene: Scene, NewtonRaycaster
     TextureAsset aDirt;
     TextureAsset aDirtNormal;
     TextureAsset aDirtSplatmap;
-    PackageAsset aGravitygun;
+    //PackageAsset aGravitygun;
     TextureAsset aTexColorTable;
 
     Entity cameraPivot;
@@ -91,7 +91,7 @@ class GameplayScene: Scene, NewtonRaycaster
         aBoxRoughness = addTextureAsset("data/box/box-roughness.png");
         
         //aLevel = addOBJAsset("data/building/building.obj");
-        aEnvmap = addTextureAsset("data/mars.png");
+        aEnvmap = addImageAsset("data/mars.png");
         
         aHeightmap = addImageAsset("data/terrain/heightmap.png");
         aRocks = addTextureAsset("data/terrain/rocks-albedo.png");
@@ -100,7 +100,7 @@ class GameplayScene: Scene, NewtonRaycaster
         aDirtNormal = addTextureAsset("data/terrain/dirt-normal.png");
         aDirtSplatmap = addTextureAsset("data/terrain/dirt-splatmap.png");
         
-        aGravitygun = addPackageAsset("data/gravitygun/gravitygun.asset");
+        //aGravitygun = addPackageAsset("data/gravitygun/gravitygun.asset");
         
         aTexColorTable = addTextureAsset("data/lut.png");
     }
@@ -117,8 +117,10 @@ class GameplayScene: Scene, NewtonRaycaster
         game.renderer.activeCamera = camera;
 
         environment.backgroundColor = Color4f(0.9f, 0.8f, 1.0f, 1.0f);
-        auto envCubemap = addCubemap(1024);
-        envCubemap.fromEquirectangularMap(aEnvmap.texture);
+        
+        auto envCubemap = New!Texture(assetManager);
+        envCubemap.createFromEquirectangularMap(aEnvmap.image, 1024);
+        envCubemap.enableRepeat = false;
         environment.ambientMap = envCubemap;
         environment.ambientEnergy = 0.4f;
         environment.fogColor = Color4f(0.651f, 0.553f, 0.6f, 1.0f);
@@ -191,14 +193,16 @@ class GameplayScene: Scene, NewtonRaycaster
         eSky.layer = EntityLayer.Background;
         eSky.material = New!Material(assetManager);
         eSky.material.depthWrite = false;
-        eSky.material.culling = false;
-        eSky.material.diffuse = envCubemap;
+        eSky.material.useCulling = false;
+        eSky.material.baseColorTexture = envCubemap;
         
         auto box = New!NewtonBoxShape(Vector3f(0.625, 0.607, 0.65), world);
         auto boxMat = addMaterial();
-        boxMat.diffuse = aBoxDiffuse.texture;
-        boxMat.normal = aBoxNormal.texture;
-        boxMat.roughness = aBoxRoughness.texture;
+        boxMat.baseColorTexture = aBoxDiffuse.texture;
+        boxMat.normalTexture = aBoxNormal.texture;
+        boxMat.roughnessFactor = 0.1f;
+        // TODO:
+        //boxMat.roughnessTexture = aBoxRoughness.texture;
 
         cubeBodyControllers = New!(NewtonBodyComponent[])(numCubes);
         foreach(i; 0..cubeBodyControllers.length)
@@ -207,7 +211,8 @@ class GameplayScene: Scene, NewtonRaycaster
             eCube.drawable = aBoxMesh.mesh;
             eCube.material = boxMat;
             eCube.position = Vector3f(3, i * 1.5, 5);
-            cubeBodyControllers[i] = eCube.makeDynamicBody(world, box, 500.0f); 
+            cubeBodyControllers[i] = eCube.makeDynamicBody(world, box, 500.0f);
+            cubeBodyControllers[i].rigidBody.raycastable = true;
         }
 
         eCharacter = addEntity();
@@ -249,17 +254,23 @@ class GameplayScene: Scene, NewtonRaycaster
         auto eTerrainVisual = addEntity(eTerrain);
         eTerrainVisual.dynamic = false;
         eTerrainVisual.solid = true;
-        eTerrainVisual.material = addMaterial();
-        eTerrainVisual.material.culling = false;
-        eTerrainVisual.material.diffuse = aRocks.texture;
-        eTerrainVisual.material.normal = aRocksNormal.texture;
-        eTerrainVisual.material.roughness = 0.5f;
-        eTerrainVisual.material.textureScale = Vector2f(60, 60);
-        eTerrainVisual.material.diffuse2 = aDirt.texture;
-        eTerrainVisual.material.normal2 = aDirtNormal.texture;
-        eTerrainVisual.material.roughness2 = 0.7f;
-        eTerrainVisual.material.textureScale2 = Vector2f(70, 70);
-        eTerrainVisual.material.splatmap2 = aDirtSplatmap.texture;
+        
+        auto terrainMaterial = environment.terrainMaterial;
+        
+        auto layer1 = terrainMaterial.addLayer();
+        layer1.baseColorTexture = aRocks.texture;
+        layer1.normalTexture = aRocksNormal.texture;
+        layer1.roughnessFactor = 0.5f;
+        layer1.textureScale = Vector2f(60, 60);
+        
+        auto layer2 = terrainMaterial.addLayer();
+        layer2.baseColorTexture = aDirt.texture;
+        layer2.normalTexture = aDirtNormal.texture;
+        layer2.roughnessFactor = 0.7f;
+        layer2.maskTexture = aDirtSplatmap.texture;
+        layer2.textureScale = Vector2f(70, 70);
+        
+        eTerrainVisual.material = terrainMaterial;
         eTerrainVisual.drawable = terrain;
         eTerrainVisual.scaling = terrainScale;
 
@@ -299,8 +310,7 @@ class GameplayScene: Scene, NewtonRaycaster
             }
             else
             {
-                oldDistance = float.max;
-                world.raycast(character.eyePoint, character.eyePoint - camera.directionAbsolute * 30.0f, this);
+                raycast(character.eyePoint, character.eyePoint - camera.directionAbsolute * 30.0f);
             }
         }
         else if (button == MB_RIGHT)
@@ -313,8 +323,7 @@ class GameplayScene: Scene, NewtonRaycaster
             }
             else
             {
-                oldDistance = float.max;
-                world.raycast(character.eyePoint, character.eyePoint - camera.directionAbsolute * 30.0f, this);
+                raycast(character.eyePoint, character.eyePoint - camera.directionAbsolute * 30.0f);
                 if (cubeBody)
                 {
                     Vector3f f = camera.directionAbsolute * -50000.0f;
@@ -325,22 +334,23 @@ class GameplayScene: Scene, NewtonRaycaster
         }
     }
     
-    float oldDistance = float.max;
+    float closestHit = 1.0f;
+    
+    bool raycast(Vector3f pstart, Vector3f pend)
+    {
+        closestHit = 1.0f;
+        world.raycast(pstart, pend, this);
+        return (closestHit < 1.0f);
+    }
+    
     float onRayHit(NewtonRigidBody nbody, Vector3f hitPoint, Vector3f hitNormal, float t)
     {
-        if (!nbody.dynamic) return 1.0f;
-        
-        float d = distance(nbody.position.xyz, character.eyePoint);
-        if (d < oldDistance)
+        if (nbody.dynamic && t < closestHit)
         {
-            oldDistance = d;
             cubeBody = nbody;
-            return 1.0f;
+            closestHit = t;
         }
-        else
-        {
-            return t;
-        }
+        return t;
     }
     
     bool playerWalking = false;
@@ -364,7 +374,7 @@ class GameplayScene: Scene, NewtonRaycaster
         if (inputManager.getButton("right")) { character.move(camera.rightAbsolute, speed); playerWalking = true; }
         if (inputManager.getButton("forward")) { character.move(camera.directionAbsolute, -speed); playerWalking = true; }
         if (inputManager.getButton("back")) { character.move(camera.directionAbsolute, speed); playerWalking = true; }
-        if (inputManager.getButton("jump")) character.jump(1.0f);
+        if (inputManager.getButton("jump")) character.jump(2.0f);
         character.updateVelocity();
     }
     
@@ -402,7 +412,7 @@ class GameplayScene: Scene, NewtonRaycaster
             gunSwayTime = 0.0f;
         
         cameraPivot.position = character.eyePoint;
-        Vector2f camSway = lissajousCurve(camSwayTime) / 15.0f;  
+        Vector2f camSway = lissajousCurve(camSwayTime) / 15.0f;
         camera.position = Vector3f(camSway.x, camSway.y, 0.0f);
 
         /*
