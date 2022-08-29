@@ -26,7 +26,7 @@ class GameplayScene: Scene, NewtonRaycaster
     OBJAsset aBoxMesh;
     TextureAsset aBoxDiffuse;
     TextureAsset aBoxNormal;
-    TextureAsset aBoxRoughness;
+    TextureAsset aBoxRoughnessMetallic;
     
     //OBJAsset aLevel;
     ImageAsset aHeightmap;
@@ -82,13 +82,13 @@ class GameplayScene: Scene, NewtonRaycaster
     override void beforeLoad()
     {
         music = WavStream.create();
-        music.load("data/music/the_derelict_ship.mp3");
+        music.load("data/music/threads.mp3");
         
         aFontDroidSans14 = this.addFontAsset("data/font/DroidSans.ttf", 14);
         aBoxMesh = addOBJAsset("data/box/box.obj");
         aBoxDiffuse = addTextureAsset("data/box/box-diffuse.png");
         aBoxNormal = addTextureAsset("data/box/box-normal.png");
-        aBoxRoughness = addTextureAsset("data/box/box-roughness.png");
+        aBoxRoughnessMetallic = addTextureAsset("data/box/box-roughness-metallic.png");
         
         //aLevel = addOBJAsset("data/building/building.obj");
         aEnvmap = addImageAsset("data/mars.png");
@@ -139,7 +139,7 @@ class GameplayScene: Scene, NewtonRaycaster
         game.postProcessingRenderer.glowThreshold = 1.0f;
         game.postProcessingRenderer.glowIntensity = 0.2f;
         game.postProcessingRenderer.glowRadius = 7;
-        game.postProcessingRenderer.tonemapper = Tonemapper.Filmic;
+        game.postProcessingRenderer.tonemapper = Tonemapper.Unreal;
         game.postProcessingRenderer.exposure = 1.0f;
         game.postProcessingRenderer.lutEnabled = true;
         game.postProcessingRenderer.colorLookupTable = aTexColorTable.texture;
@@ -200,9 +200,7 @@ class GameplayScene: Scene, NewtonRaycaster
         auto boxMat = addMaterial();
         boxMat.baseColorTexture = aBoxDiffuse.texture;
         boxMat.normalTexture = aBoxNormal.texture;
-        boxMat.roughnessFactor = 0.1f;
-        // TODO:
-        //boxMat.roughnessTexture = aBoxRoughness.texture;
+        boxMat.roughnessMetallicTexture = aBoxRoughnessMetallic.texture;
 
         cubeBodyControllers = New!(NewtonBodyComponent[])(numCubes);
         foreach(i; 0..cubeBodyControllers.length)

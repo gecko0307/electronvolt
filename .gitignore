@@ -1,4 +1,4 @@
-# Static libraries
+# Compiled static libraries
 *.a
 *.lib
 
@@ -14,8 +14,11 @@ __test__library__
 tests
 docs/
 
-# Code coverage
+# Coverage files
 *.lst
+
+# Debug info
+*.pdb
 
 # Backup files
 *~
@@ -35,6 +38,7 @@ SDL2.dll
 dgNewtonAvx.dll
 dgNewtonAvx2.dll
 dgNewtonSse4.2.dll
+soloud.dll
 
 # Scripts
 *.bat
