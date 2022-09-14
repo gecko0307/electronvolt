@@ -453,6 +453,7 @@ import loader = bindbc.loader.sharedlib;
 
 void main(string[] args)
 {
+    // TODO: move this to dagon:newton extension
     NewtonSupport newtonSupport = loadNewton();
     writeln("Newton support: ", newtonSupport);
     foreach(info; loader.errors)
