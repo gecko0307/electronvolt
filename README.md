@@ -10,7 +10,7 @@ Electronvolt will provide high level of interactivity, featuring fully dynamic w
 
 Tech details
 ------------
-The game features [its own graphics engine](https://github.com/gecko0307/dagon). It also uses [Newton Dynamics](http://newtondynamics.com/) for physics.
+The game features [its own graphics engine](https://github.com/gecko0307/dagon). It also uses [Newton Dynamics](http://newtondynamics.com/) for physics and [SoLoud](https://github.com/jarikomppa/soloud) for playing sound.
 
 The old version based on DGL engine can be found [here](https://github.com/gecko0307/electronvolt/tree/atrium_dgl).
 

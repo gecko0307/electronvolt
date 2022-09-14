@@ -453,12 +453,29 @@ import loader = bindbc.loader.sharedlib;
 
 void main(string[] args)
 {
-    NewtonSupport sup = loadNewton();
+    NewtonSupport newtonSupport = loadNewton();
+    writeln("Newton support: ", newtonSupport);
     foreach(info; loader.errors)
     {
         writeln(info.error.to!string, " ", info.message.to!string);
     }
-    loadSoloud();
+    if (newtonSupport == NewtonSupport.noLibrary)
+    {
+        writeln("Failed to load Newton");
+        return;
+    }
+    
+    SLSupport slSupport = loadSoloud();
+    writeln("SoLoud support: ", slSupport);
+    foreach(info; loader.errors)
+    {
+        writeln(info.error.to!string, " ", info.message.to!string);
+    }
+    if (slSupport == SLSupport.noLibrary)
+    {
+        writeln("Failed to load SoLoud");
+        return;
+    }
 
     TestGame game = New!TestGame(1600, 900, false, "eV [dev]", args);
     game.run();
