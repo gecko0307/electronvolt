@@ -1,6 +1,6 @@
 Electronvolt
 ============
-Electronvolt (formerly known as Atrium) will be a sci-fi first-person puzzle written entirely in [D language](http://dlang.org). The game itself is under development. This repository contains a showcase that demonstrates planned visual style and basic gameplay mechanics. There are no puzzles/objectives yet.
+Electronvolt (formerly known as Atrium) will be a sci-fi first-person puzzle written entirely in [D language](http://dlang.org). The game itself is under development. This repository contains a sandbox app that demonstrates planned visual style and basic gameplay mechanics. There are no puzzles/objectives yet.
 
 [![Screenshot](https://gamedev.timurgafarov.ru/storage/eV_2.jpg)](https://gamedev.timurgafarov.ru/storage/eV_2.jpg)
 
