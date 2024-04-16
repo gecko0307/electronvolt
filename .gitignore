@@ -29,6 +29,7 @@ docs/
 # Dagon files
 gamecontrollerdb.txt
 data/
+assets/
 
 # DLLs
 freetype.dll

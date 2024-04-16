@@ -9,9 +9,9 @@
     
     "dependencies": {
         "dagon": "~master",
-        "dagon:ftfont": "~master",
+        "dagon:imgui": "~master",
         "dagon:newton": "~master",
-        "bindbc-soloud": "~>0.1.2"
+        "bindbc-soloud": "~>0.1"
     },
     
     "importPaths": [
@@ -24,6 +24,7 @@
     
     "sourcePaths": ["src"],
     "mainSourceFile": "src/main.d",
+    "sourceFiles-windows": ["resource.res"],
     
     "configurations": [
         {

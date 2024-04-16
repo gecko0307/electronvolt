@@ -1,8 +1,7 @@
 /*
-Copyright (c) 2019-2021 Timur Gafarov 
+Copyright (c) 2024 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
-
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
 this license (the "Software") to use, reproduce, display, distribute,
@@ -25,707 +24,86 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-
 module main;
 
 import std.stdio;
-import std.conv;
-import std.math;
-import std.random;
-import std.string;
-import std.algorithm;
-import std.regex;
-
 import dagon;
-import dagon.ext.ftfont;
 import dagon.ext.newton;
+import dagon.ext.imgui;
 import soloud;
+import scenes.mainmenu;
+import scenes.game;
+import audio;
+import ui;
 
-Vector2f lissajousCurve(float t)
+class GameApp: Game
 {
-    return Vector2f(sin(t), cos(2 * t));
-}
-
-extern(C)
-{
-    void itemContactsProcess(
-        const NewtonJoint* contactJoint,
-        dFloat timestep,
-        int threadIndex)
-    {
-        NewtonBody* b0 = NewtonJointGetBody0(contactJoint);
-        NewtonBody* b1 = NewtonJointGetBody1(contactJoint);
-        
-        void* nextContact;
-        uint numContacts = 0;
-        for (void* contact = NewtonContactJointGetFirstContact(contactJoint); contact; contact = nextContact)
-        {
-            nextContact = NewtonContactJointGetNextContact(contactJoint, contact);
-            numContacts++;
-        }
-        
-        if (numContacts)
-        {
-            NewtonRigidBody body0 = cast(NewtonRigidBody)NewtonBodyGetUserData(b0);
-            NewtonRigidBody body1 = cast(NewtonRigidBody)NewtonBodyGetUserData(b1);
-            
-            if (body0)
-            {
-                body0.onCollision(body1);
-            }
-        }
-    }
-}
-
-class GameplayScene: Scene, NewtonRaycaster
-{
-    Game game;
-    Soloud audio;
-    
-    FontAsset aFontDroidSans14;
-    ImageAsset aEnvmap;
-    TextureAsset aBRDF;
-    
-    OBJAsset aBoxMesh;
-    TextureAsset aBoxDiffuse;
-    TextureAsset aBoxNormal;
-    TextureAsset aBoxRoughnessMetallic;
-    
-    //OBJAsset aLevel;
-    ImageAsset aHeightmap;
-    TextureAsset aRocks;
-    TextureAsset aRocksNormal;
-    TextureAsset aDirt;
-    TextureAsset aDirtNormal;
-    TextureAsset aDirtSplatmap;
-    GLTFAsset aGravitygun;
-    TextureAsset aTexColorTable;
-
-    Entity cameraPivot;
-    Camera camera;
-    FirstPersonViewComponent fpview;
-
-    Light sun;
-    Color4f sunColor = Color4f(1.0f, 0.9f, 0.8f, 1.0f);
-    float sunPitch = -20.0f;
-    float sunTurn = 180.0f;
-
-    NewtonPhysicsWorld world;
-    NewtonBodyComponent[] cubeBodyControllers;
-    size_t numCubes = 10;
-    NewtonBodyComponent[] sphereBodyControllers;
-    size_t numSpheres = 20;
-    
-    NewtonRigidBody cubeBody;
-
-    Entity eCharacter;
-    NewtonCharacterComponent character;
-    
-    Entity eCube;
-
-    TextLine text;
-    
-    Array!WavStream music;
-    //WavStream radio;
-    Wav sfxGravityGunActivate;
-    Wav sfxGravityGunIdle;
-    Wav[2] sfxFootstepGround;
-    Wav[5] sfxJump;
-    Wav[2] sfxHit;
-    
-    int musicVoice;
-    //int radioVoice;
-    int hitVoice;
-
-    this(Game game, Soloud audio)
-    {
-        super(game);
-        this.game = game;
-        this.audio = audio;
-    }
-
-    ~this()
-    {
-        if (cubeBodyControllers.length)
-            Delete(cubeBodyControllers);
-        if (sphereBodyControllers.length)
-            Delete(sphereBodyControllers);
-        
-        music.free();
-    }
-
-    override void beforeLoad()
-    {
-        // TODO: store sfx and music volumes in a config
-        
-        foreach (entry; findFiles("data/music", false)
-                .filter!(entry => entry.isFile)
-                .filter!(entry => !matchFirst(entry.name, `.*\.(mp3|ogg|flac)$`).empty))
-        {
-            auto track = WavStream.create();
-            track.load(entry.name.toStringz);
-            track.setVolume(0.1f);
-            music.append(track);
-        }
-        
-        //radio = WavStream.create();
-        //radio.load("data/sounds/radio.mp3");
-        //radio.set3dDistanceDelay(true);
-        
-        sfxGravityGunActivate = Wav.create();
-        sfxGravityGunActivate.load("data/sounds/gravity_gun_activate.wav");
-        sfxGravityGunActivate.setVolume(0.5f);
-        
-        sfxGravityGunIdle = Wav.create();
-        sfxGravityGunIdle.load("data/sounds/signal.wav");
-        sfxGravityGunIdle.setVolume(0.5f);
-        
-        sfxFootstepGround[0] = Wav.create();
-        sfxFootstepGround[0].load("data/sounds/footstep_ground1.wav");
-        sfxFootstepGround[1] = Wav.create();
-        sfxFootstepGround[1].load("data/sounds/footstep_ground2.wav");
-        
-        sfxJump[0] = Wav.create();
-        sfxJump[0].load("data/sounds/jump1.wav");
-        sfxJump[1] = Wav.create();
-        sfxJump[1].load("data/sounds/jump2.wav");
-        sfxJump[2] = Wav.create();
-        sfxJump[2].load("data/sounds/jump3.wav");
-        sfxJump[3] = Wav.create();
-        sfxJump[3].load("data/sounds/jump4.wav");
-        sfxJump[4] = Wav.create();
-        sfxJump[4].load("data/sounds/jump5.wav");
-        
-        sfxHit[0] = Wav.create();
-        sfxHit[0].load("data/sounds/plastic1.wav");
-        sfxHit[0].set3dDistanceDelay(true);
-        sfxHit[1] = Wav.create();
-        sfxHit[1].load("data/sounds/plastic2.wav");
-        sfxHit[1].set3dDistanceDelay(true);
-        
-        aFontDroidSans14 = this.addFontAsset("data/font/DroidSans.ttf", 14);
-        aBoxMesh = addOBJAsset("data/meshes/box/box.obj");
-        aBoxDiffuse = addTextureAsset("data/meshes/box/box-diffuse.png");
-        aBoxNormal = addTextureAsset("data/meshes/box/box-normal.png");
-        aBoxRoughnessMetallic = addTextureAsset("data/meshes/box/box-roughness-metallic.png");
-        
-        //aLevel = addOBJAsset("data/building/building.obj");
-        aEnvmap = addImageAsset("data/envmaps/mars.png");
-        aBRDF = addTextureAsset("data/envmaps/brdf.dds");
-        
-        aHeightmap = addImageAsset("data/terrain/heightmap.png");
-        aRocks = addTextureAsset("data/terrain/rocks-albedo.png");
-        aRocksNormal = addTextureAsset("data/terrain/rocks-normal.png");
-        aDirt = addTextureAsset("data/terrain/dirt-albedo.png");
-        aDirtNormal = addTextureAsset("data/terrain/dirt-normal.png");
-        aDirtSplatmap = addTextureAsset("data/terrain/dirt-splatmap.png");
-        
-        aGravitygun = addGLTFAsset("data/meshes/gravitygun/gravitygun.gltf");
-        
-        aTexColorTable = addTextureAsset("data/fx/lut.png");
-    }
-
-    override void afterLoad()
-    {
-        world = New!NewtonPhysicsWorld(eventManager, assetManager);
-
-        world.loadPlugins("./");
-
-        cameraPivot = addEntity();
-        fpview = New!FirstPersonViewComponent(eventManager, cameraPivot);
-        camera = addCamera(cameraPivot);
-        game.renderer.activeCamera = camera;
-
-        environment.backgroundColor = Color4f(0.9f, 0.8f, 1.0f, 1.0f);
-        
-        auto envCubemap = New!Texture(assetManager);
-        envCubemap.createFromEquirectangularMap(aEnvmap.image, 1024);
-        envCubemap.enableRepeat = false;
-        environment.ambientMap = envCubemap;
-        environment.ambientEnergy = 0.4f;
-        environment.ambientBRDF = aBRDF.texture;
-        aBRDF.texture.useMipmapFiltering = false;
-        aBRDF.texture.enableRepeat = false;
-        environment.fogColor = Color4f(0.651f, 0.553f, 0.6f, 1.0f);
-        environment.fogEnd = 500.0f;
-        
-        game.deferredRenderer.ssaoEnabled = true;
-        game.deferredRenderer.ssaoPower = 4.0f;
-        game.deferredRenderer.ssaoRadius = 0.25f;
-        game.deferredRenderer.ssaoDenoise = 1.0f;
-        game.deferredRenderer.occlusionBufferDetail = 1.0f;
-        game.postProcessingRenderer.fxaaEnabled = true;
-        game.postProcessingRenderer.depthOfFieldEnabled = true;
-        game.postProcessingRenderer.autofocus = false;
-        game.postProcessingRenderer.fStop = 0.1f;
-        game.postProcessingRenderer.focalLength = 1.0f;
-        game.postProcessingRenderer.dofManual = true;
-        
-        game.postProcessingRenderer.dofNearStart = 1.0;
-        game.postProcessingRenderer.dofNearDistance = 1.0;
-        game.postProcessingRenderer.dofFarStart = 3.0;
-        game.postProcessingRenderer.dofFarDistance = 100.0;
-        
-        game.postProcessingRenderer.motionBlurEnabled = true;
-        game.postProcessingRenderer.glowEnabled = true;
-        game.postProcessingRenderer.glowThreshold = 2.0f;
-        game.postProcessingRenderer.glowIntensity = 0.5f;
-        game.postProcessingRenderer.glowRadius = 5;
-        game.postProcessingRenderer.tonemapper = Tonemapper.Unreal;
-        game.postProcessingRenderer.exposure = 1.0f;
-        game.postProcessingRenderer.lutEnabled = true;
-        game.postProcessingRenderer.colorLookupTable = aTexColorTable.texture;
-        game.postProcessingRenderer.lensDistortionEnabled = true;
-        game.postProcessingRenderer.lensDistortionDispersion = 0.05f;
-        
-        sun = addLight(LightType.Sun);
-        sun.position.y = 50.0f;
-        sun.shadowEnabled = true;
-        sun.energy = 10.0f;
-        sun.scatteringEnabled = true;
-        sun.scatteringUseShadow = true;
-        sun.scattering = 0.3f;
-        sun.mediumDensity = 0.02f;
-        sun.scatteringMaxRandomStepOffset = 0.055f;
-        sun.color = sunColor;
-        sun.rotation =
-            rotationQuaternion!float(Axis.y, degtorad(sunTurn)) *
-            rotationQuaternion!float(Axis.x, degtorad(sunPitch));
-
-        auto light1 = addLight(LightType.AreaSphere);
-        light1.castShadow = false;
-        light1.position = Vector3f(4, 6.5, -4);
-        light1.color = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
-        light1.energy = 20.0f;
-        light1.radius = 0.4f;
-        light1.volumeRadius = 10.0f;
-        light1.specular = 0.0f;
-        
-        auto light2 = addLight(LightType.AreaSphere);
-        light2.castShadow = false;
-        light2.position = Vector3f(-10, 2.5, -4);
-        light2.color = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
-        light2.energy = 15.0f;
-        light2.radius = 0.2f;
-        light2.volumeRadius = 10.0f;
-        light2.specular = 0.0f;
-        
-        auto light3 = addLight(LightType.AreaSphere);
-        light3.castShadow = false;
-        light3.position = Vector3f(-14, 2.5, 11);
-        light3.color = Color4f(1.0f, 0.5f, 0.0f, 1.0f);
-        light3.energy = 10.0f;
-        light3.radius = 0.2f;
-        light3.volumeRadius = 10.0f;
-        light3.specular = 0.0f;
-
-        auto eSky = addEntity();
-        auto psync = New!PositionSync(eventManager, eSky, camera);
-        eSky.drawable = New!ShapeBox(Vector3f(1.0f, 1.0f, 1.0f), assetManager);
-        eSky.scaling = Vector3f(100.0f, 100.0f, 100.0f);
-        eSky.layer = EntityLayer.Background;
-        eSky.material = New!Material(assetManager);
-        eSky.material.depthWrite = false;
-        eSky.material.useCulling = false;
-        eSky.material.baseColorTexture = envCubemap;
-        
-        auto box = New!NewtonBoxShape(Vector3f(0.625, 0.607, 0.65), world);
-        auto boxMat = addMaterial();
-        boxMat.baseColorTexture = aBoxDiffuse.texture;
-        boxMat.normalTexture = aBoxNormal.texture;
-        boxMat.roughnessMetallicTexture = aBoxRoughnessMetallic.texture;
-
-        cubeBodyControllers = New!(NewtonBodyComponent[])(numCubes);
-        int itemGroupID = 1;
-        NewtonMaterialSetDefaultFriction(world.newtonWorld, 0, itemGroupID, 0.2f, 0.2f);
-        NewtonMaterialSetDefaultElasticity(world.newtonWorld, 0, itemGroupID, 0.2f);
-        foreach(i; 0..cubeBodyControllers.length)
-        {
-            //size_t i = 0;
-            eCube = addEntity();
-            eCube.drawable = aBoxMesh.mesh;
-            eCube.material = boxMat;
-            eCube.position = Vector3f(3, 5 + i * 1.5, 5);
-            cubeBodyControllers[i] = eCube.makeDynamicBody(world, box, 500.0f);
-            cubeBodyControllers[i].rigidBody.raycastable = true;
-            cubeBodyControllers[i].rigidBody.groupId = itemGroupID;
-            cubeBodyControllers[i].rigidBody.collisionCallback = &onItemCollision;
-        }
-        NewtonMaterialSetCollisionCallback(world.newtonWorld, itemGroupID, world.defaultGroupId, null, &itemContactsProcess);
-
-        eCharacter = addEntity();
-        eCharacter.position = Vector3f(0, 10, 20);
-        character = eCharacter.makeCharacter(world, 1.8f, 80.0f);
-        
-        aGravitygun.markTransparentEntities();
-        useEntity(aGravitygun.rootEntity);
-        aGravitygun.rootEntity.setParent(camera);
-        foreach(node; aGravitygun.nodes)
-        {
-            useEntity(node.entity);
-            node.entity.blurMask = 0.0f;
-            node.entity.castShadow = false;
-        }
-        
-        foreach(mat; aGravitygun.materials)
-        {
-            mat.sun = sun;
-        }
-        
-        /*
-        auto levelShape = New!NewtonMeshShape(aLevel.mesh, world);
-        auto eLevel = addEntity();
-        eLevel.drawable = aLevel.mesh;
-        eLevel.turn(45);
-        auto matLevel = New!Material(assetManager);
-        matLevel.roughness = 0.3f;
-        eLevel.material = matLevel;
-        auto levelBody = world.createStaticBody(levelShape);
-        auto levelBodyController = New!NewtonBodyComponent(eventManager, eLevel, levelBody);
-        */
-        
-        auto heightmap = New!ImageHeightmap(aHeightmap.image, 1.0f, assetManager);
-        uint terrainRes = 512;
-        auto terrain = New!Terrain(terrainRes, 64, heightmap, assetManager);
-        Vector3f terrainScale = Vector3f(0.5f, 30.0f, 0.5f);
-        auto heightmapShape = New!NewtonHeightmapShape(heightmap, terrainRes, terrainRes, terrainScale, world);
-        auto eTerrain = addEntity();
-        eTerrain.position = Vector3f(-128, 0, -128);
-        eTerrain.makeStaticBody(world, heightmapShape);
-        auto eTerrainVisual = addEntity(eTerrain);
-        eTerrainVisual.dynamic = false;
-        eTerrainVisual.solid = true;
-        
-        auto terrainMaterial = environment.terrainMaterial;
-        
-        auto layer1 = terrainMaterial.addLayer();
-        layer1.baseColorTexture = aRocks.texture;
-        layer1.normalTexture = aRocksNormal.texture;
-        layer1.roughnessFactor = 0.5f;
-        layer1.textureScale = Vector2f(60, 60);
-        
-        auto layer2 = terrainMaterial.addLayer();
-        layer2.baseColorTexture = aDirt.texture;
-        layer2.normalTexture = aDirtNormal.texture;
-        layer2.roughnessFactor = 0.7f;
-        layer2.maskTexture = aDirtSplatmap.texture;
-        layer2.textureScale = Vector2f(70, 70);
-        
-        eTerrainVisual.material = terrainMaterial;
-        eTerrainVisual.drawable = terrain;
-        eTerrainVisual.scaling = terrainScale;
-
-        text = New!TextLine(aFontDroidSans14.font, "0", assetManager);
-        text.color = Color4f(1.0f, 1.0f, 1.0f, 0.7f);
-        auto eText = addEntityHUD();
-        eText.drawable = text;
-        eText.position = Vector3f(16.0f, 30.0f, 0.0f);
-        
-        playRandomMusic();
-        
-        // Play radio in 3D
-        /*
-        radioVoice = audio.play3d(radio, eCube.position.x, eCube.position.y, eCube.position.z);
-        audio.setLooping(radioVoice, true);
-        audio.set3dSourceMinMaxDistance(radioVoice, 1.0f, 5.0f);
-        audio.set3dSourceAttenuation(radioVoice, 2, 1.0f);
-        audio.update3dAudio();
-        */
-        
-        eventManager.showCursor(false);
-        fpview.active = true;
-    }
-    
-    void playRandomMusic()
-    {
-        if (music.length > 0)
-        {
-            musicVoice = audio.play(music[uniform(0, $)]);
-            audio.setLooping(musicVoice, false);
-        }
-    }
-    
-    void onItemCollision(NewtonRigidBody b1, NewtonRigidBody b2)
-    {
-        float maxContactForce = 0.0f;
-        
-        for (NewtonJoint* contactJoint = NewtonBodyGetFirstContactJoint(b1.newtonBody);
-             contactJoint;
-             contactJoint = NewtonBodyGetNextContactJoint(b1.newtonBody, contactJoint))
-        {
-            for (void* contact = NewtonContactJointGetFirstContact(contactJoint);
-                 contact;
-                 contact = NewtonContactJointGetNextContact(contactJoint, contact))
-            {
-                NewtonMaterial* material = NewtonContactGetMaterial(contact);
-                float forceMag;
-                NewtonMaterialGetContactForce(material, b1.newtonBody, &forceMag);
-                if (abs(forceMag) > maxContactForce)
-                    maxContactForce = abs(forceMag);
-            }
-        }
-        
-        onItemHit(b1, maxContactForce);
-    }
-    
-    void onItemHit(NewtonRigidBody rbody, float force)
-    {
-        const float minForce = 1000.0f;
-        const float maxForce = 5000.0f;
-        if (!audio.isValidVoiceHandle(hitVoice) && force >= minForce)
-        {
-            float forceFactor = clamp((force - minForce) / (maxForce - minForce), 0.5f, 1.0f);
-            auto hitSound = sfxHit[uniform(0, $)];
-            hitVoice = audio.play3d(hitSound, rbody.position.x, rbody.position.y, rbody.position.z);
-            audio.setInaudibleBehavior(hitVoice, false, true);
-            audio.setVolume(hitVoice, lerp(0.0f, 1.0f, forceFactor));
-        }
-    }
-
-    override void onKeyDown(int key)
-    {
-        if (key == KEY_ESCAPE)
-            application.exit();
-        else if (key == KEY_RETURN)
-        {
-            fpview.active = !fpview.active;
-            eventManager.showCursor(!fpview.active);
-            fpview.prevMouseX = eventManager.mouseX;
-            fpview.prevMouseY = eventManager.mouseY;
-        }
-    }
-    
-    override void onMouseButtonDown(int button)
-    {
-        if (button == MB_LEFT)
-        {
-            if (cubeBody)
-            {
-                cubeBody = null;
-                //audio.play(sfxGravityGunIdle);
-            }
-            else
-            {
-                raycast(character.eyePoint, character.eyePoint - camera.directionAbsolute * 30.0f);
-                if (cubeBody) {
-                    audio.play(sfxGravityGunActivate);
-                }
-            }
-        }
-        else if (button == MB_RIGHT)
-        {
-            if (cubeBody)
-            {
-                Vector3f f = camera.directionAbsolute * -50000.0f;
-                cubeBody.addForce(f);
-                cubeBody = null;
-            }
-            else
-            {
-                raycast(character.eyePoint, character.eyePoint - camera.directionAbsolute * 30.0f);
-                if (cubeBody)
-                {
-                    Vector3f f = camera.directionAbsolute * -50000.0f;
-                    cubeBody.addForce(f);
-                    cubeBody = null;
-                }
-            }
-        }
-    }
-    
-    float closestHit = 1.0f;
-    
-    bool raycast(Vector3f pstart, Vector3f pend)
-    {
-        closestHit = 1.0f;
-        world.raycast(pstart, pend, this);
-        return (closestHit < 1.0f);
-    }
-    
-    float onRayHit(NewtonRigidBody nbody, Vector3f hitPoint, Vector3f hitNormal, float t)
-    {
-        if (nbody.dynamic && t < closestHit)
-        {
-            cubeBody = nbody;
-            closestHit = t;
-        }
-        return t;
-    }
-    
-    bool playerWalking = false;
-    float camSwayTime = 0.0f;
-    float gunSwayTime = 0.0f;
-    
-    override void onUpdate(Time t)
-    {
-        updateCharacter(t);
-        updateWeaponMechanics(t);
-        world.update(t.delta);
-        updateSway(t);
-        updateText();
-        updateMusic();
-        
-        //audio.set3dSourcePosition(radioVoice, eCube.position.x, eCube.position.y, eCube.position.z);
-        Vector3f cameraPosition = camera.positionAbsolute;
-        Vector3f cameraDirection = camera.directionAbsolute;
-        Vector3f cameraUp = camera.upAbsolute;
-        audio.set3dListenerPosition(cameraPosition.x, cameraPosition.y, cameraPosition.z);
-        audio.set3dListenerAt(cameraDirection.x, cameraDirection.y, cameraDirection.z);
-        audio.set3dListenerUp(cameraUp.x, cameraUp.y, cameraUp.z);
-        audio.update3dAudio();
-    }
-    
-    bool jumped = false;
-    float footstepTimer = 0.0f;
-    uint footstepIndex = 0;
-    
-    void updateCharacter(Time t)
-    {
-        playerWalking = false;
-        const float speed = 4.0f;
-        if (inputManager.getButton("left")) { character.move(camera.rightAbsolute, -speed); playerWalking = true; }
-        if (inputManager.getButton("right")) { character.move(camera.rightAbsolute, speed); playerWalking = true; }
-        if (inputManager.getButton("forward")) { character.move(camera.directionAbsolute, -speed); playerWalking = true; }
-        if (inputManager.getButton("back")) { character.move(camera.directionAbsolute, speed); playerWalking = true; }
-        if (inputManager.getButton("jump"))
-        {
-            if (character.onGround && !jumped)
-            {
-                jumped = true;
-                audio.play(sfxJump[uniform(0, $)]);
-            }
-            character.jump(2.0f);
-        }
-        else
-        {
-            if (character.onGround) jumped = false;
-        }
-        character.updateVelocity();
-        
-        if (playerWalking && !jumped)
-        {
-            footstepTimer += t.delta;
-            if (footstepTimer > 0.5f) {
-                footstepTimer = 0.0;
-                audio.play(sfxFootstepGround[footstepIndex]);
-                footstepIndex = footstepIndex? 0 : 1;
-            }
-        }
-    }
-    
-    void updateWeaponMechanics(Time t)
-    {
-        const Vector3f targetPos = character.eyePoint - camera.directionAbsolute * 1.5f;
-        if (cubeBody)
-        {
-            const Vector3f deltaPos = targetPos - cubeBody.position.xyz;
-            const Vector3f velocity = deltaPos / t.delta * 0.3f;
-            const Vector3f velocityDir = velocity.normalized;
-            const float speed = velocity.length;
-            if (speed > 10.0f)
-                cubeBody.velocity = velocityDir * 10.0f;
-            else
-                cubeBody.velocity = velocity;
-        }
-    }
-    
-    void updateSway(Time t)
-    {
-        if (playerWalking && character.onGround)
-        {
-            camSwayTime += 7.0f * t.delta;
-            gunSwayTime += 7.0f * t.delta;
-        }
-        else 
-        {
-            gunSwayTime += 1.0f * t.delta;
-        }
-
-        if (camSwayTime >= 2.0f * PI)
-            camSwayTime = 0.0f;
-        if (gunSwayTime >= 2.0f * PI)
-            gunSwayTime = 0.0f;
-        
-        cameraPivot.position = character.eyePoint;
-        Vector2f camSway = lissajousCurve(camSwayTime) / 15.0f;
-        camera.position = Vector3f(camSway.x, camSway.y, 0.0f);
-
-        Vector2f gunSway = lissajousCurve(gunSwayTime) / 15.0f;
-        aGravitygun.rootEntity.position = 
-            Vector3f(0.1, -0.25, -0.2) + 
-            Vector3f(gunSway.x * 0.1f, gunSway.y * 0.1f - fpview.pitch / 90.0f * 0.05f, 0.0f);
-        aGravitygun.rootEntity.rotation = rotationQuaternion!float(Axis.x, degtorad(fpview.pitch * 0.1f));
-    }
-    
-    char[100] txt;
-    void updateText()
-    {
-        uint n = sprintf(txt.ptr, "FPS: %u", cast(int)(1.0 / eventManager.deltaTime));
-        string s = cast(string)txt[0..n];
-        text.setText(s);
-    }
-    
-    void updateMusic()
-    {
-        if (music.length > 0)
-        {
-            if (!audio.isValidVoiceHandle(musicVoice))
-                playRandomMusic();
-        }
-    }
-}
-
-class TestGame: Game
-{
-    Soloud audio;
+    UI ui;
     
     this(uint w, uint h, bool fullscreen, string title, string[] args)
     {
         super(w, h, fullscreen, title, args);
-        audio = Soloud.create();
-        audio.init(Soloud.CLIP_ROUNDOFF | Soloud.LEFT_HANDED_3D);
-        currentScene = New!GameplayScene(this, audio);
+        
+        auto mainMenuScene = New!MainMenuScene(this);
+        scenes["MainMenu"] = mainMenuScene;
+        currentScene = mainMenuScene;
+        ui = New!UI(this, mainMenuScene, args);
+        eventManager.onProcessEvent = &ui.onProcessEvent;
     }
     
-    ~this()
+    override void onUpdate(Time t)
     {
-        audio.stopAll();
-        audio.deinit();
+        super.onUpdate(t);
+        if (ui.visible)
+        {
+            ui.update(t);
+            //currentScene.focused = !ui.capturesMouse;
+        }
+    }
+    
+    override void onRender()
+    {
+        super.onRender();
+        if (ui.visible)
+        {
+            ui.render();
+        }
+    }
+    
+    override void setCurrentScene(string name, bool releaseCurrent = false)
+    {
+        super.setCurrentScene(name, releaseCurrent);
+        
+        if (name == "MainMenu")
+        {
+            ui.visible = true;
+        }
+        
+        currentScene.focused = true;
+    }
+    
+    override void exit()
+    {
+        stopMusic();
+        super.exit();
     }
 }
 
-import loader = bindbc.loader.sharedlib;
-
 void main(string[] args)
 {
-    // TODO: move this to dagon:newton extension
-    NewtonSupport newtonSupport = loadNewton();
-    writeln("Newton support: ", newtonSupport);
-    foreach(info; loader.errors)
-    {
-        writeln(info.error.to!string, " ", info.message.to!string);
-    }
-    if (newtonSupport == NewtonSupport.noLibrary)
-    {
-        writeln("Failed to load Newton");
-        return;
-    }
+    debug enableMemoryProfiler(true);
     
-    SLSupport slSupport = loadSoloud();
-    writeln("SoLoud support: ", slSupport);
-    foreach(info; loader.errors)
+    loadNewton();
+    loadSoloud();
+    loadImGui();
+    initSound();
+    GameApp app = New!GameApp(1280, 720, false, "Electronvolt 1.0.0", args);
+    app.run();
+    Delete(app);
+    
+    debug
     {
-        writeln(info.error.to!string, " ", info.message.to!string);
+        if (allocatedMemory > 0)
+            printMemoryLeaks();
     }
-    if (slSupport == SLSupport.noLibrary)
-    {
-        writeln("Failed to load SoLoud");
-        return;
-    }
-
-    TestGame game = New!TestGame(1600, 900, false, "eV [dev]", args);
-    game.run();
-    Delete(game);
-
-    writeln("Allocated memory: ", allocatedMemory());
 }
