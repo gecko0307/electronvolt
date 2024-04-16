@@ -18,4 +18,4 @@ Building
 --------
 To build the demo, run `dub build --build=release-nobounds`.
 
-The repository contains only the source code. To run Electronvolt, you'll need binary data which is available [here](https://drive.google.com/file/d/1hj390QgVPE82rwGyUdz9j-5hR5IbqVIe/view?usp=sharing). Download the archive `eV-data.zip`, unpack it and put the `data` folder alongside with the executable.
+The repository contains only the source code. To run Electronvolt, you'll need binary data which is available [here](https://drive.google.com/file/d/1Lnou9q5CwtwIWarLfWr_xCDp94E7ixv0/view?usp=sharing). Download the archive `eV-assets.7z`, unpack it and put the contents to the `assets` folder alongside with the executable.
