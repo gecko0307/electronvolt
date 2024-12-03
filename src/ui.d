@@ -419,6 +419,7 @@ class UI: EventListener
             
             if (changed)
             {
+                // TODO: async update
                 writeSettingsFile();
             }
             
