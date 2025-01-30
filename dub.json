@@ -2,7 +2,7 @@
     "name": "electronvolt",
     "description": "FPS with physics based puzzles",
     "homepage": "https://github.com/gecko0307/electronvolt",
-    "license": "Boost",
+    "license": "BSL-1.0",
     "authors": [
         "Timur Gafarov"
     ],
@@ -11,6 +11,7 @@
         "dagon": "~master",
         "dagon:imgui": "~master",
         "dagon:newton": "~master",
+        "bindbc-loader": "1.1.4",
         "bindbc-soloud": "~>0.1"
     },
     
@@ -29,7 +30,10 @@
     "configurations": [
         {
             "name": "application",
-            "targetType": "executable"
+            "targetType": "executable",
+            "postBuildCommands-windows": [
+                "$PACKAGE_DIR\\bin/rcedit-x64 \"electronvolt.exe\" --set-file-version \"1.0.0.0\" --set-product-version \"1.0.0\" --set-icon \"$PACKAGE_DIR\\icon.ico\" --application-manifest \"$PACKAGE_DIR\\electronvolt.manifest\""
+            ],
         }
     ]
 }

@@ -29,10 +29,13 @@ docs/
 # Dagon files
 gamecontrollerdb.txt
 data/
+
+# Assets
 assets/
 
 # DLLs
-freetype.dll
+cimgui.dll
+freetype-6.dll
 newton.dll
 nuklear.dll
 SDL2.dll
@@ -43,8 +46,12 @@ soloud.dll
 
 # Scripts
 *.bat
+*.ps1
 *.sh
 
 # Resolve
 .resolve/
 dependencies.json
+
+# ImGui files
+imgui.ini

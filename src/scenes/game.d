@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Timur Gafarov
+Copyright (c) 2024-2025 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 Permission is hereby granted, free of charge, to any person or organization
@@ -42,229 +42,6 @@ Vector2f lissajousCurve(float t)
 {
     return Vector2f(sin(t), cos(2 * t));
 }
-
-extern(C)
-{
-    void itemContactsProcess(
-        const NewtonJoint* contactJoint,
-        dFloat timestep,
-        int threadIndex)
-    {
-        NewtonBody* b0 = NewtonJointGetBody0(contactJoint);
-        NewtonBody* b1 = NewtonJointGetBody1(contactJoint);
-        
-        void* nextContact;
-        uint numContacts = 0;
-        for (void* contact = NewtonContactJointGetFirstContact(contactJoint); contact; contact = nextContact)
-        {
-            nextContact = NewtonContactJointGetNextContact(contactJoint, contact);
-            numContacts++;
-        }
-        
-        if (numContacts)
-        {
-            NewtonRigidBody body0 = cast(NewtonRigidBody)NewtonBodyGetUserData(b0);
-            NewtonRigidBody body1 = cast(NewtonRigidBody)NewtonBodyGetUserData(b1);
-            
-            if (body0)
-            {
-                body0.onCollision(body1);
-            }
-        }
-    }
-}
-
-/*
-class GameScene: Scene
-{
-    Game game;
-    UI ui;
-    
-    GameLoadingScreen loadingScreen;
-    Camera camera;
-    FirstPersonViewComponent fpview;
-    TextureAsset aTexEnvmap;
-    TextureAsset aTexBrdf;
-    
-    OBJAsset map;
-    TextureAsset brickBaseColor;
-    TextureAsset brickNormal;
-    
-    Entity eCharacter;
-    NewtonCharacterComponent character;
-    NewtonPhysicsWorld physicsWorld;
-    
-    Light sun;
-
-    this(Game game, UI ui)
-    {
-        super(game);
-        this.game = game;
-        this.ui = ui;
-        loadingScreen = New!GameLoadingScreen("assets/ui/bg1.jpg", game, this);
-    }
-    
-    override void beforeLoad()
-    {
-        map = addOBJAsset("assets/maps/test.obj");
-        brickBaseColor = addTextureAsset("assets/maps/brick-base-color.png");
-        brickNormal = addTextureAsset("assets/maps/brick-normal.png");
-        
-        aTexEnvmap = addTextureAsset("assets/envmap.dds");
-        aTexBrdf = addTextureAsset("assets/brdf.dds");
-        
-        focused = false;
-    }
-    
-    override void onLoad(Time t, float progress)
-    {
-        loadingScreen.update(t, progress);
-        loadingScreen.render();
-    }
-
-    override void afterLoad()
-    {
-        focused = true;
-        
-        game.deferredRenderer.ssaoEnabled = true;
-        game.deferredRenderer.ssaoSamples = 20;
-        game.deferredRenderer.ssaoPower = 6.0f;
-        game.deferredRenderer.ssaoRadius = 0.5;
-        game.deferredRenderer.ssaoDenoise = 0.2f;
-        game.deferredRenderer.occlusionBufferDetail = 1.0f;
-        game.postProcessingRenderer.fxaaEnabled = true;
-        game.postProcessingRenderer.glowEnabled = true;
-        game.postProcessingRenderer.glowThreshold = 1.0f;
-        game.postProcessingRenderer.glowIntensity = 0.3f;
-        game.postProcessingRenderer.glowRadius = 4;
-        game.postProcessingRenderer.tonemapper = Tonemapper.AgX_Punchy;
-        
-        environment.backgroundColor = Color4f(0.8f, 0.9f, 1.0f, 1.0f);
-        environment.fogColor = environment.backgroundColor;
-        environment.fogStart = 500.0f;
-        environment.fogEnd = 1000.0f;
-        //environment.ambientMap = aTexEnvmap.texture;
-        //environment.ambientBRDF = aTexBrdf.texture;
-        environment.ambientColor = environment.backgroundColor;
-        environment.ambientEnergy = 0.5f; //0.25f;
-        aTexBrdf.texture.useMipmapFiltering = false;
-        aTexBrdf.texture.enableRepeat(false);
-        
-        physicsWorld = New!NewtonPhysicsWorld(eventManager, assetManager);
-        
-        camera = addCamera();
-        camera.position = Vector3f(1.0f, 2.0f, 0.0f);
-        fpview = New!FirstPersonViewComponent(eventManager, camera);
-        game.renderer.activeCamera = camera;
-
-        sun = addLight(LightType.Sun);
-        sun.shadowEnabled = true;
-        sun.energy = 10.0f;
-        //sun.scatteringEnabled = true;
-        //sun.scattering = 0.3f;
-        //sun.mediumDensity = 0.075f;
-        //sun.scatteringUseShadow = true;
-        //sun.scatteringMaxRandomStepOffset = 0.055f;
-        sun.pitch(-45.0f);
-        sun.turn(45.0f);
-        environment.sun = sun;
-        
-        auto sky = addEntity();
-        sky.layer = EntityLayer.Background;
-        auto psync = New!PositionSync(eventManager, sky, camera);
-        sky.drawable = New!ShapeBox(Vector3f(1.0f, 1.0f, 1.0f), assetManager);
-        sky.scaling = Vector3f(100.0f, 100.0f, 100.0f);
-        sky.material = addMaterial();
-        sky.material.depthWrite = false;
-        sky.material.useCulling = false;
-        sky.material.shader = New!RayleighShader(assetManager);
-        
-        auto mBrick = addMaterial();
-        mBrick.baseColorTexture = brickBaseColor.texture;
-        mBrick.normalTexture = brickNormal.texture;
-        
-        auto eMap = addEntity();
-        eMap.material = mBrick;
-        eMap.drawable = map.mesh;
-        auto mapShape = New!NewtonMeshShape(map.mesh, physicsWorld);
-        NewtonRigidBody mapBody = physicsWorld.createStaticBody(mapShape);
-        auto mapBodyController = New!NewtonBodyComponent(eventManager, eMap, mapBody);
-        
-        eCharacter = addEntity();
-        eCharacter.position = Vector3f(0, 2, 20);
-        character = eCharacter.makeCharacter(physicsWorld, 1.8f, 80.0f);
-        
-        onReset();
-    }
-    
-    override void onReset()
-    {
-        game.hudRenderer.passHUD.clear = false;
-        
-        if (camera)
-            game.renderer.activeCamera = camera;
-        
-        paused = false;
-        
-        playMusic("assets/music/frazil-ice.mp3");
-    }
-    
-    override void onKeyDown(int key)
-    {
-        if (key == KEY_ESCAPE)
-        {
-            playSound("assets/sfx/close.wav");
-            if (paused == false)
-                pause();
-            else
-                resume();
-        }
-    }
-    
-    void pause()
-    {
-        paused = true;
-        fpview.active = false;
-        eventManager.showCursor(true);
-        ui.visible = true;
-    }
-    
-    void resume()
-    {
-        paused = false;
-        fpview.active = true;
-        eventManager.showCursor(false);
-        ui.visible = false;
-    }
-    
-    override void onUserEvent(int code)
-    {
-        if (code == 1) // resume
-            resume();
-    }
-    
-    override void onUpdate(Time time)
-    {
-        if (paused)
-            return;
-        
-        updateCharacter();
-        physicsWorld.update(time.delta);
-        camera.position = character.eyePoint;
-    }
-    
-    void updateCharacter()
-    {
-        float speed = 6.0f;
-        if (inputManager.getButton("left")) character.move(camera.right, -speed);
-        if (inputManager.getButton("right")) character.move(camera.right, speed);
-        if (inputManager.getButton("forward")) character.move(camera.direction, -speed);
-        if (inputManager.getButton("back")) character.move(camera.direction, speed);
-        if (inputManager.getButton("jump")) character.jump(2.0f);
-        character.updateVelocity();
-    }
-}
-*/
 
 class GameScene: Scene, NewtonRaycaster
 {
@@ -359,9 +136,6 @@ class GameScene: Scene, NewtonRaycaster
                 .filter!(entry => entry.isFile)
                 .filter!(entry => !matchFirst(entry.name, `.*\.(mp3|ogg|flac)$`).empty))
         {
-            //auto track = WavStream.create();
-            //track.load(entry.name.toStringz);
-            //track.setVolume(0.1f);
             music.append(entry.name);
         }
         
@@ -489,7 +263,7 @@ class GameScene: Scene, NewtonRaycaster
 
         eCharacter = addEntity();
         eCharacter.position = Vector3f(0, 10, 20);
-        character = eCharacter.makeCharacter(world, 1.8f, 80.0f);
+        character = eCharacter.makeCharacter(world, 1.8f, 0.5f, 80.0f);
         
         aGravitygun.markTransparentEntities();
         useEntity(aGravitygun.rootEntity);
@@ -585,7 +359,6 @@ class GameScene: Scene, NewtonRaycaster
             if (cubeBody)
             {
                 cubeBody = null;
-                //audio.playSound("assets/sounds/signal.wav");
             }
             else
             {

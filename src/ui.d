@@ -193,16 +193,15 @@ class UI: EventListener
         
         ImGuiID mainDockSpaceId = igDockSpaceOverViewport(viewport, ImGuiDockNodeFlags.PassthruCentralNode);
         
-        igPushStyleColor(ImGuiCol.TitleBgActive, ImVec4(1.0f, 0.5f, 0.2f, 0.9f));
+        //igPushStyleColor(ImGuiCol.TitleBgActive, ImVec4(1.0f, 0.5f, 0.2f, 0.9f));
         igPushStyleColor(ImGuiCol.FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-        igPushStyleColor(ImGuiCol.ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+        //igPushStyleColor(ImGuiCol.ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
         igPushStyleColor(ImGuiCol.Header, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
         igPushStyleColor(ImGuiCol.HeaderHovered, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
-        igPushStyleColor(ImGuiCol.HeaderActive, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
-        igPushStyleColor(ImGuiCol.CheckMark, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-        igPushStyleColor(ImGuiCol.SliderGrab, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
-        igPushStyleColor(ImGuiCol.SliderGrabActive, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
-        
+        //igPushStyleColor(ImGuiCol.HeaderActive, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
+        //igPushStyleColor(ImGuiCol.CheckMark, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+        //igPushStyleColor(ImGuiCol.SliderGrab, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
+        //igPushStyleColor(ImGuiCol.SliderGrabActive, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
         
         if (game.currentScene is mainMenuScene)
         {
@@ -376,8 +375,9 @@ class UI: EventListener
         igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
         if (igBegin("Settings", &settingsVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
         {
-            igPushStyleColor(ImGuiCol.FrameBg, ImVec4(1.0f, 0.5f, 0.2f, 0.5f));
-            igPushStyleColor(ImGuiCol.FrameBgHovered, ImVec4(1.0f, 0.5f, 0.2f, 0.75f));
+            igPushStyleColor(ImGuiCol.FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
+            //igPushStyleColor(ImGuiCol.FrameBg, ImVec4(1.0f, 0.5f, 0.2f, 0.5f));
+            //igPushStyleColor(ImGuiCol.FrameBgHovered, ImVec4(1.0f, 0.5f, 0.2f, 0.75f));
             
             bool changed = false;
             
@@ -419,7 +419,6 @@ class UI: EventListener
             
             if (changed)
             {
-                // TODO: async update
                 writeSettingsFile();
             }
             
