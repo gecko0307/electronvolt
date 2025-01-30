@@ -467,7 +467,7 @@ class GameScene: Scene, NewtonRaycaster
                 audio.playSound(jumpSounds[uniform(0, $)]);
             }
             
-            character.jump(2.0f);
+            character.jump(4.0f);
         }
         else
         {
