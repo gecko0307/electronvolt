@@ -37,8 +37,8 @@ assets/
 cimgui.dll
 freetype-6.dll
 newton.dll
-nuklear.dll
 SDL2.dll
+SDL2_Image.dll
 dgNewtonAvx.dll
 dgNewtonAvx2.dll
 dgNewtonSse4.2.dll

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Timur Gafarov
+Copyright (c) 2024-2025 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 Permission is hereby granted, free of charge, to any person or organization
@@ -57,7 +57,6 @@ class GameApp: Game
         if (ui.visible)
         {
             ui.update(t);
-            //currentScene.focused = !ui.capturesMouse;
         }
     }
     
@@ -100,6 +99,7 @@ void main(string[] args)
     GameApp app = New!GameApp(1280, 720, false, "Electronvolt 1.0.0", args);
     app.run();
     Delete(app);
+    releaseSound();
     
     debug
     {

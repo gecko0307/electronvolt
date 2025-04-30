@@ -8,9 +8,9 @@
     ],
     
     "dependencies": {
-        "dagon": "~master",
-        "dagon:imgui": "~master",
-        "dagon:newton": "~master",
+        "dagon": "~>0.21.1",
+        "dagon:imgui": "~>0.21.1",
+        "dagon:newton": "~>0.21.1",
         "bindbc-loader": "1.1.4",
         "bindbc-soloud": "~>0.1"
     },

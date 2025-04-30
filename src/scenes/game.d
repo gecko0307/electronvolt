@@ -50,7 +50,7 @@ class GameScene: Scene, NewtonRaycaster
     
     GameLoadingScreen loadingScreen;
     
-    ImageAsset aEnvmap;
+    TextureAsset aEnvmap;
     TextureAsset aBRDF;
     
     OBJAsset aBoxMesh;
@@ -58,7 +58,7 @@ class GameScene: Scene, NewtonRaycaster
     TextureAsset aBoxNormal;
     TextureAsset aBoxRoughnessMetallic;
     
-    ImageAsset aHeightmap;
+    TextureAsset aHeightmap;
     TextureAsset aRocks;
     TextureAsset aRocksNormal;
     TextureAsset aDirt;
@@ -144,10 +144,11 @@ class GameScene: Scene, NewtonRaycaster
         aBoxNormal = addTextureAsset("assets/meshes/box/box-normal.png");
         aBoxRoughnessMetallic = addTextureAsset("assets/meshes/box/box-roughness-metallic.png");
         
-        aEnvmap = addImageAsset("assets/envmaps/mars.png");
+        aEnvmap = addTextureAsset("assets/envmaps/mars.png");
         aBRDF = addTextureAsset("assets/envmaps/brdf.dds");
         
-        aHeightmap = addImageAsset("assets/terrain/heightmap.png");
+        aHeightmap = addTextureAsset("assets/terrain/heightmap.png");
+        aHeightmap.persistent = true;
         aRocks = addTextureAsset("assets/terrain/rocks-albedo.png");
         aRocksNormal = addTextureAsset("assets/terrain/rocks-normal.png");
         aDirt = addTextureAsset("assets/terrain/dirt-albedo.png");
@@ -172,14 +173,11 @@ class GameScene: Scene, NewtonRaycaster
         cameraPivot = addEntity();
         fpview = New!FirstPersonViewComponent(eventManager, cameraPivot);
         camera = addCamera(cameraPivot);
-        //game.renderer.activeCamera = camera;
 
         environment.backgroundColor = Color4f(0.9f, 0.8f, 1.0f, 1.0f);
         
-        auto envCubemap = New!Texture(assetManager);
-        envCubemap.createFromEquirectangularMap(aEnvmap.image, 1024);
-        envCubemap.enableRepeat = false;
-        environment.ambientMap = envCubemap;
+        aEnvmap.texture.enableRepeat = false;
+        environment.ambientMap = aEnvmap.texture;
         environment.ambientEnergy = 0.4f;
         environment.ambientBRDF = aBRDF.texture;
         aBRDF.texture.useMipmapFiltering = false;
@@ -239,7 +237,7 @@ class GameScene: Scene, NewtonRaycaster
         eSky.material = New!Material(assetManager);
         eSky.material.depthWrite = false;
         eSky.material.useCulling = false;
-        eSky.material.baseColorTexture = envCubemap;
+        eSky.material.baseColorTexture = aEnvmap.texture;
         
         auto box = New!NewtonBoxShape(Vector3f(0.625, 0.607, 0.65), world);
         auto boxMat = addMaterial();
