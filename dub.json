@@ -32,7 +32,7 @@
             "name": "application",
             "targetType": "executable",
             "postBuildCommands-windows": [
-                "$PACKAGE_DIR\\bin/rcedit-x64 \"electronvolt.exe\" --set-file-version \"1.0.0.0\" --set-product-version \"1.0.0\" --set-icon \"$PACKAGE_DIR\\icon.ico\" --application-manifest \"$PACKAGE_DIR\\electronvolt.manifest\""
+                "$PACKAGE_DIR\\bin/rcedit-x64 \"electronvolt.exe\" --set-file-version \"0.0.7.0\" --set-product-version \"0.0.7\" --set-icon \"$PACKAGE_DIR\\icon.ico\" --application-manifest \"$PACKAGE_DIR\\electronvolt.manifest\""
             ],
         }
     ]

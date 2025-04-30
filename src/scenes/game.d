@@ -334,6 +334,8 @@ class GameScene: Scene, NewtonRaycaster
             audio.playMusic(music[uniform(0, $)], true);
         }
     }
+    
+    uint numScreenshots = 0;
 
     override void onKeyDown(int key)
     {
@@ -344,6 +346,10 @@ class GameScene: Scene, NewtonRaycaster
                 resume();
             else
                 pause();
+        }
+        else if (key == KEY_F12)
+        {
+            game.takeScreenshot("./screenshots/");
         }
     }
     
