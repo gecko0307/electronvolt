@@ -118,8 +118,6 @@ class UI: EventListener
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.ConfigWindowsMoveFromTitleBarOnly = true;
         
-        //auto font = ImFontAtlas_AddFontDefault(io.Fonts);
-        
         ImWchar[] ranges = [
             0x0020, 0x00FF, // Basic Latin + Latin Supplement
             0x0370, 0x03FF, // Greek
@@ -167,8 +165,7 @@ class UI: EventListener
     
     void onProcessEvent(SDL_Event* event)
     {
-        if (visible)
-            ImGui_ImplSDL2_ProcessEvent(event);
+        ImGui_ImplSDL2_ProcessEvent(event);
     }
     
     bool capturesMouse() @property const
@@ -185,6 +182,9 @@ class UI: EventListener
     {
         processEvents();
         
+        if (!visible)
+            return;
+        
         ImGuiOpenGLBackend.new_frame();
         ImGui_ImplSDL2_NewFrame();
         igNewFrame();
@@ -193,15 +193,8 @@ class UI: EventListener
         
         ImGuiID mainDockSpaceId = igDockSpaceOverViewport(viewport, ImGuiDockNodeFlags.PassthruCentralNode);
         
-        //igPushStyleColor(ImGuiCol.TitleBgActive, ImVec4(1.0f, 0.5f, 0.2f, 0.9f));
         igPushStyleColor(ImGuiCol.FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-        //igPushStyleColor(ImGuiCol.ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
         igPushStyleColor(ImGuiCol.Header, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-        igPushStyleColor(ImGuiCol.HeaderHovered, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
-        //igPushStyleColor(ImGuiCol.HeaderActive, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
-        //igPushStyleColor(ImGuiCol.CheckMark, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-        //igPushStyleColor(ImGuiCol.SliderGrab, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
-        //igPushStyleColor(ImGuiCol.SliderGrabActive, ImVec4(1.0f, 0.5f, 0.2f, 0.8f));
         
         if (game.currentScene is mainMenuScene)
         {
@@ -224,7 +217,7 @@ class UI: EventListener
         igSetNextWindowSize(ImVec2(eventManager.windowWidth, eventManager.windowHeight));
         igSetNextWindowPos(ImVec2(0, 0));
         igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
-        if (igBegin("PauseBackground", null, defaultFlags))
+        if (igBegin("PauseBackground", null, defaultFlags | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoFocusOnAppearing))
         {
             igEnd();
         }
@@ -376,8 +369,6 @@ class UI: EventListener
         if (igBegin("Settings", &settingsVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
         {
             igPushStyleColor(ImGuiCol.FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
-            //igPushStyleColor(ImGuiCol.FrameBg, ImVec4(1.0f, 0.5f, 0.2f, 0.5f));
-            //igPushStyleColor(ImGuiCol.FrameBgHovered, ImVec4(1.0f, 0.5f, 0.2f, 0.75f));
             
             bool changed = false;
             

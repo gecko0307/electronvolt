@@ -55,3 +55,6 @@ dependencies.json
 
 # ImGui files
 imgui.ini
+
+# Screenshots
+screenshots/*.png
