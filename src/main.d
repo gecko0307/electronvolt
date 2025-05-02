@@ -54,10 +54,7 @@ class GameApp: Game
     override void onUpdate(Time t)
     {
         super.onUpdate(t);
-        if (ui.visible)
-        {
-            ui.update(t);
-        }
+        ui.update(t);
     }
     
     override void onRender()
