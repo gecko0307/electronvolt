@@ -91,6 +91,8 @@ void main(string[] args)
 {
     debug enableMemoryProfiler(true);
     
+    setLogFilename("electronvolt.log");
+    
     loadNewton();
     loadSoloud();
     loadImGui();
@@ -99,12 +101,12 @@ void main(string[] args)
     {
         import loader = bindbc.loader.sharedlib;
         foreach(info; loader.errors)
-            writeln(info.error.to!string, " ", info.message.to!string);
+            logError(info.error.to!string, " ", info.message.to!string);
     }
 
     initSound();
 
-    GameApp app = New!GameApp(1280, 720, false, "Electronvolt 1.0.0", args);
+    GameApp app = New!GameApp(1280, 720, false, "Electronvolt 0.0.7", args);
     app.run();
     Delete(app);
 

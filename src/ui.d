@@ -382,7 +382,7 @@ class UI: EventListener
             
             if (igCombo_Str_arr("Video mode", &currentVideoMode, videoModesPointers.ptr, videoModesPointers.length))
             {
-                writeln("Video mode: ", videoModes[currentVideoMode]);
+                logInfo("Video mode: ", videoModes[currentVideoMode]);
                 auto windowSize = resolutions[currentVideoMode];
                 game.setWindowSize(windowSize[0], windowSize[1]);
                 game.centerWindow();
@@ -394,7 +394,7 @@ class UI: EventListener
             
             if (igCheckbox("Fullscreen", &fullscreen))
             {
-                writeln("Fullscreen: ", fullscreen);
+                logInfo("Fullscreen: ", fullscreen);
                 game.setFullscreen(fullscreen);
                 game.centerWindow();
                 game.config.props.set(DPropType.Number, "fullscreen", (cast(uint)fullscreen).to!string);

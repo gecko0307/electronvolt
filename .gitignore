@@ -56,5 +56,8 @@ dependencies.json
 # ImGui files
 imgui.ini
 
+# Log
+electronvolt.log
+
 # Screenshots
 screenshots/*.png
