@@ -114,6 +114,7 @@ class UI: EventListener
         
         igContext = igCreateContext(null);
         igSetCurrentContext(igContext);
+
         io = igGetIO();
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.ConfigWindowsMoveFromTitleBarOnly = true;
@@ -130,6 +131,7 @@ class UI: EventListener
         igStyleColorsDark(null);
         
         ImGui_ImplSDL2_InitForOpenGL(game.window, game.glcontext);
+
         ImGuiOpenGLBackend.init("#version 130");
         
         fullscreen = game.fullscreen;
@@ -208,6 +210,8 @@ class UI: EventListener
         
         if (settingsVisible)
             renderSettings();
+
+        igPopStyleColor(2);
         
         igRender();
     }
@@ -221,6 +225,7 @@ class UI: EventListener
         {
             igEnd();
         }
+        igPopStyleColor();
     }
     
     void renderMainMenu()
@@ -290,6 +295,7 @@ class UI: EventListener
             
             igEnd();
         }
+        igPopStyleColor();
     }
     
     void renderPauseMenu()
@@ -357,6 +363,8 @@ class UI: EventListener
             
             igEnd();
         }
+
+        igPopStyleColor();
     }
     
     void renderSettings()
@@ -412,9 +420,12 @@ class UI: EventListener
             {
                 writeSettingsFile();
             }
+
+            igPopStyleColor();
             
             igEnd();
         }
+        igPopStyleColor();
         
         if (!settingsVisible)
             playSound("assets/sounds/close.wav");

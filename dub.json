@@ -26,6 +26,7 @@
     "sourcePaths": ["src"],
     "mainSourceFile": "src/main.d",
     "sourceFiles-windows": ["resource.res"],
+    "lflags-linux": ["-rpath=$$ORIGIN"],
     
     "configurations": [
         {

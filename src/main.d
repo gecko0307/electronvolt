@@ -27,6 +27,7 @@ DEALINGS IN THE SOFTWARE.
 module main;
 
 import std.stdio;
+import std.conv;
 import dagon;
 import dagon.ext.newton;
 import dagon.ext.imgui;
@@ -47,6 +48,7 @@ class GameApp: Game
         auto mainMenuScene = New!MainMenuScene(this);
         scenes["MainMenu"] = mainMenuScene;
         currentScene = mainMenuScene;
+
         ui = New!UI(this, mainMenuScene, args);
         eventManager.onProcessEvent = &ui.onProcessEvent;
     }
@@ -92,10 +94,20 @@ void main(string[] args)
     loadNewton();
     loadSoloud();
     loadImGui();
+
+    debug
+    {
+        import loader = bindbc.loader.sharedlib;
+        foreach(info; loader.errors)
+            writeln(info.error.to!string, " ", info.message.to!string);
+    }
+
     initSound();
+
     GameApp app = New!GameApp(1280, 720, false, "Electronvolt 1.0.0", args);
     app.run();
     Delete(app);
+
     releaseSound();
     
     debug
