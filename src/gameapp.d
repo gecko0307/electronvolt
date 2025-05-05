@@ -47,12 +47,16 @@ class GameApp: Game
     bool signedIn = false;
     string username = "";
     string usertoken = "";
+    Dict!(Trophy, TrophyId) trophies;
     
     this(uint w, uint h, bool fullscreen, string title, string[] args)
     {
         super(w, h, fullscreen, title, args);
         
         fs = New!StdFileSystem();
+        
+        trophies = dict!(Trophy, TrophyId);
+        addTrophy(TrophyId.SuccessfulLanding);
         
         auto mainMenuScene = New!MainMenuScene(this);
         scenes["MainMenu"] = mainMenuScene;
@@ -76,6 +80,14 @@ class GameApp: Game
     ~this()
     {
         Delete(fs);
+        Delete(trophies);
+    }
+    
+    Trophy addTrophy(TrophyId id)
+    {
+        Trophy trophy = New!Trophy(id, this);
+        trophies[id] = trophy;
+        return trophy;
     }
     
     override void onUpdate(Time t)
@@ -122,6 +134,8 @@ class GameApp: Game
                 persistentStorage.username = this.username;
                 persistentStorage.usertoken = this.usertoken;
             }
+            //TODO:
+            //if (!naveTrophy(Trophy.SuccessfulLanding))
             //award(Trophy.SuccessfulLanding);
             return true;
         }
@@ -129,10 +143,10 @@ class GameApp: Game
             return false;
     }
     
-    bool award(Trophy trophy)
+    bool award(TrophyId id)
     {
         if (username.length && usertoken.length)
-            return giveTrophy(username, usertoken, trophy);
+            return giveTrophy(username, usertoken, id);
         else
             return false;
     }

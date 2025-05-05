@@ -30,8 +30,10 @@ import std.net.curl;
 import std.json;
 import std.stdio;
 import std.exception;
+import std.conv;
 
 import dlib.core.memory;
+import dlib.core.ownership;
 import dlib.text.str;
 import dlib.serialization.json;
 
@@ -41,9 +43,33 @@ import dagon.core.logger;
  * Connection to Electronvolt game server that manages GameJolt trophies
  */
  
-enum Trophy: string
+enum TrophyId: int
 {
-    SuccessfulLanding = "267023"
+    SuccessfulLanding = 267023
+}
+
+enum TrophyDifficulty
+{
+    Bronze = 0,
+    Silver = 1,
+    Gold = 2,
+    Platinum = 3
+}
+
+class Trophy: Owner
+{
+    TrophyId id;
+    string title;
+    string description;
+    TrophyDifficulty difficulty;
+    string imageUrl;
+    bool achieved = false;
+    
+    this(TrophyId id, Owner o)
+    {
+        super(o);
+        this.id = id;
+    }
 }
 
 bool loginToGameServer(string username, string userToken)
@@ -105,7 +131,7 @@ bool loginToGameServer(string username, string userToken)
         return error("Invalid response");
 }
 
-bool giveTrophy(string username, string userToken, string trophyId)
+bool giveTrophy(string username, string userToken, int trophyId)
 {
     JSONDocument doc;
     bool error(string msg)
@@ -128,7 +154,7 @@ bool giveTrophy(string username, string userToken, string trophyId)
     }
     
     string url = "https://xtreme3d.ru/gamejolt-server/trophy.php";
-    string postData = "username=" ~ username ~ "&token=" ~ userToken ~ "&trophy_id=" ~ trophyId;
+    string postData = "username=" ~ username ~ "&token=" ~ userToken ~ "&trophy_id=" ~ trophyId.to!string;
 
     string response;
     try
