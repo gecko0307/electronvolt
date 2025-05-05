@@ -36,12 +36,6 @@ import scenes.mainmenu;
 import scenes.game;
 import audio;
 
-__gshared
-{
-    char[128] usernameBuf = void;
-    char[128] tokenBuf = void;
-}
-
 class UI: EventListener
 {
     bool visible = true;
@@ -70,6 +64,9 @@ class UI: EventListener
     ];
     
     bool[4] mainMenuItemsHovered;
+    
+    char[128] usernameBuf = void;
+    char[128] tokenBuf = void;
     
     String[3] pauseMenuItems = [
         "Continue",
@@ -175,6 +172,21 @@ class UI: EventListener
         setMusicVolume(musicVolume);
         
         autoSignInPopupVisible = game.signedIn;
+        
+        if (game.signedIn)
+        {
+            foreach(ci, c; game.username)
+            {
+                if (ci < usernameBuf.length)
+                    usernameBuf[ci] = c;
+            }
+
+            foreach(ci, c; game.usertoken)
+            {
+                if (ci < tokenBuf.length)
+                    tokenBuf[ci] = c;
+            }
+        }
     }
     
     void onProcessEvent(SDL_Event* event)
@@ -425,7 +437,7 @@ class UI: EventListener
                 string username = usernameBuf.ptr.to!string;
                 string token = tokenBuf.ptr.to!string;
                 logInfo("Logging in user ", username, "...");
-                if (game.signIn(username, token))
+                if (game.signIn(username, token, true))
                     signInSuccessMessage = "Signed in successfully!";
                 else
                     signInErrorMessage = "Login failed! Please check your credentials.";
@@ -458,7 +470,7 @@ class UI: EventListener
         igSetNextWindowSize(ImVec2(windowWidth, windowHeight));
         igSetNextWindowPos(ImVec2(cast(float)eventManager.windowWidth * 0.5 - windowWidth * 0.5, cast(float)eventManager.windowHeight * 0.5 - windowHeight * 0.5));
         igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
-        if (igBegin("Auto sign-in to GameJolt", &autoSignInPopupVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
+        if (igBegin("GameJolt", &autoSignInPopupVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
         {
             igTextWrapped("Signed in successfully!");
             igEnd();

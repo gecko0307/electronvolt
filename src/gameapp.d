@@ -45,7 +45,8 @@ class GameApp: Game
     
     PersistentStorage persistentStorage;
     bool signedIn = false;
-    string username, usertoken;
+    string username = "";
+    string usertoken = "";
     
     this(uint w, uint h, bool fullscreen, string title, string[] args)
     {
@@ -58,22 +59,15 @@ class GameApp: Game
         currentScene = mainMenuScene;
         
         persistentStorage = New!PersistentStorage("Electronvolt", "userdata.conf", this);
-        string userName = persistentStorage.username.toString;
-        string userToken = persistentStorage.usertoken.toString;
-        if (userName.length && userToken.length)
+        if ("username" in persistentStorage.props && "usertoken" in persistentStorage.props)
         {
-            signIn(userName, userToken);
-            
-            foreach(ci, c; username)
+            string userName = persistentStorage.username.data;
+            string userToken = persistentStorage.usertoken.data;
+            //writeln(userName);
+            //writeln(userToken);
+            if (userName.length && userToken.length)
             {
-                if (ci < usernameBuf.length)
-                    usernameBuf[ci] = c;
-            }
-
-            foreach(ci, c; usertoken)
-            {
-                if (ci < tokenBuf.length)
-                    tokenBuf[ci] = c;
+                signIn(userName, userToken);
             }
         }
         
@@ -118,15 +112,18 @@ class GameApp: Game
         currentScene.focused = true;
     }
     
-    bool signIn(string username, string usertoken)
+    bool signIn(string userName, string userToken, bool updateStorage = false)
     {
-        if (loginToGameServer(username, usertoken))
+        if (loginToGameServer(userName, userToken))
         {
             signedIn = true;
-            this.username = username;
-            this.usertoken = usertoken;
-            persistentStorage.username = username;
-            persistentStorage.usertoken = usertoken;
+            this.username = userName;
+            this.usertoken = userToken;
+            if (updateStorage)
+            {
+                persistentStorage.username = this.username;
+                persistentStorage.usertoken = this.usertoken;
+            }
             //award(Trophy.SuccessfulLanding);
             return true;
         }
