@@ -63,6 +63,18 @@ class GameApp: Game
         if (userName.length && userToken.length)
         {
             signIn(userName, userToken);
+            
+            foreach(ci, c; username)
+            {
+                if (ci < usernameBuf.length)
+                    usernameBuf[ci] = c;
+            }
+
+            foreach(ci, c; usertoken)
+            {
+                if (ci < tokenBuf.length)
+                    tokenBuf[ci] = c;
+            }
         }
         
         ui = New!UI(this, mainMenuScene, args);

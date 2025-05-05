@@ -300,22 +300,6 @@ class UI: EventListener
                                 signInWindowVisible = true;
                                 signInSuccessMessage = "";
                                 signInErrorMessage = "";
-                                if (game.username.length)
-                                {
-                                    foreach(ci, c; game.username)
-                                    {
-                                        if (ci < usernameBuf.length)
-                                            usernameBuf[ci] = c;
-                                    }
-                                }
-                                if (game.usertoken.length)
-                                {
-                                    foreach(ci, c; game.usertoken)
-                                    {
-                                        if (ci < tokenBuf.length)
-                                            tokenBuf[ci] = c;
-                                    }
-                                }
                                 break;
                             case 2:
                                 settingsVisible = !settingsVisible;
@@ -416,18 +400,18 @@ class UI: EventListener
         igSetNextWindowSize(ImVec2(windowWidth, windowHeight));
         igSetNextWindowPos(ImVec2(cast(float)eventManager.windowWidth * 0.5 - windowWidth * 0.5, cast(float)eventManager.windowHeight * 0.5 - windowHeight * 0.5));
         igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
-        if (igBegin("Sign in", &signInWindowVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
+        if (igBegin("Add your GameJolt account", &signInWindowVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
         {
             igPushStyleColor(ImGuiCol.FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
             
             igPushItemWidth(400);
 
-            igText("GameJolt user name:");
+            igText("User name:");
             if (igInputText("##username", usernameBuf.ptr, usernameBuf.length, ImGuiInputTextFlags.None, null, null))
             {
             }
             
-            igText("GameJolt token:");
+            igText("Game token:");
             if (igInputText("##token", tokenBuf.ptr, tokenBuf.length, ImGuiInputTextFlags.Password))
             {
             }
@@ -474,7 +458,7 @@ class UI: EventListener
         igSetNextWindowSize(ImVec2(windowWidth, windowHeight));
         igSetNextWindowPos(ImVec2(cast(float)eventManager.windowWidth * 0.5 - windowWidth * 0.5, cast(float)eventManager.windowHeight * 0.5 - windowHeight * 0.5));
         igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
-        if (igBegin("Auto Sign-In", &autoSignInPopupVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
+        if (igBegin("Auto sign-in to GameJolt", &autoSignInPopupVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
         {
             igTextWrapped("Signed in successfully!");
             igEnd();
