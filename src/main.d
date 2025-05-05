@@ -32,60 +32,8 @@ import dagon;
 import dagon.ext.newton;
 import dagon.ext.imgui;
 import soloud;
-import scenes.mainmenu;
-import scenes.game;
 import audio;
-import ui;
-
-class GameApp: Game
-{
-    UI ui;
-    
-    this(uint w, uint h, bool fullscreen, string title, string[] args)
-    {
-        super(w, h, fullscreen, title, args);
-        
-        auto mainMenuScene = New!MainMenuScene(this);
-        scenes["MainMenu"] = mainMenuScene;
-        currentScene = mainMenuScene;
-
-        ui = New!UI(this, mainMenuScene, args);
-        eventManager.onProcessEvent = &ui.onProcessEvent;
-    }
-    
-    override void onUpdate(Time t)
-    {
-        super.onUpdate(t);
-        ui.update(t);
-    }
-    
-    override void onRender()
-    {
-        super.onRender();
-        if (ui.visible)
-        {
-            ui.render();
-        }
-    }
-    
-    override void setCurrentScene(string name, bool releaseCurrent = false)
-    {
-        super.setCurrentScene(name, releaseCurrent);
-        
-        if (name == "MainMenu")
-        {
-            ui.visible = true;
-        }
-        
-        currentScene.focused = true;
-    }
-    
-    override void exit()
-    {
-        stopMusic();
-        super.exit();
-    }
-}
+import gameapp;
 
 void main(string[] args)
 {

@@ -31,14 +31,21 @@ import std.conv;
 import std.file: write;
 import dagon;
 import dagon.ext.imgui;
+import gameapp;
 import scenes.mainmenu;
 import scenes.game;
 import audio;
 
+__gshared
+{
+    char[128] usernameBuf = void;
+    char[128] tokenBuf = void;
+}
+
 class UI: EventListener
 {
     bool visible = true;
-    Game game;
+    GameApp game;
     MainMenuScene mainMenuScene;
     ImGuiContext* igContext;
     ImGuiIO* io;
@@ -55,15 +62,16 @@ class UI: EventListener
         ImGuiWindowFlags.NoDocking |
         ImGuiWindowFlags.AlwaysAutoResize;
     
-    String[] mainMenuItems = [
+    String[4] mainMenuItems = [
         "Start game",
+        "Sign in",
         "Settings",
         "Exit"
     ];
     
-    bool[3] mainMenuItemsHovered;
+    bool[4] mainMenuItemsHovered;
     
-    String[] pauseMenuItems = [
+    String[3] pauseMenuItems = [
         "Continue",
         "Settings",
         "Exit to main menu"
@@ -71,6 +79,7 @@ class UI: EventListener
     
     bool[3] pauseMenuItemsHovered;
     
+    bool signInWindowVisible = false;
     bool settingsVisible = false;
     
     bool fullscreen = false;
@@ -103,7 +112,7 @@ class UI: EventListener
     
     bool itemHovered = false;
     
-    this(Game game, MainMenuScene scene, string[] args)
+    this(GameApp game, MainMenuScene scene, string[] args)
     {
         super(game.eventManager, game);
         this.game = game;
@@ -208,6 +217,9 @@ class UI: EventListener
             renderPauseMenu();
         }
         
+        if (signInWindowVisible)
+            renderSignIn();
+        
         if (settingsVisible)
             renderSettings();
 
@@ -279,9 +291,14 @@ class UI: EventListener
                                 game.setCurrentScene(New!GameScene(game, this));
                                 break;
                             case 1:
-                                settingsVisible = !settingsVisible;
+                                signInWindowVisible = true;
+                                signInSuccessMessage = "";
+                                signInErrorMessage = "";
                                 break;
                             case 2:
+                                settingsVisible = !settingsVisible;
+                                break;
+                            case 3:
                                 game.exit();
                                 break;
                             default:
@@ -365,6 +382,67 @@ class UI: EventListener
         }
 
         igPopStyleColor();
+    }
+    
+    string signInSuccessMessage = "";
+    string signInErrorMessage = "";
+    
+    void renderSignIn()
+    {
+        float windowWidth = 400.0f;
+        float windowHeight = 400.0f;
+        igSetNextWindowSize(ImVec2(windowWidth, windowHeight));
+        igSetNextWindowPos(ImVec2(cast(float)eventManager.windowWidth * 0.5 - windowWidth * 0.5, cast(float)eventManager.windowHeight * 0.5 - windowHeight * 0.5));
+        igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
+        if (igBegin("Sign in", &signInWindowVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
+        {
+            igPushStyleColor(ImGuiCol.FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
+            
+            igPushItemWidth(400);
+
+            igText("GameJolt user name:");
+            if (igInputText("##username", usernameBuf.ptr, usernameBuf.length, ImGuiInputTextFlags.None, null, null))
+            {
+            }
+            
+            igText("GameJolt token:");
+            if (igInputText("##token", tokenBuf.ptr, tokenBuf.length, ImGuiInputTextFlags.Password))
+            {
+            }
+            
+            igSpacing();
+
+            if (igButton("Sign in"))
+            {
+                signInSuccessMessage = "";
+                signInErrorMessage = "";
+                string username = usernameBuf.ptr.to!string;
+                string token = tokenBuf.ptr.to!string;
+                logInfo("Logging in user ", username, "...");
+                if (game.signIn(username, token))
+                    signInSuccessMessage = "Signed in successfully!";
+                else
+                    signInErrorMessage = "Login failed! Please check your credentials.";
+            }
+            
+            if (signInSuccessMessage.length)
+            {
+                igPushStyleColor(ImGuiCol.Text, ImVec4(0.2, 1.0, 0.2, 1.0));
+                igTextWrappedV(signInSuccessMessage.ptr, null);
+                igPopStyleColor();
+            }
+            
+            if (signInErrorMessage.length)
+            {
+                igPushStyleColor(ImGuiCol.Text, ImVec4(1.0, 0.2, 0.2, 1.0));
+                igTextWrappedV(signInErrorMessage.ptr, null);
+                igPopStyleColor();
+            }
+        }
+        igPopStyleColor();
+        
+        if (!signInWindowVisible)
+            playSound("assets/sounds/close.wav");
     }
     
     void renderSettings()
