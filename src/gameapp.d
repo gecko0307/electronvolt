@@ -42,6 +42,9 @@ class GameApp: Game
 {
     StdFileSystem fs;
     UI ui;
+    
+    PersistentStorage persistentStorage;
+    bool signedIn = false;
     string username, usertoken;
     
     this(uint w, uint h, bool fullscreen, string title, string[] args)
@@ -53,7 +56,15 @@ class GameApp: Game
         auto mainMenuScene = New!MainMenuScene(this);
         scenes["MainMenu"] = mainMenuScene;
         currentScene = mainMenuScene;
-
+        
+        persistentStorage = New!PersistentStorage("Electronvolt", "userdata.conf", this);
+        string userName = persistentStorage.username.toString;
+        string userToken = persistentStorage.usertoken.toString;
+        if (userName.length && userToken.length)
+        {
+            signIn(userName, userToken);
+        }
+        
         ui = New!UI(this, mainMenuScene, args);
         eventManager.onProcessEvent = &ui.onProcessEvent;
     }
@@ -99,9 +110,12 @@ class GameApp: Game
     {
         if (loginToGameServer(username, usertoken))
         {
+            signedIn = true;
             this.username = username;
             this.usertoken = usertoken;
-            award(Trophy.SuccessfulLanding);
+            persistentStorage.username = username;
+            persistentStorage.usertoken = usertoken;
+            //award(Trophy.SuccessfulLanding);
             return true;
         }
         else

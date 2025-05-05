@@ -80,6 +80,7 @@ class UI: EventListener
     bool[3] pauseMenuItemsHovered;
     
     bool signInWindowVisible = false;
+    bool autoSignInPopupVisible = false;
     bool settingsVisible = false;
     
     bool fullscreen = false;
@@ -172,6 +173,8 @@ class UI: EventListener
         
         setSoundEffectsVolume(soundEffectsVolume);
         setMusicVolume(musicVolume);
+        
+        autoSignInPopupVisible = game.signedIn;
     }
     
     void onProcessEvent(SDL_Event* event)
@@ -219,6 +222,9 @@ class UI: EventListener
         
         if (signInWindowVisible)
             renderSignIn();
+        
+        if (autoSignInPopupVisible)
+            renderAutoSignInPopup();
         
         if (settingsVisible)
             renderSettings();
@@ -294,6 +300,22 @@ class UI: EventListener
                                 signInWindowVisible = true;
                                 signInSuccessMessage = "";
                                 signInErrorMessage = "";
+                                if (game.username.length)
+                                {
+                                    foreach(ci, c; game.username)
+                                    {
+                                        if (ci < usernameBuf.length)
+                                            usernameBuf[ci] = c;
+                                    }
+                                }
+                                if (game.usertoken.length)
+                                {
+                                    foreach(ci, c; game.usertoken)
+                                    {
+                                        if (ci < tokenBuf.length)
+                                            tokenBuf[ci] = c;
+                                    }
+                                }
                                 break;
                             case 2:
                                 settingsVisible = !settingsVisible;
@@ -442,6 +464,24 @@ class UI: EventListener
         igPopStyleColor();
         
         if (!signInWindowVisible)
+            playSound("assets/sounds/close.wav");
+    }
+    
+    void renderAutoSignInPopup()
+    {
+        float windowWidth = 320.0f;
+        float windowHeight = 240.0f;
+        igSetNextWindowSize(ImVec2(windowWidth, windowHeight));
+        igSetNextWindowPos(ImVec2(cast(float)eventManager.windowWidth * 0.5 - windowWidth * 0.5, cast(float)eventManager.windowHeight * 0.5 - windowHeight * 0.5));
+        igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
+        if (igBegin("Auto Sign-In", &autoSignInPopupVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
+        {
+            igTextWrapped("Signed in successfully!");
+            igEnd();
+        }
+        igPopStyleColor();
+        
+        if (!autoSignInPopupVisible)
             playSound("assets/sounds/close.wav");
     }
     
