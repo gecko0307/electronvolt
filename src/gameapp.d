@@ -61,13 +61,11 @@ class GameApp: Game
         persistentStorage = New!PersistentStorage("Electronvolt", "userdata.conf", this);
         if ("username" in persistentStorage.props && "usertoken" in persistentStorage.props)
         {
-            string userName = persistentStorage.username.data;
-            string userToken = persistentStorage.usertoken.data;
-            //writeln(userName);
-            //writeln(userToken);
-            if (userName.length && userToken.length)
+            username = persistentStorage.username.data;
+            usertoken = persistentStorage.usertoken.data;
+            if (username.length && usertoken.length)
             {
-                signIn(userName, userToken);
+                signIn(username, usertoken);
             }
         }
         

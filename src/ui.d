@@ -173,19 +173,16 @@ class UI: EventListener
         
         autoSignInPopupVisible = game.signedIn;
         
-        if (game.signedIn)
+        foreach(ci, c; game.username)
         {
-            foreach(ci, c; game.username)
-            {
-                if (ci < usernameBuf.length)
-                    usernameBuf[ci] = c;
-            }
+            if (ci < usernameBuf.length)
+                usernameBuf[ci] = c;
+        }
 
-            foreach(ci, c; game.usertoken)
-            {
-                if (ci < tokenBuf.length)
-                    tokenBuf[ci] = c;
-            }
+        foreach(ci, c; game.usertoken)
+        {
+            if (ci < tokenBuf.length)
+                tokenBuf[ci] = c;
         }
     }
     
