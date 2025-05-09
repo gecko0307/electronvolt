@@ -61,3 +61,6 @@ electronvolt.log
 
 # Screenshots
 screenshots/*.png
+
+# Launcher builds
+launcher-win-amd64

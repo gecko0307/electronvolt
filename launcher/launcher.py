@@ -2,8 +2,22 @@
 
 import os
 import sys
-print(sys.stdout.encoding)
-sys.path.append(os.getcwd())
+#print(sys.stdout.encoding)
+#sys.path.append(os.getcwd())
+
+if sys.stdout is None:
+    sys.stdout = open("stdout.log", "w")
+if sys.stderr is None:
+    sys.stderr = open("stderr.log", "w")
+
+import logging
+
+logging.basicConfig(filename='launcher.log', level=logging.DEBUG, format='%(asctime)s - %(message)s')
+
+def log_exception(exc_type, exc_value, exc_tb):
+    logging.error("Exception occurred", exc_info=(exc_type, exc_value, exc_tb))
+
+sys.excepthook = log_exception
 
 import io
 import threading
@@ -20,10 +34,27 @@ from bottle import request
 from bottle_sqlite import SQLitePlugin
 
 from app.config import *
-from app.routes import *
+from app.data import *
 from app import state
 
-game_dir = os.path.join(os.path.dirname(__file__), "..")
+@bottle.route('/')
+def index(db):
+    d = profileData(db)
+    return bottle.template(load('index.stpl'), data = d)
+
+@bottle.route('/<filename:path>')
+def serverStatic(filename):
+    return bottle.static_file(filename, root = Config.sitePath)
+
+def resource_path():
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
+    else:
+        base_path = os.path.dirname(__file__)
+    return os.path.abspath(base_path)
+
+base_dir = resource_path()
+game_dir = os.path.join(base_dir, "..")
 game_path = os.path.join(game_dir, Config.gameExecutable)
 game_process = None
 game_status_thread = None
