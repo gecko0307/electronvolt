@@ -114,7 +114,7 @@ class GameScene: Scene, NewtonRaycaster
         super(game);
         this.game = game;
         this.ui = ui;
-        loadingScreen = New!GameLoadingScreen("assets/ui/bg1.jpg", game, this);
+        loadingScreen = New!GameLoadingScreen("assets/ui/bg_planet.jpg", game, this);
     }
 
     ~this()
@@ -130,15 +130,6 @@ class GameScene: Scene, NewtonRaycaster
 
     override void beforeLoad()
     {
-        // TODO: store sfx and music volumes in a config
-        
-        foreach (entry; findFiles("assets/music", false)
-                .filter!(entry => entry.isFile)
-                .filter!(entry => !matchFirst(entry.name, `.*\.(mp3|ogg|flac)$`).empty))
-        {
-            music.append(entry.name);
-        }
-        
         aBoxMesh = addOBJAsset("assets/meshes/box/box.obj");
         aBoxDiffuse = addTextureAsset("assets/meshes/box/box-diffuse.png");
         aBoxNormal = addTextureAsset("assets/meshes/box/box-normal.png");
@@ -308,6 +299,13 @@ class GameScene: Scene, NewtonRaycaster
         eTerrainVisual.material = terrainMaterial;
         eTerrainVisual.drawable = terrain;
         eTerrainVisual.scaling = terrainScale;
+        
+        foreach (entry; findFiles("assets/music", false)
+                .filter!(entry => entry.isFile)
+                .filter!(entry => !matchFirst(entry.name, `.*\.(mp3|ogg|flac)$`).empty))
+        {
+            music.append(entry.name);
+        }
         
         onReset();
     }

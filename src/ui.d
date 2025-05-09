@@ -171,8 +171,6 @@ class UI: EventListener
         setSoundEffectsVolume(soundEffectsVolume);
         setMusicVolume(musicVolume);
         
-        autoSignInPopupVisible = game.signedIn;
-        
         foreach(ci, c; game.username)
         {
             if (ci < usernameBuf.length)
@@ -301,6 +299,7 @@ class UI: EventListener
                         {
                             case 0:
                                 signInWindowVisible = false;
+                                autoSignInPopupVisible = false;
                                 settingsVisible = false;
                                 visible = false;
                                 stopMusic();
@@ -308,14 +307,19 @@ class UI: EventListener
                                 break;
                             case 1:
                                 signInWindowVisible = true;
+                                autoSignInPopupVisible = false;
                                 signInSuccessMessage = "";
                                 signInErrorMessage = "";
                                 break;
                             case 2:
                                 signInWindowVisible = false;
+                                autoSignInPopupVisible = false;
                                 settingsVisible = !settingsVisible;
                                 break;
                             case 3:
+                                signInWindowVisible = false;
+                                autoSignInPopupVisible = false;
+                                settingsVisible = false;
                                 game.exit();
                                 break;
                             default:

@@ -44,7 +44,7 @@ class GameApp: Game
     UI ui;
     
     PersistentStorage persistentStorage;
-    bool signedIn = false;
+    bool isSignedIn = false;
     string username = "";
     string usertoken = "";
     Dict!(Trophy, TrophyId) trophies;
@@ -74,6 +74,7 @@ class GameApp: Game
         }
         
         ui = New!UI(this, mainMenuScene, args);
+        ui.autoSignInPopupVisible = isSignedIn;
         eventManager.onProcessEvent = &ui.onProcessEvent;
     }
     
@@ -126,7 +127,7 @@ class GameApp: Game
     {
         if (loginToGameServer(userName, userToken))
         {
-            signedIn = true;
+            isSignedIn = true;
             this.username = userName;
             this.usertoken = userToken;
             if (updateStorage)
@@ -135,8 +136,8 @@ class GameApp: Game
                 persistentStorage.usertoken = this.usertoken;
             }
             //TODO:
-            //if (!naveTrophy(Trophy.SuccessfulLanding))
-            //award(Trophy.SuccessfulLanding);
+            //if (!naveTrophy(TrophyId.SuccessfulLanding))
+            award(TrophyId.SuccessfulLanding);
             return true;
         }
         else

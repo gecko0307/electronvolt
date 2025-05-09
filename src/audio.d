@@ -27,6 +27,7 @@ DEALINGS IN THE SOFTWARE.
 module audio;
 
 import dlib.core.memory;
+import dlib.container.array;
 import dlib.container.dict;
 import dlib.text.str;
 import dlib.math.vector;
@@ -35,6 +36,7 @@ import soloud;
 __gshared
 {
     Soloud audio;
+    Array!String filenames;
     Dict!(WavStream, string) music;
     Dict!(Wav, string) sounds;
     int musicVoice;
@@ -61,6 +63,10 @@ void releaseSound()
     
     audio.deinit();
     audio.free();
+    
+    foreach(f; filenames)
+        f.free();
+    filenames.free();
 }
 
 void playSound(string filename, bool checkPlaying = false)
@@ -70,8 +76,8 @@ void playSound(string filename, bool checkPlaying = false)
         String filenameStr = String(filename);
         auto sound = Wav.create();
         sound.load(filenameStr.ptr);
-        sounds[filename] = sound;
-        filenameStr.free();
+        sounds[filenameStr] = sound;
+        filenames.append(filenameStr);
     }
     
     Wav sound = sounds[filename];
@@ -95,8 +101,8 @@ void playMusic(string filename, bool looping = true)
         String filenameStr = String(filename);
         auto track = WavStream.create();
         track.load(filenameStr.ptr);
-        music[filename] = track;
-        filenameStr.free();
+        music[filenameStr] = track;
+        filenames.append(filenameStr);
     }
     
     musicVoice = audio.play(music[filename]);
