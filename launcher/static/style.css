@@ -2,8 +2,11 @@ body {
     margin: 0;
     padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #0f0f1a, #1a1a2f);
-    color: #e0e0ff;
+    background-image: url('background.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    color: #00ffc8;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -14,7 +17,7 @@ body {
 
 h1 {
     font-size: 2.5em;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
     color: #00ffc8;
 }
 
@@ -36,4 +39,86 @@ h1 {
 #btn_launch:hover {
     transform: scale(1.05);
     box-shadow: 0 0 20px #00ffc8, 0 0 30px #00aaff;
+}
+
+#auth_form {
+    background: rgba(32, 40, 60, 0.6); /* полупрозрачный тёмный синий */
+    padding: 10px 10px;
+    border-radius: 12px;
+    box-shadow: 0 0 8px #00aaff80, 0 0 12px #00ffc880;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 320px;
+    width: 100%;
+    margin-bottom: 30px;
+    margin-top: 50px;
+}
+
+#auth_form h2 {
+    font-size: 1.1em;
+    text-align: center;
+    color: #00ffc8;
+    margin-bottom: 15px;
+}
+
+#auth_form label {
+    color: #aeefff;
+    font-size: 0.95em;
+    margin-bottom: 10px;
+    text-shadow: 0 0 2px #003344;
+}
+
+input[type="text"], input[type="password"] {
+    padding: 10px;
+    font-size: 1.1em;
+    width: 100%;
+    max-width: 280px;
+    border: none;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background-color: #1a1a2f;
+    color: #fff;
+    box-shadow: 0 0 5px #00ffc8 inset;
+    outline: none;
+}
+
+input[type="text"]:focus {
+    box-shadow: 0 0 10px #00aaff inset;
+}
+
+input[type="password"]:focus {
+    box-shadow: 0 0 10px #00aaff inset;
+}
+
+.show_token {
+    font-size: 0.9em;
+    color: #00ffc8;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#btn_login {
+    padding: 10px 30px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    font-size: 1em;
+    font-weight: bold;
+    color: #111;
+    background: linear-gradient(145deg, #00ffaa, #007777);
+    border: none;
+    outline: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 10px #00ffaa, 0 0 20px #007777;
+    transition: all 0.3s ease;
+    will-change: transform;
+}
+
+#btn_login:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #00ffaa, 0 0 30px #007777;
 }

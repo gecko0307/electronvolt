@@ -117,13 +117,16 @@ serverThread = threading.Thread(target=serverMain, args=(port,))
 serverThread.daemon = True
 serverThread.start()
 
+winWidth = 700
+winHeight = 700
+
 def cefMain(port):
     sys.excepthook = cef.ExceptHook  # To shutdown all CEF processes on error
     cef.Initialize()
     windowInfo = cef.WindowInfo()
     parentHandle = 0
     url = "http://localhost:%s/" % port
-    windowInfo.SetAsChild(parentHandle, [0, 0, 800, 600]) # For macOS and Linux
+    windowInfo.SetAsChild(parentHandle, [0, 0, winWidth, winHeight]) # For macOS and Linux
     browser = cef.CreateBrowserSync(url = url, window_title = "Electronvolt Launcher")
     browser.SetClientHandler(LifespanHandler())
     bindings = cef.JavascriptBindings()
@@ -135,7 +138,7 @@ def cefMain(port):
         # X and Y parameters are ignored by setting the SWP_NOMOVE flag
         SWP_NOMOVE = 0x0002
         ctypes.windll.user32.SetWindowPos(state.hwnd,
-            insertAfterHandle, 0, 0, 800, 600, SWP_NOMOVE)
+            insertAfterHandle, 0, 0, winWidth, winHeight, SWP_NOMOVE)
     #browser.ShowDevTools() # For debugging
     state.browser = browser
     cef.MessageLoop()

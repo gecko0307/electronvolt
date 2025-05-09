@@ -7,8 +7,17 @@
     <link rel="stylesheet" href="style.css" Type="text/css"/>
 </head>
 <body>
-    <h1>Electronvolt Launcher</h1>
-    <button id="btn_launch">Launch</button>
+    <h1>Welcome!</h1>
+    <button id="btn_launch">Launch Electronvolt</button>
+    <div id="auth_form">
+        <h2>Sign in with your<br>GameJolt account (optional)</h2>
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="password" id="token" placeholder="Game token" required>
+        <label class="show_token">
+        <input type="checkbox" id="toggle_token"> Show token
+        </label>
+        <button id="btn_login">Login</button>
+    </div>
     <script>
         var btnLaunch = document.getElementById("btn_launch");
         
