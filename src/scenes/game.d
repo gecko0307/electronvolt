@@ -197,7 +197,7 @@ class GameScene: Scene, NewtonRaycaster
         game.postProcessingRenderer.fStop = 0.1f;
         game.postProcessingRenderer.focalLength = 1.0f;
         game.postProcessingRenderer.dofManual = true;
-        game.postProcessingRenderer.dofNearStart = 1.0;
+        game.postProcessingRenderer.dofNearStart = 2.0;
         game.postProcessingRenderer.dofNearDistance = 1.0;
         game.postProcessingRenderer.dofFarStart = 3.0;
         game.postProcessingRenderer.dofFarDistance = 100.0;

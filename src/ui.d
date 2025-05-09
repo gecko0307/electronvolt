@@ -300,6 +300,7 @@ class UI: EventListener
                         switch(i)
                         {
                             case 0:
+                                signInWindowVisible = false;
                                 settingsVisible = false;
                                 visible = false;
                                 stopMusic();
@@ -311,6 +312,7 @@ class UI: EventListener
                                 signInErrorMessage = "";
                                 break;
                             case 2:
+                                signInWindowVisible = false;
                                 settingsVisible = !settingsVisible;
                                 break;
                             case 3:
