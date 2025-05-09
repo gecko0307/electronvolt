@@ -46,7 +46,7 @@ class MainMenuScene: Scene
 
     override void beforeLoad()
     {
-        aBg = addTextureAsset("assets/ui/bg1.jpg");
+        aBg = addTextureAsset("assets/ui/bg_planet.jpg");
     }
     
     override void onLoad(Time t, float progress)

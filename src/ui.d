@@ -203,10 +203,10 @@ class UI: EventListener
     
     void update(Time t)
     {
-        processEvents();
-        
         if (!visible)
             return;
+        
+        processEvents();
         
         ImGuiOpenGLBackend.new_frame();
         ImGui_ImplSDL2_NewFrame();
