@@ -31,8 +31,7 @@ h1 {
     outline: none;
     border-radius: 12px;
     cursor: pointer;
-    box-shadow: 0 0 10px #00ffc8, 0 0 20px #00aaff;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     will-change: transform;
 }
 
@@ -59,6 +58,7 @@ h1 {
 #auth_form h2 {
     font-size: 1.1em;
     text-align: center;
+    font-weight: normal;
     color: #00ffc8;
     margin-bottom: 15px;
 }
@@ -113,12 +113,57 @@ input[type="password"]:focus {
     outline: none;
     border-radius: 8px;
     cursor: pointer;
-    box-shadow: 0 0 10px #00ffaa, 0 0 20px #007777;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     will-change: transform;
 }
 
 #btn_login:hover {
     transform: scale(1.05);
     box-shadow: 0 0 20px #00ffaa, 0 0 30px #007777;
+}
+
+#btn_logout {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    margin-top: 15px;
+    padding: 10px 25px;
+    font-size: 1em;
+    font-weight: bold;
+    color: #111;
+    background: linear-gradient(145deg, #ffaaaa, #ff6f6f);
+    border: none;
+    outline: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
+}
+
+#btn_logout:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 10px #ff6f6f, 0 0 14px #ffaaaa;
+}
+
+.popup {
+    position: fixed;
+    max-width: 200px;
+    top: 30px;
+    right: 30px;
+    padding: 15px 25px;
+    background-color: rgba(20, 30, 40, 0.9);
+    color: #00ffc8;
+    border: 1px solid #00aaff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 255, 200, 0.4), 0 0 20px rgba(0, 170, 255, 0.2);
+    backdrop-filter: blur(10px);
+    z-index: 999;
+    font-size: 1em;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+.hidden {
+    opacity: 0;
+    pointer-events: none;
 }

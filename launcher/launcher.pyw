@@ -100,6 +100,11 @@ def launchGame():
         print(e)
         state.notifyGameError()
 
+def setUserData(data):
+    print("Username: %s" % data["username"])
+    print("Token: %s" % data["token"])
+    # TODO: save user data to file for future use
+
 bottle.install(SQLitePlugin(dbfile = Config.databasePath))
 
 def randomPort():
@@ -131,6 +136,7 @@ def cefMain(port):
     browser.SetClientHandler(LifespanHandler())
     bindings = cef.JavascriptBindings()
     bindings.SetFunction("appLaunchGame", launchGame)
+    bindings.SetFunction("appSetUserData", setUserData)
     browser.SetJavascriptBindings(bindings)
     if platform.system() == "Windows":
         state.hwnd = browser.GetOuterWindowHandle()

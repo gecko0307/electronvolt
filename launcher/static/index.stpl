@@ -18,12 +18,86 @@
         </label>
         <button id="btn_login">Login</button>
     </div>
+    <button id="btn_logout" class="hidden">🔓 Logout</button>
+    <div id="auth_popup" class="popup hidden">
+        <div class="popup_content" id="popup_text">Authorization result</div>
+    </div>
     <script>
         var btnLaunch = document.getElementById("btn_launch");
+        var authForm = document.getElementById("auth_form");
+        var btnLogin = document.getElementById("btn_login");
+        var btnLogout = document.getElementById("btn_logout");
+        var gjUserData = {
+            username: "",
+            token: ""
+        };
+        
+        function apiRequest(url, data, callback) {
+            var req = new XMLHttpRequest();
+            req.onreadystatechange = function() {
+                if (req.readyState == 4) {
+                    callback(req.status, req.responseText);
+                }
+            };
+            req.open("POST", url, true);
+            req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            var params = Object.keys(data).map(
+                key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key])
+            ).join('&');
+            req.send(params);
+        }
         
         btnLaunch.onclick = function(e) {
             btnLaunch.disabled = true;
             appLaunchGame();
+        };
+        
+        function showNotification(message, success = true) {
+            var popup = document.getElementById("auth_popup");
+            var popupText = document.getElementById("popup_text");
+            popupText.textContent = message;
+            popup.style.color = success ? '#00ffc8' : '#ff7070';
+            popup.style.borderColor = success ? '#00aaff' : '#ff5050';
+            popup.style.boxShadow = success
+                ? '0 0 10px rgba(0, 255, 200, 0.4), 0 0 20px rgba(0, 170, 255, 0.2)'
+                : '0 0 10px rgba(255, 100, 100, 0.4), 0 0 20px rgba(255, 50, 50, 0.2)';
+            popup.classList.remove('hidden');
+            setTimeout(function() {
+                popup.classList.add('hidden');
+            }, 3000);
+        }
+        
+        var loginUrl = "https://xtreme3d.ru/gamejolt-server/login.php";
+        
+        btnLogin.onclick = function(e) {
+            gjUserData.username = document.getElementById("username").value,
+            gjUserData.token = document.getElementById("token").value
+            apiRequest(loginUrl, gjUserData, function(status, data) {
+                if (status == "200") {
+                    var response = JSON.parse(data);
+                    console.log(response);
+                    var success = response.success == "true";
+                    if (success) {
+                        authForm.style.display = "none";
+                        btnLogout.classList.remove("hidden");
+                        showNotification("Logged in successfully!", true);
+                        appSetUserData(gjUserData);
+                    }
+                    else {
+                        showNotification("Login failed! " + response.message || "", false);
+                    }
+                }
+                else
+                    showNotification("Login failed! HTTP error " + status, false);
+            });
+        };
+
+        btnLogout.onclick = function() {
+            document.getElementById("username").value = "";
+            document.getElementById("token").value = "";
+            btnLogout.classList.add("hidden");
+            authForm.style.display = "flex";
+            showNotification("Logged out");
         };
         
         // Subscribe to launcher events

@@ -16,7 +16,7 @@ base = None
 if (sys.platform == 'win32'):
     base = 'Win32GUI'
 
-mainScript = 'launcher.py'
+mainScript = 'launcher.pyw'
 
 if '--script' in sys.argv:
     index = sys.argv.index('--script')

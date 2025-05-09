@@ -30,5 +30,8 @@ Thumbs.db
 blob_storage/
 webrtc_event_logs
 debug.log
+error.log
 launcher.log
+stderr.log
+stdout.log
 data/launcher.db
