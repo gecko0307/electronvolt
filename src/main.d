@@ -54,7 +54,7 @@ void main(string[] args)
 
     initSound();
 
-    GameApp app = New!GameApp(1280, 720, false, "Electronvolt 0.0.7", args);
+    GameApp app = New!GameApp(1280, 720, false, "Electronvolt 0.1.0", args);
     app.run();
     Delete(app);
 
