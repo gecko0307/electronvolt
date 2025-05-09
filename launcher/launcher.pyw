@@ -2,8 +2,6 @@
 
 import os
 import sys
-#print(sys.stdout.encoding)
-#sys.path.append(os.getcwd())
 
 if sys.stdout is None:
     sys.stdout = open("stdout.log", "w")
@@ -59,6 +57,10 @@ game_path = os.path.join(game_dir, Config.gameExecutable)
 game_process = None
 game_status_thread = None
 
+# GameJolt user data
+username = ""
+token = ""
+
 # Windows-olny!
 def minimizeLauncher():
     if platform.system() == "Windows":
@@ -101,6 +103,8 @@ def launchGame():
         state.notifyGameError()
 
 def setUserData(data):
+    global username
+    global token
     username = data.get("username")
     token = data.get("token")
     print("Username: %s" % username)
@@ -117,6 +121,8 @@ def setUserData(data):
         print("Failed to save user data:", e)
 
 def getUserData():
+    global username
+    global token
     appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
     userdata_path = os.path.join(appdata_dir, "userdata")
     if not os.path.isfile(userdata_path):
@@ -131,6 +137,8 @@ def getUserData():
                 key, value = line.strip().split(":", 1)
                 data[key.strip()] = value.strip()
         if "username" in data and "token" in data:
+            username = data["username"]
+            token = data["token"]
             print("Loaded user data:", data)
             return data
         else:
@@ -141,6 +149,10 @@ def getUserData():
         return None
 
 def deleteUserData():
+    global username
+    global token
+    username = ""
+    token = ""
     appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
     userdata_path = os.path.join(appdata_dir, "userdata")
     try:

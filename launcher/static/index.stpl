@@ -19,14 +19,18 @@
         <button id="btn_login">Login</button>
     </div>
     <button id="btn_logout" class="hidden">🔓 Logout</button>
+    <button id="btn_close">Exit</button>
     <div id="auth_popup" class="popup hidden">
         <div class="popup_content" id="popup_text">Authorization result</div>
     </div>
     <script>
         var btnLaunch = document.getElementById("btn_launch");
         var authForm = document.getElementById("auth_form");
+        var toggleToken = document.getElementById("toggle_token");
         var btnLogin = document.getElementById("btn_login");
         var btnLogout = document.getElementById("btn_logout");
+        var btnClose = document.getElementById("btn_close");
+        
         var gjUserData = {
             username: "",
             token: ""
@@ -109,6 +113,11 @@
             authForm.style.opacity = "1.0";
         }
         
+        toggleToken.addEventListener("change", function () {
+            const tokenInput = document.getElementById("token");
+            tokenInput.type = this.checked ? "text" : "password";
+        });
+        
         btnLogin.onclick = function(e) {
             gjUserData.username = document.getElementById("username").value;
             gjUserData.token = document.getElementById("token").value;
@@ -123,6 +132,10 @@
             btnLogout.classList.add("hidden");
             activateLoginForm();
             showNotification("Logged out");
+        };
+        
+        btnClose.onclick = function() {
+            window.close();
         };
         
         // Subscribe to launcher events

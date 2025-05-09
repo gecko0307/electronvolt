@@ -126,8 +126,9 @@ input[type="password"]:focus {
 
 #btn_logout {
     position: fixed;
+    top: auto;
     bottom: 20px;
-    right: 20px;
+    left: 20px;
     margin-top: 15px;
     padding: 10px 25px;
     font-size: 1em;
@@ -147,10 +148,35 @@ input[type="password"]:focus {
     box-shadow: 0 0 10px #ff6f6f, 0 0 14px #ffaaaa;
 }
 
+#btn_close {
+    position: absolute;
+    top: auto;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    background: linear-gradient(145deg, #ff5e5e, #cc0000);
+    border: none;
+    color: #fff;
+    border: none;
+    outline: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
+}
+
+#btn_close:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 50, 50, 0.6), 0 0 25px rgba(255, 0, 0, 0.4);
+}
+
 .popup {
     position: fixed;
     max-width: 200px;
     top: 30px;
+    left: auto;
     right: 30px;
     padding: 15px 25px;
     background-color: rgba(20, 30, 40, 0.9);

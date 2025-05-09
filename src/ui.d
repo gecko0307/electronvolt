@@ -56,17 +56,13 @@ class UI: EventListener
         ImGuiWindowFlags.NoDocking |
         ImGuiWindowFlags.AlwaysAutoResize;
     
-    String[4] mainMenuItems = [
+    String[3] mainMenuItems = [
         "Start game",
-        "Sign in",
         "Settings",
         "Exit"
     ];
     
-    bool[4] mainMenuItemsHovered;
-    
-    char[128] usernameBuf = void;
-    char[128] tokenBuf = void;
+    bool[3] mainMenuItemsHovered;
     
     String[3] pauseMenuItems = [
         "Continue",
@@ -76,8 +72,6 @@ class UI: EventListener
     
     bool[3] pauseMenuItemsHovered;
     
-    bool signInWindowVisible = false;
-    bool autoSignInPopupVisible = false;
     bool settingsVisible = false;
     
     bool fullscreen = false;
@@ -170,18 +164,6 @@ class UI: EventListener
         
         setSoundEffectsVolume(soundEffectsVolume);
         setMusicVolume(musicVolume);
-        
-        foreach(ci, c; game.username)
-        {
-            if (ci < usernameBuf.length)
-                usernameBuf[ci] = c;
-        }
-
-        foreach(ci, c; game.usertoken)
-        {
-            if (ci < tokenBuf.length)
-                tokenBuf[ci] = c;
-        }
     }
     
     void onProcessEvent(SDL_Event* event)
@@ -226,12 +208,6 @@ class UI: EventListener
             renderPauseBackground();
             renderPauseMenu();
         }
-        
-        if (signInWindowVisible)
-            renderSignIn();
-        
-        if (autoSignInPopupVisible)
-            renderAutoSignInPopup();
         
         if (settingsVisible)
             renderSettings();
@@ -298,27 +274,15 @@ class UI: EventListener
                         switch(i)
                         {
                             case 0:
-                                signInWindowVisible = false;
-                                autoSignInPopupVisible = false;
                                 settingsVisible = false;
                                 visible = false;
                                 stopMusic();
                                 game.setCurrentScene(New!GameScene(game, this));
                                 break;
                             case 1:
-                                signInWindowVisible = true;
-                                autoSignInPopupVisible = false;
-                                signInSuccessMessage = "";
-                                signInErrorMessage = "";
-                                break;
-                            case 2:
-                                signInWindowVisible = false;
-                                autoSignInPopupVisible = false;
                                 settingsVisible = !settingsVisible;
                                 break;
-                            case 3:
-                                signInWindowVisible = false;
-                                autoSignInPopupVisible = false;
+                            case 2:
                                 settingsVisible = false;
                                 game.exit();
                                 break;
@@ -403,85 +367,6 @@ class UI: EventListener
         }
 
         igPopStyleColor();
-    }
-    
-    string signInSuccessMessage = "";
-    string signInErrorMessage = "";
-    
-    void renderSignIn()
-    {
-        float windowWidth = 400.0f;
-        float windowHeight = 400.0f;
-        igSetNextWindowSize(ImVec2(windowWidth, windowHeight));
-        igSetNextWindowPos(ImVec2(cast(float)eventManager.windowWidth * 0.5 - windowWidth * 0.5, cast(float)eventManager.windowHeight * 0.5 - windowHeight * 0.5));
-        igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
-        if (igBegin("Add your GameJolt account", &signInWindowVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
-        {
-            igPushStyleColor(ImGuiCol.FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
-            
-            igPushItemWidth(400);
-
-            igText("User name:");
-            if (igInputText("##username", usernameBuf.ptr, usernameBuf.length, ImGuiInputTextFlags.None, null, null))
-            {
-            }
-            
-            igText("Game token:");
-            if (igInputText("##token", tokenBuf.ptr, tokenBuf.length, ImGuiInputTextFlags.Password))
-            {
-            }
-            
-            igSpacing();
-
-            if (igButton("Sign in"))
-            {
-                signInSuccessMessage = "";
-                signInErrorMessage = "";
-                string username = usernameBuf.ptr.to!string;
-                string token = tokenBuf.ptr.to!string;
-                logInfo("Logging in user ", username, "...");
-                if (game.signIn(username, token, true))
-                    signInSuccessMessage = "Signed in successfully!";
-                else
-                    signInErrorMessage = "Login failed! Please check your credentials.";
-            }
-            
-            if (signInSuccessMessage.length)
-            {
-                igPushStyleColor(ImGuiCol.Text, ImVec4(0.2, 1.0, 0.2, 1.0));
-                igTextWrappedV(signInSuccessMessage.ptr, null);
-                igPopStyleColor();
-            }
-            
-            if (signInErrorMessage.length)
-            {
-                igPushStyleColor(ImGuiCol.Text, ImVec4(1.0, 0.2, 0.2, 1.0));
-                igTextWrappedV(signInErrorMessage.ptr, null);
-                igPopStyleColor();
-            }
-        }
-        igPopStyleColor();
-        
-        if (!signInWindowVisible)
-            playSound("assets/sounds/close.wav");
-    }
-    
-    void renderAutoSignInPopup()
-    {
-        float windowWidth = 320.0f;
-        float windowHeight = 240.0f;
-        igSetNextWindowSize(ImVec2(windowWidth, windowHeight));
-        igSetNextWindowPos(ImVec2(cast(float)eventManager.windowWidth * 0.5 - windowWidth * 0.5, cast(float)eventManager.windowHeight * 0.5 - windowHeight * 0.5));
-        igPushStyleColor(ImGuiCol.WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
-        if (igBegin("GameJolt", &autoSignInPopupVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize))
-        {
-            igTextWrapped("Signed in successfully!");
-            igEnd();
-        }
-        igPopStyleColor();
-        
-        if (!autoSignInPopupVisible)
-            playSound("assets/sounds/close.wav");
     }
     
     void renderSettings()

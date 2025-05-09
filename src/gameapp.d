@@ -43,10 +43,9 @@ class GameApp: Game
     StdFileSystem fs;
     UI ui;
     
-    PersistentStorage persistentStorage;
     bool isSignedIn = false;
     string username = "";
-    string usertoken = "";
+    string token = "";
     Dict!(Trophy, TrophyId) trophies;
     
     this(uint w, uint h, bool fullscreen, string title, string[] args)
@@ -62,20 +61,10 @@ class GameApp: Game
         scenes["MainMenu"] = mainMenuScene;
         currentScene = mainMenuScene;
         
-        persistentStorage = New!PersistentStorage("Electronvolt", "userdata.conf", this);
-        if ("username" in persistentStorage.props && "usertoken" in persistentStorage.props)
-        {
-            username = persistentStorage.username.data;
-            usertoken = persistentStorage.usertoken.data;
-            if (username.length && usertoken.length)
-            {
-                signIn(username, usertoken);
-            }
-        }
-        
         ui = New!UI(this, mainMenuScene, args);
-        ui.autoSignInPopupVisible = isSignedIn;
         eventManager.onProcessEvent = &ui.onProcessEvent;
+        
+        // TODO: request username, token from launcher
     }
     
     ~this()
@@ -121,35 +110,6 @@ class GameApp: Game
         }
         
         currentScene.focused = true;
-    }
-    
-    bool signIn(string userName, string userToken, bool updateStorage = false)
-    {
-        if (loginToGameServer(userName, userToken))
-        {
-            isSignedIn = true;
-            this.username = userName;
-            this.usertoken = userToken;
-            if (updateStorage)
-            {
-                persistentStorage.username = this.username;
-                persistentStorage.usertoken = this.usertoken;
-            }
-            //TODO:
-            //if (!naveTrophy(TrophyId.SuccessfulLanding))
-            award(TrophyId.SuccessfulLanding);
-            return true;
-        }
-        else
-            return false;
-    }
-    
-    bool award(TrophyId id)
-    {
-        if (username.length && usertoken.length)
-            return giveTrophy(username, usertoken, id);
-        else
-            return false;
     }
     
     override void exit()
