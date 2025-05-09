@@ -52,6 +52,7 @@
             appLaunchGame();
         };
         
+        var popupTimeout;
         function showNotification(message, success = true) {
             var popup = document.getElementById("auth_popup");
             var popupText = document.getElementById("popup_text");
@@ -62,16 +63,18 @@
                 ? '0 0 10px rgba(0, 255, 200, 0.4), 0 0 20px rgba(0, 170, 255, 0.2)'
                 : '0 0 10px rgba(255, 100, 100, 0.4), 0 0 20px rgba(255, 50, 50, 0.2)';
             popup.classList.remove('hidden');
-            setTimeout(function() {
+            if (popupTimeout) {
+                clearTimeout(popupTimeout);
+                popupTimeout = null;
+            }
+            popupTimeout = setTimeout(function() {
                 popup.classList.add('hidden');
             }, 3000);
         }
         
         var loginUrl = "https://xtreme3d.ru/gamejolt-server/login.php";
         
-        btnLogin.onclick = function(e) {
-            gjUserData.username = document.getElementById("username").value,
-            gjUserData.token = document.getElementById("token").value
+        function tryLogin() {
             apiRequest(loginUrl, gjUserData, function(status, data) {
                 if (status == "200") {
                     var response = JSON.parse(data);
@@ -85,18 +88,40 @@
                     }
                     else {
                         showNotification("Login failed! " + response.message || "", false);
+                        activateLoginForm();
                     }
                 }
-                else
+                else {
                     showNotification("Login failed! HTTP error " + status, false);
+                    activateLoginForm();
+                }
             });
+        }
+        
+        function deactivateLoginForm() {
+            authForm.style.pointerEvents = "none";
+            authForm.style.opacity = "0.6";
+        }
+        
+        function activateLoginForm() {
+            authForm.style.display = "flex";
+            authForm.style.pointerEvents = "auto";
+            authForm.style.opacity = "1.0";
+        }
+        
+        btnLogin.onclick = function(e) {
+            gjUserData.username = document.getElementById("username").value;
+            gjUserData.token = document.getElementById("token").value;
+            deactivateLoginForm();
+            tryLogin();
         };
 
         btnLogout.onclick = function() {
+            appDeleteUserData();
             document.getElementById("username").value = "";
             document.getElementById("token").value = "";
             btnLogout.classList.add("hidden");
-            authForm.style.display = "flex";
+            activateLoginForm();
             showNotification("Logged out");
         };
         
@@ -108,6 +133,16 @@
                     btnLaunch.disabled = true;
                 else
                     btnLaunch.disabled = false;
+            }
+            else if (e.data.event == "autologin") {
+                if ("username" in e.data && "token" in e.data) {
+                    gjUserData.username = e.data.username;
+                    gjUserData.token = e.data.token;
+                    document.getElementById("username").value = gjUserData.username;
+                    document.getElementById("token").value = gjUserData.token;
+                    deactivateLoginForm();
+                    tryLogin();
+                }
             }
         };
     </script>

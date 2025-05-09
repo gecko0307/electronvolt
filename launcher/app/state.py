@@ -26,3 +26,10 @@ def notifyGameError():
         "event": "game_status_change",
         "status": "error"
     })
+
+def notifyAutoLogin(username, token):
+    sendMessage({
+        "event": "autologin",
+        "username": username,
+        "token": token
+    })

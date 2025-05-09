@@ -101,9 +101,56 @@ def launchGame():
         state.notifyGameError()
 
 def setUserData(data):
-    print("Username: %s" % data["username"])
-    print("Token: %s" % data["token"])
-    # TODO: save user data to file for future use
+    username = data.get("username")
+    token = data.get("token")
+    print("Username: %s" % username)
+    print("Token: %s" % token)
+    appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
+    os.makedirs(appdata_dir, exist_ok=True)
+    userdata_path = os.path.join(appdata_dir, "userdata")
+    try:
+        with open(userdata_path, "w", encoding="utf-8") as f:
+            f.write(f"username: {username}\n")
+            f.write(f"token: {token}\n")
+        print("User data saved to", userdata_path)
+    except Exception as e:
+        print("Failed to save user data:", e)
+
+def getUserData():
+    appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
+    userdata_path = os.path.join(appdata_dir, "userdata")
+    if not os.path.isfile(userdata_path):
+        print("No saved user data found")
+        return None
+    try:
+        with open(userdata_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        data = {}
+        for line in lines:
+            if ':' in line:
+                key, value = line.strip().split(":", 1)
+                data[key.strip()] = value.strip()
+        if "username" in data and "token" in data:
+            print("Loaded user data:", data)
+            return data
+        else:
+            print("? Invalid user data format.")
+            return None
+    except Exception as e:
+        print("? Failed to read user data:", e)
+        return None
+
+def deleteUserData():
+    appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
+    userdata_path = os.path.join(appdata_dir, "userdata")
+    try:
+        if os.path.exists(userdata_path):
+            os.remove(userdata_path)
+            print("User data deleted")
+        else:
+            print("No user data to delete")
+    except Exception as e:
+        print(f"Failed to delete user data: {e}")
 
 bottle.install(SQLitePlugin(dbfile = Config.databasePath))
 
@@ -137,6 +184,7 @@ def cefMain(port):
     bindings = cef.JavascriptBindings()
     bindings.SetFunction("appLaunchGame", launchGame)
     bindings.SetFunction("appSetUserData", setUserData)
+    bindings.SetFunction("appDeleteUserData", deleteUserData)
     browser.SetJavascriptBindings(bindings)
     if platform.system() == "Windows":
         state.hwnd = browser.GetOuterWindowHandle()
@@ -151,6 +199,11 @@ def cefMain(port):
     cef.Shutdown()
 
 class LifespanHandler(object):
+    def OnLoadEnd(self, browser, frame, http_code):
+        data = getUserData()
+        if data is not None:
+            state.notifyAutoLogin(data["username"], data["token"])
+    
     def OnBeforeClose(self, browser):
         print("shutdown")
 
