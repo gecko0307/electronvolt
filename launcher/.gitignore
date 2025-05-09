@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.cache
+.pytest_cache/
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# CEF Python files
+blob_storage/
+webrtc_event_logs
+debug.log
+data/launcher.db

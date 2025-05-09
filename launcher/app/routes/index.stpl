@@ -1,0 +1,32 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="favicon.gif" type="image/x-icon"/>
+    <title>Electronvolt Launcher</title>
+    <link rel="stylesheet" href="style.css" Type="text/css"/>
+</head>
+<body>
+    <h1>Electronvolt Launcher</h1>
+    <button id="btn_launch">Launch</button>
+    <script>
+        var btnLaunch = document.getElementById("btn_launch");
+        
+        btnLaunch.onclick = function(e) {
+            btnLaunch.disabled = true;
+            appLaunchGame();
+        };
+        
+        // Subscribe to launcher events
+        window.onmessage = function(e) {
+            console.log(e.data.event);
+            if (e.data.event == "game_status_change") {
+                if (e.data.status == "running")
+                    btnLaunch.disabled = true;
+                else
+                    btnLaunch.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
