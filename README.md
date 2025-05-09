@@ -12,8 +12,14 @@ Tech details
 ------------
 The game features [Dagon](https://github.com/gecko0307/dagon) as a graphics engine. It also uses [Newton Dynamics](http://newtondynamics.com/) for physics and [SoLoud](https://github.com/jarikomppa/soloud) for playing sounds.
 
+Download
+--------
+Binary releases of the game are available for download on [GameJolt](https://gamejolt.com/games/electronvolt/46185).
+
 Building
 --------
 To build the demo, run `dub build --build=release-nobounds`.
 
-The repository contains only the source code. To run Electronvolt, you'll need binary data which is available [here](https://drive.google.com/file/d/1Lnou9q5CwtwIWarLfWr_xCDp94E7ixv0/view?usp=sharing). Download the archive `eV-assets.7z`, unpack it and put the contents to the `assets` folder alongside with the executable.
+The repository contains only the source code. To run Electronvolt, you'll need binary data which is available [here](https://drive.google.com/file/d/1RbZPQ-sSfckf9nT6jGagbqBsn3YwCV4T/view?usp=drive_link). Download the archive `eV-0.0.7-assets.7z`, unpack it and put the contents alongside with the executable.
+
+To lighten the updates of the asset archive, the game soundtrack (`assets/music` folder) is downloaded separately. It is available [here](https://drive.google.com/file/d/13rnpvkE5LarN8dg_jgjgP4-12Nk639RD/view?usp=sharing). Download the archive `eV-music.7z`, unpack it and put the contents alongside with the executable.
