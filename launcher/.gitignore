@@ -9,6 +9,7 @@ build/
 dist/
 *.egg-info/
 .eggs/
+launcher.spec
 
 # Unit test / coverage
 htmlcov/
@@ -26,12 +27,5 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# CEF Python files
-blob_storage/
-webrtc_event_logs
-debug.log
-error.log
+# Log files
 launcher.log
-stderr.log
-stdout.log
-data/launcher.db

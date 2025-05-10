@@ -58,9 +58,7 @@ imgui.ini
 
 # Log
 electronvolt.log
+launcher.log
 
 # Screenshots
 screenshots/*.png
-
-# Launcher builds
-launcher-win-amd64

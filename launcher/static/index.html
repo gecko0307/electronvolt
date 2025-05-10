@@ -53,7 +53,7 @@
         
         btnLaunch.onclick = function(e) {
             btnLaunch.disabled = true;
-            appLaunchGame();
+            window.pywebview.api.launchGame();
         };
         
         var popupTimeout;
@@ -88,7 +88,7 @@
                         authForm.style.display = "none";
                         btnLogout.classList.remove("hidden");
                         showNotification("Logged in successfully!", true);
-                        appSetUserData(gjUserData);
+                        window.pywebview.api.setUserData(gjUserData);
                     }
                     else {
                         showNotification("Login failed! " + response.message || "", false);
@@ -126,7 +126,7 @@
         };
 
         btnLogout.onclick = function() {
-            appDeleteUserData();
+            window.pywebview.api.deleteUserData();
             document.getElementById("username").value = "";
             document.getElementById("token").value = "";
             btnLogout.classList.add("hidden");
@@ -135,19 +135,20 @@
         };
         
         btnClose.onclick = function() {
-            window.close();
+            window.pywebview.api.close();
         };
         
         // Subscribe to launcher events
         window.onmessage = function(e) {
-            console.log(e.data.event);
             if (e.data.event == "game_status_change") {
+                console.log(e.data.event, e.data.status);
                 if (e.data.status == "running")
                     btnLaunch.disabled = true;
                 else
                     btnLaunch.disabled = false;
             }
             else if (e.data.event == "autologin") {
+                console.log(e.data.event);
                 if ("username" in e.data && "token" in e.data) {
                     gjUserData.username = e.data.username;
                     gjUserData.token = e.data.token;

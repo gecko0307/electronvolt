@@ -42,7 +42,8 @@ h1 {
 }
 
 #auth_form {
-    background: rgba(32, 40, 60, 0.6); /* полупрозрачный тёмный синий */
+    background: rgba(32, 40, 60, 0.6);
+    backdrop-filter: blur(5px);
     padding: 10px 10px;
     border-radius: 12px;
     box-shadow: 0 0 8px #00aaff80, 0 0 12px #00ffc880;
@@ -168,7 +169,7 @@ input[type="password"]:focus {
 }
 
 #btn_close:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
     box-shadow: 0 0 15px rgba(255, 50, 50, 0.6), 0 0 25px rgba(255, 0, 0, 0.4);
 }
 
