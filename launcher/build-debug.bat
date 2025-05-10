@@ -1,0 +1,1 @@
+pyinstaller --clean launcher.py --hidden-import "clr" --onefile --debug=all --console --icon=static/favicon.ico --add-data "static;static" --distpath .. --runtime-hook=check_win_ver.py

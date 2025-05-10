@@ -329,4 +329,4 @@ window = webview.create_window(
     resizable = False
 )
 
-webview.start(startup_js_logic, window, gui = "edgechromium", http_server = True, debug = not is_build)
+webview.start(startup_js_logic, window, http_server = True, debug = not is_build) #gui = "edgechromium"
