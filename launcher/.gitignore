@@ -29,3 +29,6 @@ Thumbs.db
 
 # Log files
 launcher.log
+
+# Binaries
+bin/
