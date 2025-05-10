@@ -72,7 +72,11 @@ def packed_resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-game_executable = "electronvolt.exe"
+if sys.platform == "win32":
+    game_executable = "electronvolt.exe"
+else:
+    game_executable = "electronvolt"
+
 game_path = os.path.join(game_working_dir, game_executable)
 game_process = None
 game_status_thread = None

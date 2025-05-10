@@ -43,9 +43,6 @@ class GameApp: Game
     StdFileSystem fs;
     UI ui;
     
-    bool isSignedIn = false;
-    string username = "";
-    string token = "";
     Dict!(Trophy, TrophyId) trophies;
     
     this(uint w, uint h, bool fullscreen, string title, string[] args)
@@ -63,8 +60,6 @@ class GameApp: Game
         
         ui = New!UI(this, mainMenuScene, args);
         eventManager.onProcessEvent = &ui.onProcessEvent;
-        
-        // TODO: request username, token from launcher
     }
     
     ~this()
