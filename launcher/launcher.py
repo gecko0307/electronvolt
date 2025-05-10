@@ -204,15 +204,19 @@ class Launcher:
         if settings.get("fullscreen") is not None:
             fullscreen = 1 if settings["fullscreen"] else 0
         
-        try:
-            with open(game_settings_file, "r") as file:
-                file_contents = file.read()
-        except FileNotFoundError:
-            log_print(f"Error: {game_settings_file} not found.")
-            return
-
+        file_exists = os.path.exists(game_settings_file)
+        if file_exists:
+            try:
+                with open(game_settings_file, 'r') as file:
+                    file_contents = file.read()
+            except FileNotFoundError:
+                log_print(f"{game_settings_file} not found")
+                return
+        else:
+            file_contents = 'fullscreen: 0;\nwindowWidth: 1280;\nwindowHeight: 720;\n'
+        
         settings_dict = {}
-
+        
         for line in file_contents.splitlines():
             if not line.strip() or not ':' in line:
                 continue
