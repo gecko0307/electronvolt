@@ -10,6 +10,8 @@ import socket
 import select
 import re
 import webview
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 is_build = hasattr(sys, "_MEIPASS")
 
@@ -84,7 +86,6 @@ else:
 game_path = os.path.join(game_working_dir, game_executable)
 game_settings_file = os.path.join(game_working_dir, 'settings.conf')
 game_process = None
-game_status_thread = None
 
 # Game settings
 windowWidth = 1280
@@ -94,6 +95,10 @@ fullscreen = False
 # GameJolt user data
 username = ""
 token = ""
+
+# Threads
+game_ipc_thread = None
+settings_watcher_thread = None
 
 log_print("launcher directory: ", launcher_dir)
 log_print("game executable path: ", game_path)
@@ -136,8 +141,17 @@ def loadSettings():
     windowWidth = settings_dict.get('windowWidth', windowWidth)
     windowHeight = settings_dict.get('windowHeight', windowHeight)
     fullscreen = settings_dict.get('fullscreen', fullscreen)
+    
+    log_print(f"settings reloaded: {windowWidth=} {windowHeight=} {fullscreen=}")
 
 loadSettings()
+
+class SettingsChangeHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        if os.path.abspath(event.src_path) == os.path.abspath(game_settings_file):
+            print("[Watcher] settings.conf modified")
+            loadSettings()
+            client_notify_settings()
 
 class Launcher:
     def __init__(self):
@@ -145,15 +159,15 @@ class Launcher:
     
     def launchGame(self):
         global game_process
-        global game_status_thread
+        global game_ipc_thread
         if game_process is None:
             log_print("staring %s..." % game_path)
             try:
                 game_process = subprocess.Popen([game_path], cwd=game_working_dir)
                 self.minimize()
-                game_status_thread = threading.Thread(target=game_status_loop)
-                game_status_thread.daemon = True
-                game_status_thread.start()
+                game_ipc_thread = threading.Thread(target=game_ipc_loop)
+                game_ipc_thread.daemon = True
+                game_ipc_thread.start()
                 client_notify_game_launched()
             except Exception as e:
                 log_print("failed to start the game: ", e)
@@ -323,20 +337,20 @@ HOST = "127.0.0.1"
 PORT = 65432
 max_clients = 1
 
-def handle_game_request(client, address):
+def handle_game_ipc_request(client, address):
     request_bytes = b"" + client.recv(1024)
     if not request_bytes:
-        log_print("connection closed")
+        log_print("[IPC] connection closed")
         client.close()
     request_str = request_bytes.decode()
-    log_print("game request: ", request_str)
+    log_print("[IPC] request: ", request_str)
     payload = parse_ev_message(request_str)
     if payload is not None:
         #log_print("payload: ", payload)
         if "version" in payload:
-            log_print(f"game version reported: {payload['version']}")
+            log_print(f"[IPC] game version reported: {payload['version']}")
         if "award" in payload:
-            log_print(f"award unlocked: {payload['award']}")
+            log_print(f"[IPC] award unlocked: {payload['award']}")
             if len(username) > 0 and len(token) > 0:
                 client_notify_unlock_trophy(username, token, gj_trophy_id[payload["award"]])
             # TODO: if logged out, store trophies in a file, award later
@@ -345,12 +359,13 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((HOST, PORT))
 server_socket.listen(max_clients)
 
-def game_status_loop():
+def game_ipc_loop():
     global launcher
     global game_process
     global server_socket
     inputs = [server_socket]
     outputs = []
+    log_print("[IPC] started communication loop")
     while True:
         if not launcher.running:
             break;
@@ -366,8 +381,25 @@ def game_status_loop():
                     connection, client_address = s.accept()
                     connection.setblocking(0)
                     inputs.append(connection)
-                    handle_game_request(connection, client_address)
+                    handle_game_ipc_request(connection, client_address)
             time.sleep(1)
+
+def settings_watch_loop():
+    event_handler = SettingsChangeHandler()
+    observer = Observer()
+    observer.schedule(event_handler, path=game_working_dir, recursive=False)
+    observer.start()
+    log_print("[Watcher] started watching settings.conf")
+    while launcher.running:
+        time.sleep(1)
+    observer.stop()
+    observer.join()
+
+def start_settings_watcher():
+    settings_watcher_thread = threading.Thread(target=settings_watch_loop, daemon=True)
+    settings_watcher_thread.start()
+
+start_settings_watcher()
 
 SENSITIVE_KEYS = {"token", "password", "secret"}
 
@@ -450,3 +482,10 @@ window = webview.create_window(
 )
 
 webview.start(startup_js_logic, window, http_server = True, debug = not is_build) #gui = "edgechromium"
+
+launcher.running = False
+
+if settings_watcher_thread is not None:
+    settings_watcher_thread.join()
+if game_ipc_thread is not None:
+    game_ipc_thread.join()
