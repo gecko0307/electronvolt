@@ -222,6 +222,15 @@
                     tryLogin();
                 }
             }
+            else if (e.data.event == "settings") {
+                console.log(e.data.event);
+                if ("resolution" in e.data) {
+                    document.getElementById("resolution").value = e.data.resolution;
+                }
+                if ("fullscreen" in e.data) {
+                    document.getElementById("fullscreen").checked = e.data.fullscreen;
+                }
+            }
             else if (e.data.event == "unlock_trophy") {
                 console.log(e.data.event);
                 if ("username" in e.data && "token" in e.data && "trophyId" in e.data) {

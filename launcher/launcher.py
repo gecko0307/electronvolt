@@ -80,18 +80,64 @@ if sys.platform == "win32":
 else:
     game_executable = "electronvolt"
 
+# Important paths
 game_path = os.path.join(game_working_dir, game_executable)
 game_settings_file = os.path.join(game_working_dir, 'settings.conf')
 game_process = None
 game_status_thread = None
 
-log_print("launcher directory: ", launcher_dir)
-log_print("game executable path: ", game_path)
-log_print("user data directory: ", appdata_dir)
+# Game settings
+windowWidth = 1280
+windowHeight = 720
+fullscreen = False
 
 # GameJolt user data
 username = ""
 token = ""
+
+log_print("launcher directory: ", launcher_dir)
+log_print("game executable path: ", game_path)
+log_print("user data directory: ", appdata_dir)
+
+def loadSettings():
+    global game_settings_file
+    global windowWidth, windowHeight, fullscreen
+    
+    if os.path.exists(game_settings_file):
+        try:
+            with open(game_settings_file, 'r') as file:
+                file_contents = file.read()
+        except FileNotFoundError:
+            log_print(f"{game_settings_file} not found")
+            return
+    else:
+        log_print(f"Settings file {game_settings_file} does not exist. Using default settings")
+        return
+
+    settings_dict = {}
+
+    for line in file_contents.splitlines():
+        if not line.strip() or not ':' in line:
+            continue
+
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.strip().rstrip(";").strip()
+        
+        if value.isdigit():
+            value = int(value)
+        elif value.lower() == 'true':
+            value = True
+        elif value.lower() == 'false':
+            value = False
+
+        settings_dict[key] = value
+
+    windowWidth = settings_dict.get('windowWidth', windowWidth)
+    windowHeight = settings_dict.get('windowHeight', windowHeight)
+    fullscreen = settings_dict.get('fullscreen', fullscreen)
+
+loadSettings()
 
 class Launcher:
     def __init__(self):
@@ -179,17 +225,6 @@ class Launcher:
         except Exception as e:
             log_print("failed to delete user data: ", e)
         pass
-    
-    def updateSettings(self, settings):
-        log_print("updating settings to ", settings)
-        if settings.get("resolution"):
-            resolution = settings["resolution"]
-            width, height = resolution.split("x")
-            windowWidth = int(width)
-            windowHeight = int(height)
-        if settings.get("fullscreen"):
-            fullscreen = settings.fullscreen
-        # TODO: update settings.conf
     
     def updateSettings(self, settings):
         global game_settings_file
@@ -377,6 +412,13 @@ def client_notify_game_error():
         "status": "error"
     })
 
+def client_notify_settings():
+    client_post_message({
+        "event": "settings",
+        "resolution": str(windowWidth) + "x" + str(windowHeight),
+        "fullscreen": fullscreen
+    })
+
 def client_notify_auto_login(username, token):
     client_post_message({
         "event": "autologin",
@@ -393,6 +435,7 @@ def client_notify_unlock_trophy(username, token, trophyId):
     })
 
 def startup_js_logic(window):
+    client_notify_settings()
     data = launcher.getUserData()
     if data is not None:
         client_notify_auto_login(data["username"], data["token"])
