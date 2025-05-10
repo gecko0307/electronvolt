@@ -8,6 +8,7 @@ import logging
 import json
 import socket
 import select
+import re
 import webview
 
 is_build = hasattr(sys, "_MEIPASS")
@@ -80,6 +81,7 @@ else:
     game_executable = "electronvolt"
 
 game_path = os.path.join(game_working_dir, game_executable)
+game_settings_file = os.path.join(game_working_dir, 'settings.conf')
 game_process = None
 game_status_thread = None
 
@@ -178,6 +180,76 @@ class Launcher:
             log_print("failed to delete user data: ", e)
         pass
     
+    def updateSettings(self, settings):
+        log_print("updating settings to ", settings)
+        if settings.get("resolution"):
+            resolution = settings["resolution"]
+            width, height = resolution.split("x")
+            windowWidth = int(width)
+            windowHeight = int(height)
+        if settings.get("fullscreen"):
+            fullscreen = settings.fullscreen
+        # TODO: update settings.conf
+    
+    def updateSettings(self, settings):
+        global game_settings_file
+        log_print("updating settings to ", settings)
+        
+        if settings.get("resolution"):
+            resolution = settings["resolution"]
+            width, height = resolution.split("x")
+            windowWidth = int(width)
+            windowHeight = int(height)
+        
+        if settings.get("fullscreen") is not None:
+            fullscreen = 1 if settings["fullscreen"] else 0
+        
+        try:
+            with open(game_settings_file, "r") as file:
+                file_contents = file.read()
+        except FileNotFoundError:
+            log_print(f"Error: {game_settings_file} not found.")
+            return
+
+        settings_dict = {}
+
+        for line in file_contents.splitlines():
+            if not line.strip() or not ':' in line:
+                continue
+
+            key, value = line.split(":", 1)
+            key = key.strip()
+            value = value.strip().rstrip(";").strip()
+
+            if value.isdigit():
+                value = int(value)
+            elif value.lower() == "true":
+                value = True
+            elif value.lower() == "false":
+                value = False
+
+            settings_dict[key] = value
+
+        if "windowWidth" in locals():
+            settings_dict["windowWidth"] = windowWidth
+        if "windowHeight" in locals():
+            settings_dict["windowHeight"] = windowHeight
+        if "fullscreen" in locals():
+            settings_dict["fullscreen"] = fullscreen
+
+        try:
+            with open(game_settings_file, "w") as file:
+                for key, value in settings_dict.items():
+                    if isinstance(value, bool):
+                        value = "true" if value else "false"
+                    elif isinstance(value, int):
+                        value = str(value)
+                    file.write(f"{key}: {value};\n")
+        except Exception as e:
+            log_print(f"Error writing to {game_settings_file}: {e}")
+
+        log_print("Settings updated successfully.")
+    
     def minimize(self):
         log_print("minimize")
         window.minimize()
@@ -208,7 +280,7 @@ def parse_ev_message(msg):
         print(f"Failed to parse message: {e}")
         return None
 
-HOST = '127.0.0.1'
+HOST = "127.0.0.1"
 PORT = 65432
 max_clients = 1
 
@@ -246,6 +318,7 @@ def game_status_loop():
         elif game_process is not None and game_process.poll() is not None:
             launcher.restore()
             client_notify_game_stopped()
+            game_process = None
             break
         else:
             readable, writable, exceptional = select.select(inputs, outputs, inputs, 1)

@@ -23,6 +23,7 @@ h1 {
 }
 
 #btn_launch {
+    width: 280px;
     padding: 15px 40px;
     font-size: 1.3em;
     font-weight: bold;
@@ -37,6 +38,27 @@ h1 {
 }
 
 #btn_launch:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #00ffc8, 0 0 30px #00aaff;
+}
+
+#btn_settings {
+    width: 280px;
+    padding: 15px 40px;
+    margin-top: 10px;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #00ffc8;
+    background: none;
+    border: 1px solid #00ffc8;
+    outline: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
+}
+
+#btn_settings:hover {
     transform: scale(1.05);
     box-shadow: 0 0 20px #00ffc8, 0 0 30px #00aaff;
 }
@@ -196,4 +218,102 @@ input[type="password"]:focus {
 .hidden {
     opacity: 0;
     pointer-events: none;
+}
+
+#settings_popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#settings_popup_content {
+    position: relative;
+    background: rgba(32, 40, 60, 1.0);
+    border-radius: 12px;
+    box-shadow: 0 0 10px #00aaff80, 0 0 15px #00ffc880;
+    max-width: 400px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #00ffc8;
+}
+
+#settings_popup_content h2 {
+    font-size: 1.5em;
+    color: #00ffc8;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+#settings_popup_content label {
+    font-size: 1em;
+    color: #aeefff;
+    margin-bottom: 10px;
+    text-shadow: 0 0 2px #003344;
+}
+
+#settings_popup_content select {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px;
+    font-size: 1.1em;
+    margin-bottom: 0;
+    background-color: #1a1a2f;
+    color: #fff;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+}
+
+#btn_save_settings {
+    padding: 12px 35px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    font-size: 1em;
+    font-weight: bold;
+    color: #111;
+    background: linear-gradient(145deg, #00ffaa, #007777);
+    border: none;
+    outline: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
+}
+
+#btn_save_settings:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #00ffaa, 0 0 30px #007777;
+}
+
+#btn_close_settings {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 10px 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    background: linear-gradient(145deg, #ff5e5e, #cc0000);
+    border: none;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
+}
+
+#btn_close_settings:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 15px rgba(255, 50, 50, 0.6), 0 0 25px rgba(255, 0, 0, 0.4);
 }

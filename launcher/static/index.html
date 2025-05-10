@@ -9,6 +9,7 @@
 <body>
     <h1>Welcome!</h1>
     <button id="btn_launch">Launch Electronvolt</button>
+    <button id="btn_settings">Settings</button>
     <div id="auth_form">
         <h2>Sign in with your<br>GameJolt account (optional)</h2>
         <input type="text" id="username" placeholder="Username" required>
@@ -23,13 +24,36 @@
     <div id="auth_popup" class="popup hidden">
         <div class="popup_content" id="popup_text">Authorization result</div>
     </div>
+    <div id="settings_popup">
+        <div id="settings_popup_content">
+            <h2>Settings</h2>
+            <label for="resolution">Resolution:</label>
+            <select id="resolution">
+                <option value="1024x768">1024x768 / XGA</option>
+                <option value="1280x720" selected>1280x720 / HD</option>
+                <option value="1920x1080">1920x1080 / Full HD</option>
+                <option value="2560x1080">2560x1080 / UltraWide Full HD</option>
+                <option value="2560x1440">2560x1440 / 2k Quad HD</option>
+                <option value="3840x2160">3840x2160 / 4k Ultra HD</option>
+                <option value="7680x4320">7680x4320 / 8k Full Ultra HD</option>
+            </select>
+            <br>
+            <label for="fullscreen">
+                <input type="checkbox" id="fullscreen"> Fullscreen
+            </label>
+            <button id="btn_save_settings">Save Settings</button>
+        </div>
+    </div>
     <script>
         var btnLaunch = document.getElementById("btn_launch");
+        var btnSettings = document.getElementById("btn_settings");
         var authForm = document.getElementById("auth_form");
         var toggleToken = document.getElementById("toggle_token");
         var btnLogin = document.getElementById("btn_login");
         var btnLogout = document.getElementById("btn_logout");
         var btnClose = document.getElementById("btn_close");
+        var settingsPopup = document.getElementById("settings_popup");
+        var btnSaveSettings = document.getElementById("btn_save_settings");
         
         var gjUserData = {
             username: "",
@@ -54,6 +78,26 @@
         btnLaunch.onclick = function(e) {
             btnLaunch.disabled = true;
             window.pywebview.api.launchGame();
+        };
+        
+        btnSettings.onclick = function() {
+            settingsPopup.style.display = "flex";
+        };
+        
+        btnSaveSettings.onclick = function() {
+            var resolution = document.getElementById("resolution").value;
+            var fullscreen = document.getElementById("fullscreen").checked;
+            const settings = {
+                resolution, fullscreen
+            };
+            window.pywebview.api.updateSettings(settings);
+            settingsPopup.style.display = "none";
+        };
+        
+        window.onclick = function(event) {
+            if (event.target == settingsPopup) {
+                settingsPopup.style.display = "none";
+            }
         };
         
         var popupTimeout;
