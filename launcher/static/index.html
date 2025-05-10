@@ -77,6 +77,7 @@
         }
         
         var loginUrl = "https://xtreme3d.ru/gamejolt-server/login.php";
+        var trophyUrl = "https://xtreme3d.ru/gamejolt-server/trophy.php";
         
         function tryLogin() {
             apiRequest(loginUrl, gjUserData, function(status, data) {
@@ -98,6 +99,25 @@
                 else {
                     showNotification("Login failed! HTTP error " + status, false);
                     activateLoginForm();
+                }
+            });
+        }
+        
+        function tryGiveTrophy(trophy_id) {
+            apiRequest(trophyUrl, { ...gjUserData, trophy_id }, function(status, data) {
+                if (status == "200") {
+                    var response = JSON.parse(data);
+                    console.log(response);
+                    var success = response.success == "true";
+                    if (success) {
+                        showNotification("You acquired a trophy! 🎉", true);
+                    }
+                    else {
+                        showNotification("Error! " + response.message || "", false);
+                    }
+                }
+                else {
+                    showNotification("HTTP error " + status, false);
                 }
             });
         }
@@ -156,6 +176,16 @@
                     document.getElementById("token").value = gjUserData.token;
                     deactivateLoginForm();
                     tryLogin();
+                }
+            }
+            else if (e.data.event == "unlock_trophy") {
+                console.log(e.data.event);
+                if ("username" in e.data && "token" in e.data && "trophyId" in e.data) {
+                    gjUserData.username = e.data.username;
+                    gjUserData.token = e.data.token;
+                    document.getElementById("username").value = gjUserData.username;
+                    document.getElementById("token").value = gjUserData.token;
+                    tryGiveTrophy(e.data.trophyId);
                 }
             }
         };

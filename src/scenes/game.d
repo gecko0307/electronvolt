@@ -37,6 +37,8 @@ import loading;
 import ui;
 import dagon.ext.newton;
 import audio;
+import gameapp;
+import ipc;
 
 Vector2f lissajousCurve(float t)
 {
@@ -45,7 +47,7 @@ Vector2f lissajousCurve(float t)
 
 class GameScene: Scene, NewtonRaycaster
 {
-    Game game;
+    GameApp game;
     UI ui;
     
     GameLoadingScreen loadingScreen;
@@ -109,7 +111,7 @@ class GameScene: Scene, NewtonRaycaster
     
     Array!string music;
     
-    this(Game game, UI ui)
+    this(GameApp game, UI ui)
     {
         super(game);
         this.game = game;
@@ -308,6 +310,8 @@ class GameScene: Scene, NewtonRaycaster
         }
         
         onReset();
+        
+        ipcSend("eV:award=SuccessfulLanding");
     }
     
     override void onReset()

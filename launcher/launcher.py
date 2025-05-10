@@ -6,6 +6,8 @@ import time
 import datetime
 import logging
 import json
+import socket
+import select
 import webview
 
 is_build = hasattr(sys, "_MEIPASS")
@@ -191,14 +193,69 @@ class Launcher:
 
 launcher = Launcher()
 
+gj_trophy_id = {
+    "SuccessfulLanding": "267023"
+}
+
+def parse_ev_message(msg):
+    if not msg.startswith("eV:"):
+        return None
+    try:
+        kv_string = msg[3:]
+        pairs = kv_string.strip().split("&")
+        return {k: v for k, v in (pair.split("=", 1) for pair in pairs)}
+    except Exception as e:
+        print(f"Failed to parse message: {e}")
+        return None
+
+HOST = '127.0.0.1'
+PORT = 65432
+max_clients = 1
+
+def handle_game_request(client, address):
+    request_bytes = b"" + client.recv(1024)
+    if not request_bytes:
+        log_print("connection closed")
+        client.close()
+    request_str = request_bytes.decode()
+    log_print("game request: ", request_str)
+    payload = parse_ev_message(request_str)
+    if payload is not None:
+        #log_print("payload: ", payload)
+        if "version" in payload:
+            log_print(f"game version reported: {payload['version']}")
+        if "award" in payload:
+            log_print(f"award unlocked: {payload['award']}")
+            if len(username) > 0 and len(token) > 0:
+                client_notify_unlock_trophy(username, token, gj_trophy_id[payload["award"]])
+            # TODO: if logged out, store trophies in a file, award later
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((HOST, PORT))
+server_socket.listen(max_clients)
+
 def game_status_loop():
+    global launcher
     global game_process
+    global server_socket
+    inputs = [server_socket]
+    outputs = []
     while True:
-        if game_process is not None and game_process.poll() is not None:
+        if not launcher.running:
+            break;
+        elif game_process is not None and game_process.poll() is not None:
             launcher.restore()
             client_notify_game_stopped()
             break
-        time.sleep(1)
+        else:
+            readable, writable, exceptional = select.select(inputs, outputs, inputs, 1)
+            for s in readable:
+                if s is server_socket:
+                    connection, client_address = s.accept()
+                    connection.setblocking(0)
+                    inputs.append(connection)
+                    handle_game_request(connection, client_address)
+            time.sleep(1)
 
 SENSITIVE_KEYS = {"token", "password", "secret"}
 
@@ -248,6 +305,14 @@ def client_notify_auto_login(username, token):
         "event": "autologin",
         "username": username,
         "token": token
+    })
+
+def client_notify_unlock_trophy(username, token, trophyId):
+    client_post_message({
+        "event": "unlock_trophy",
+        "username": username,
+        "token": token,
+        "trophyId": trophyId
     })
 
 def startup_js_logic(window):

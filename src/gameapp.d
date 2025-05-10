@@ -36,14 +36,12 @@ import scenes.mainmenu;
 import scenes.game;
 import audio;
 import ui;
-import client;
+import ipc;
 
 class GameApp: Game
 {
     StdFileSystem fs;
     UI ui;
-    
-    Dict!(Trophy, TrophyId) trophies;
     
     this(uint w, uint h, bool fullscreen, string title, string[] args)
     {
@@ -51,28 +49,21 @@ class GameApp: Game
         
         fs = New!StdFileSystem();
         
-        trophies = dict!(Trophy, TrophyId);
-        addTrophy(TrophyId.SuccessfulLanding);
-        
         auto mainMenuScene = New!MainMenuScene(this);
         scenes["MainMenu"] = mainMenuScene;
         currentScene = mainMenuScene;
         
         ui = New!UI(this, mainMenuScene, args);
         eventManager.onProcessEvent = &ui.onProcessEvent;
+        
+        // TODO: get IPC port from args[1]
+        ipcInit("127.0.0.1", 65432);
+        ipcSend("eV:version=0.1.0");
     }
     
     ~this()
     {
         Delete(fs);
-        Delete(trophies);
-    }
-    
-    Trophy addTrophy(TrophyId id)
-    {
-        Trophy trophy = New!Trophy(id, this);
-        trophies[id] = trophy;
-        return trophy;
     }
     
     override void onUpdate(Time t)
