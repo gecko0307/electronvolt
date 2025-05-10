@@ -13,6 +13,7 @@ private __gshared
 {
     string ipcHost = "127.0.0.1";
     ushort ipcPort = 65432;
+    bool launcherResponding = true;
 }
 
 private void ipcSendSync(string message)
@@ -23,9 +24,11 @@ private void ipcSendSync(string message)
         ipcSocket.connect(new std.socket.InternetAddress(ipcHost, ipcPort));
         ipcSocket.send(message);
         ipcSocket.close();
+        launcherResponding = true;
     }
     catch(Exception e)
     {
+        launcherResponding = false;
         logWarning("Failed to send message to the launcher. ", e.msg);
     }
 }
@@ -36,7 +39,13 @@ void ipcInit(string host, ushort port)
     ipcPort = port;
 }
 
-void ipcSend(string message)
+void ipcSend(string message, bool ping = false)
 {
-    taskPool.put(task!ipcSendSync(message));
+    if (ping || launcherResponding)
+        taskPool.put(task!ipcSendSync(message));
+}
+
+void ipcPing(string message)
+{
+    ipcSend(message, true);
 }

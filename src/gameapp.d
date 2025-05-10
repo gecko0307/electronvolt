@@ -58,7 +58,7 @@ class GameApp: Game
         
         // TODO: get IPC port from args[1]
         ipcInit("127.0.0.1", 65432);
-        ipcSend("eV:version=0.1.0");
+        ipcPing("eV:version=0.1.0");
     }
     
     ~this()
