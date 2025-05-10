@@ -10,6 +10,8 @@ import webview
 
 is_build = hasattr(sys, "_MEIPASS")
 
+appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
+
 if is_build:
     # Release version
     launcher_dir = os.path.dirname(sys.executable)
@@ -77,6 +79,7 @@ game_status_thread = None
 
 log_print("launcher directory: ", launcher_dir)
 log_print("game executable path: ", game_path)
+log_print("user data directory: ", appdata_dir)
 
 # GameJolt user data
 username = ""
@@ -106,11 +109,11 @@ class Launcher:
     
     def setUserData(self, data):
         log_print("received user data")
+        global appdata_dir
         global username
         global token
         username = data.get("username")
         token = data.get("token")
-        appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
         os.makedirs(appdata_dir, exist_ok=True)
         userdata_path = os.path.join(appdata_dir, "userdata")
         try:
@@ -124,9 +127,9 @@ class Launcher:
     
     def getUserData(self):
         log_print("reading user data...")
+        global appdata_dir
         global username
         global token
-        appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
         userdata_path = os.path.join(appdata_dir, "userdata")
         if not os.path.isfile(userdata_path):
             log_print("no saved user data found")
@@ -153,11 +156,11 @@ class Launcher:
     
     def deleteUserData(self):
         log_print("deleting user data...")
+        global appdata_dir
         global username
         global token
         username = ""
         token = ""
-        appdata_dir = os.path.join(os.environ["APPDATA"], "Electronvolt")
         userdata_path = os.path.join(appdata_dir, "userdata")
         try:
             if os.path.exists(userdata_path):
