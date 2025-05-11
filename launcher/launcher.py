@@ -481,6 +481,12 @@ window = webview.create_window(
     resizable = False
 )
 
+try:
+    import pyi_splash
+    pyi_splash.close()
+except ImportError:
+    pass
+
 webview.start(startup_js_logic, window, http_server = True, debug = not is_build) #gui = "edgechromium"
 
 launcher.running = False
