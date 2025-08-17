@@ -169,7 +169,7 @@ class GameScene: Scene, NewtonRaycaster
 
         environment.backgroundColor = Color4f(0.9f, 0.8f, 1.0f, 1.0f);
         
-        aEnvmap.texture.enableRepeat = false;
+        aEnvmap.texture.enableRepeat(false);
         environment.ambientMap = aEnvmap.texture;
         environment.ambientEnergy = 0.4f;
         environment.ambientBRDF = aBRDF.texture;
@@ -231,6 +231,7 @@ class GameScene: Scene, NewtonRaycaster
         eSky.material.depthWrite = false;
         eSky.material.useCulling = false;
         eSky.material.baseColorTexture = aEnvmap.texture;
+        eSky.material.linearColor = true;
         
         auto box = New!NewtonBoxShape(Vector3f(0.625, 0.607, 0.65), world);
         auto boxMat = addMaterial();
