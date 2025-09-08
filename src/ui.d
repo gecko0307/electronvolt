@@ -343,7 +343,7 @@ class UI: EventListener
                         switch(i)
                         {
                             case 0:
-                                eventManager.generateUserEvent(1);
+                                eventManager.queueUserEvent(1);
                                 break;
                             case 1:
                                 settingsVisible = !settingsVisible;

@@ -1,51 +1,42 @@
 module ipc;
 
-import std.socket;
-import std.parallelism;
+import std.socket: TcpSocket, InternetAddress;
 
+import dlib.core.ownership;
+import dagon.core.messaging;
 import dagon.core.logger;
 
-/*
+/**
  * IPC client for asynchronous communication with the launcher
  */
-
-private __gshared
+class LauncherClientService: Service
 {
-    string ipcHost = "127.0.0.1";
-    ushort ipcPort = 65432;
-    bool launcherResponding = true;
-}
+    string host;
+    ushort port;
+    bool launcherResponding = false;
 
-private void ipcSendSync(string message)
-{
-    auto ipcSocket = new TcpSocket();
-    try
+    this(string address, MessageBroker broker, Owner owner, string host, ushort port)
     {
-        ipcSocket.connect(new std.socket.InternetAddress(ipcHost, ipcPort));
-        ipcSocket.send(message);
-        ipcSocket.close();
-        launcherResponding = true;
+        super(address, broker, owner);
+        this.host = host;
+        this.port = port;
     }
-    catch(Exception e)
+
+    override void onMessage(int domain, string sender, string message, void* payload)
     {
-        launcherResponding = false;
-        logWarning("Failed to send message to the launcher. ", e.msg);
+        // TODO: make GC-free socket library
+        auto ipcSocket = new TcpSocket();
+        try
+        {
+            ipcSocket.connect(new InternetAddress(host, port));
+            ipcSocket.send(message);
+            ipcSocket.close();
+            launcherResponding = true;
+        }
+        catch(Exception e)
+        {
+            launcherResponding = false;
+            queueLog(LogLevel.Warning, e.msg);
+        }
     }
-}
-
-void ipcInit(string host, ushort port)
-{
-    ipcHost = host;
-    ipcPort = port;
-}
-
-void ipcSend(string message, bool ping = false)
-{
-    if (ping || launcherResponding)
-        taskPool.put(task!ipcSendSync(message));
-}
-
-void ipcPing(string message)
-{
-    ipcSend(message, true);
 }

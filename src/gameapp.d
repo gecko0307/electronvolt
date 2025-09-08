@@ -40,6 +40,7 @@ import ipc;
 
 class GameApp: Game
 {
+    LauncherClientService launcherClient;
     StdFileSystem fs;
     UI ui;
     
@@ -57,8 +58,10 @@ class GameApp: Game
         eventManager.onProcessEvent = &ui.onProcessEvent;
         
         // TODO: get IPC port from args[1]
-        ipcInit("127.0.0.1", 65432);
-        ipcPing("eV:version=0.1.0");
+        launcherClient = New!LauncherClientService("LauncherClient", eventManager.messageBroker, this, "127.0.0.1", cast(ushort)65432);
+        launcherClient.run();
+        
+        eventManager.messageBroker.enabled = true;
     }
     
     ~this()
