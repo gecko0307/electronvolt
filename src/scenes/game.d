@@ -311,7 +311,6 @@ class GameScene: Scene, NewtonRaycaster
         
         onReset();
         
-        //ipcSend("eV:award=SuccessfulLanding");
         queueMessage("LauncherClient", "eV:award=SuccessfulLanding");
     }
     
